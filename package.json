@@ -12,6 +12,7 @@
     "db:migrate": "pnpm --filter @teachflow/database db:migrate"
   },
   "devDependencies": {
+    "next": "16.2.7",
     "turbo": "^2.0.0",
     "typescript": "^5.0.0"
   }
