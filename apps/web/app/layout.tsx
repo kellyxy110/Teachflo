@@ -15,15 +15,14 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return (
-    <ClerkProvider
-      publishableKey={
-        process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY ?? "pk_test_placeholder"
-      }
-    >
-      <html lang="en" className={inter.className}>
-        <body className="min-h-screen bg-bg antialiased">{children}</body>
-      </html>
-    </ClerkProvider>
+  const publishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
+  const inner = (
+    <html lang="en" className={inter.className}>
+      <body className="min-h-screen bg-bg antialiased">{children}</body>
+    </html>
   );
+
+  if (!publishableKey) return inner;
+
+  return <ClerkProvider publishableKey={publishableKey}>{inner}</ClerkProvider>;
 }
