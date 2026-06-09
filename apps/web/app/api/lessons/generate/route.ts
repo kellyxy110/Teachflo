@@ -2,7 +2,9 @@ import { auth } from "@clerk/nextjs/server";
 import OpenAI from "openai";
 import { buildLessonPrompt } from "@teachflow/ai-prompts";
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+function getOpenAI() {
+  return new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+}
 
 export async function POST(request: Request) {
   const { userId } = await auth();
@@ -17,7 +19,7 @@ export async function POST(request: Request) {
 
   const prompt = buildLessonPrompt({ subject, classLevel, topic, week, term });
 
-  const stream = await openai.chat.completions.create({
+  const stream = await getOpenAI().chat.completions.create({
     model: "gpt-4o",
     messages: [{ role: "user", content: prompt }],
     stream: true,

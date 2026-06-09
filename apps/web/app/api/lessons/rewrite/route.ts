@@ -3,7 +3,9 @@ import OpenAI from "openai";
 import { buildRewritePrompt } from "@teachflow/ai-prompts";
 import type { RewriteInput } from "@teachflow/ai-prompts";
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+function getOpenAI() {
+  return new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+}
 
 export async function POST(request: Request) {
   const { userId } = await auth();
@@ -28,7 +30,7 @@ export async function POST(request: Request) {
     subject,
   } as RewriteInput);
 
-  const stream = await openai.chat.completions.create({
+  const stream = await getOpenAI().chat.completions.create({
     model: "gpt-4o",
     messages: [{ role: "user", content: prompt }],
     stream: true,
