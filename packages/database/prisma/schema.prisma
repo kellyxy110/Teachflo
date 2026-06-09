@@ -1,0 +1,391 @@
+// schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────
+// SCHOOL (TENANT)
+// ─────────────────────────────────────────────
+
+model School {
+  id        String   @id @default(cuid())
+  name      String
+  code      String   @unique
+  state     String
+  lga       String?
+  address   String?
+  logoUrl   String?
+  plan      Plan     @default(FREE)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  teachers Teacher[]
+  classes  Class[]
+  students Student[]
+  lessons  Lesson[]
+  exams    Exam[]
+  library  LibraryItem[]
+  scores   Score[]
+
+  @@map("schools")
+}
+
+enum Plan {
+  FREE
+  BASIC
+  PRO
+  ENTERPRISE
+}
+
+// ─────────────────────────────────────────────
+// TEACHER
+// ─────────────────────────────────────────────
+
+model Teacher {
+  id        String      @id @default(cuid())
+  clerkId   String      @unique
+  schoolId  String
+  school    School      @relation(fields: [schoolId], references: [id])
+  firstName String
+  lastName  String
+  email     String
+  role      TeacherRole @default(TEACHER)
+  subjects  String[]
+  isActive  Boolean     @default(true)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  lessons  Lesson[]
+  exams    Exam[]
+  scores   Score[]
+  homework Homework[]
+
+  @@unique([schoolId, email])
+  @@map("teachers")
+}
+
+enum TeacherRole {
+  TEACHER
+  HOD
+  ADMIN
+  SUPER_ADMIN
+}
+
+// ─────────────────────────────────────────────
+// CLASS
+// ─────────────────────────────────────────────
+
+model Class {
+  id        String     @id @default(cuid())
+  schoolId  String
+  school    School     @relation(fields: [schoolId], references: [id])
+  name      String
+  level     ClassLevel
+  arm       String?
+  term      Term       @default(FIRST)
+  session   String
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  students Student[]
+  scores   Score[]
+  lessons  Lesson[]
+  exams    Exam[]
+  homework Homework[]
+
+  @@unique([schoolId, name, session])
+  @@map("classes")
+}
+
+enum ClassLevel {
+  JS1
+  JS2
+  JS3
+  SS1
+  SS2
+  SS3
+}
+
+enum Term {
+  FIRST
+  SECOND
+  THIRD
+}
+
+// ─────────────────────────────────────────────
+// STUDENT
+// ─────────────────────────────────────────────
+
+model Student {
+  id        String   @id @default(cuid())
+  schoolId  String
+  school    School   @relation(fields: [schoolId], references: [id])
+  classId   String
+  class     Class    @relation(fields: [classId], references: [id])
+  firstName String
+  lastName  String
+  regNumber String?
+  gender    Gender?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  scores Score[]
+
+  @@unique([schoolId, regNumber])
+  @@map("students")
+}
+
+enum Gender {
+  MALE
+  FEMALE
+}
+
+// ─────────────────────────────────────────────
+// SCORE
+// ─────────────────────────────────────────────
+
+model Score {
+  id        String  @id @default(cuid())
+  schoolId  String
+  school    School  @relation(fields: [schoolId], references: [id])
+  studentId String
+  student   Student @relation(fields: [studentId], references: [id])
+  classId   String
+  class     Class   @relation(fields: [classId], references: [id])
+  teacherId String
+  teacher   Teacher @relation(fields: [teacherId], references: [id])
+  subject   String
+  term      Term
+  session   String
+
+  ca1    Float?
+  ca2    Float?
+  exam   Float?
+  total  Float?
+  grade  String?
+  remark String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([studentId, subject, term, session])
+  @@map("scores")
+}
+
+// ─────────────────────────────────────────────
+// LESSON
+// ─────────────────────────────────────────────
+
+model Lesson {
+  id        String     @id @default(cuid())
+  schoolId  String
+  school    School     @relation(fields: [schoolId], references: [id])
+  teacherId String
+  teacher   Teacher    @relation(fields: [teacherId], references: [id])
+  classId   String?
+  class     Class?     @relation(fields: [classId], references: [id])
+
+  subject      String
+  topic        String
+  classLevel   ClassLevel
+  week         Int?
+  term         Term?
+
+  objectives   String[]
+  introduction String
+  content      Json
+  activities   Json[]
+  evaluation   String[]
+  homework     String[]
+
+  mode         LessonMode @default(STANDARD)
+  aiModel      String?
+  promptTokens Int?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("lessons")
+}
+
+enum LessonMode {
+  STANDARD
+  ELI12
+  WAEC
+  JAMB
+  JUPEB
+}
+
+// ─────────────────────────────────────────────
+// EXAM
+// ─────────────────────────────────────────────
+
+model Exam {
+  id        String     @id @default(cuid())
+  schoolId  String
+  school    School     @relation(fields: [schoolId], references: [id])
+  teacherId String
+  teacher   Teacher    @relation(fields: [teacherId], references: [id])
+  classId   String?
+  class     Class?     @relation(fields: [classId], references: [id])
+
+  title      String
+  subject    String
+  topic      String
+  classLevel ClassLevel
+  examType   ExamType
+  difficulty Difficulty
+  duration   Int?
+
+  questions Question[]
+
+  aiModel      String?
+  promptTokens Int?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("exams")
+}
+
+enum ExamType {
+  SCHOOL_TEST
+  SCHOOL_EXAM
+  WAEC_MOCK
+  JAMB_PREP
+  JUPEB_PREP
+}
+
+enum Difficulty {
+  BASIC
+  APPLICATION
+  WAEC
+  JAMB
+  JUPEB
+}
+
+// ─────────────────────────────────────────────
+// QUESTION
+// ─────────────────────────────────────────────
+
+model Question {
+  id     String @id @default(cuid())
+  examId String
+  exam   Exam   @relation(fields: [examId], references: [id], onDelete: Cascade)
+
+  section      Section
+  number       Int
+  type         QuestionType
+
+  stem          String
+  optionA       String?
+  optionB       String?
+  optionC       String?
+  optionD       String?
+  optionE       String?
+  correctOption String?
+
+  questionText String?
+  markScheme   String?
+
+  solution       String
+  explanation    String
+  distractors    Json?
+  commonMistakes String?
+  examTip        String?
+  curriculumRef  String?
+
+  createdAt DateTime @default(now())
+
+  @@map("questions")
+}
+
+enum Section {
+  A
+  B
+  C
+}
+
+enum QuestionType {
+  MCQ
+  SHORT_ANSWER
+  ESSAY
+  STRUCTURED
+  CALCULATION
+}
+
+// ─────────────────────────────────────────────
+// HOMEWORK
+// ─────────────────────────────────────────────
+
+model Homework {
+  id          String         @id @default(cuid())
+  schoolId    String
+  teacherId   String
+  teacher     Teacher        @relation(fields: [teacherId], references: [id])
+  classId     String
+  class       Class          @relation(fields: [classId], references: [id])
+
+  subject     String
+  title       String
+  description String
+  dueDate     DateTime?
+  status      HomeworkStatus @default(ACTIVE)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("homework")
+}
+
+enum HomeworkStatus {
+  ACTIVE
+  CLOSED
+  ARCHIVED
+}
+
+// ─────────────────────────────────────────────
+// LIBRARY
+// ─────────────────────────────────────────────
+
+model LibraryItem {
+  id       String  @id @default(cuid())
+  schoolId String?
+  school   School? @relation(fields: [schoolId], references: [id])
+
+  title        String
+  subject      String
+  classLevel   ClassLevel?
+  topic        String?
+  category     LibraryCategory
+  examType     ExamType?
+
+  fileUrl  String
+  fileSize Int?
+  pageCount Int?
+
+  isPublic      Boolean @default(false)
+  isAIGenerated Boolean @default(false)
+
+  downloadCount Int      @default(0)
+  createdAt     DateTime @default(now())
+
+  @@map("library_items")
+}
+
+enum LibraryCategory {
+  TEXTBOOK
+  REVISION_GUIDE
+  PAST_QUESTIONS
+  FORMULA_SHEET
+  TEACHER_NOTES
+  AI_NOTES
+}
