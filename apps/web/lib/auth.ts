@@ -1,8 +1,12 @@
-import { auth, currentUser } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { db } from "./db";
 
+const CLERK_KEY = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
+
 export async function getCurrentTeacher() {
+  if (!CLERK_KEY) redirect("/setup");
+
+  const { auth } = await import("@clerk/nextjs/server");
   const { userId } = await auth();
   if (!userId) redirect("/sign-in");
 
