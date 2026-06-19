@@ -9,7 +9,12 @@ export const proxy = CLERK_KEY
   ? (() => {
       // eslint-disable-next-line @typescript-eslint/no-require-imports
       const { clerkMiddleware, createRouteMatcher } = require("@clerk/nextjs/server");
-      const isPublicRoute = createRouteMatcher(["/sign-in(.*)", "/sign-up(.*)"]);
+      const isPublicRoute = createRouteMatcher([
+        "/sign-in(.*)",
+        "/sign-up(.*)",
+        "/setup(.*)",
+        "/__clerk(.*)",
+      ]);
       return clerkMiddleware(async (auth: { protect: () => Promise<void> }, request: NextRequest) => {
         if (!isPublicRoute(request)) await auth.protect();
       });
@@ -20,5 +25,6 @@ export const config = {
   matcher: [
     "/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)",
     "/(api|trpc)(.*)",
+    "/__clerk(.*)",
   ],
 };
