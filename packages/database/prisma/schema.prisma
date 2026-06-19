@@ -137,7 +137,8 @@ model Student {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  scores Score[]
+  scores       Score[]
+  examAttempts ExamAttempt[]
 
   @@unique([schoolId, regNumber])
   @@map("students")
@@ -246,6 +247,7 @@ model Exam {
   duration   Int?
 
   questions Question[]
+  attempts  ExamAttempt[]
 
   aiModel      String?
   promptTokens Int?
@@ -304,6 +306,9 @@ model Question {
   curriculumRef  String?
 
   createdAt DateTime @default(now())
+
+  responses QuestionResponse[]
+  tags      QuestionTag[]
 
   @@map("questions")
 }
@@ -388,6 +393,96 @@ enum LibraryCategory {
   FORMULA_SHEET
   TEACHER_NOTES
   AI_NOTES
+}
+
+// ─────────────────────────────────────────────
+// EXAM ATTEMPT (student takes an exam)
+// ─────────────────────────────────────────────
+
+model ExamAttempt {
+  id        String        @id @default(cuid())
+  studentId String
+  student   Student       @relation(fields: [studentId], references: [id])
+  examId    String
+  exam      Exam          @relation(fields: [examId], references: [id])
+  schoolId  String
+
+  status     AttemptStatus @default(IN_PROGRESS)
+  totalScore Float?
+  maxScore   Float?
+  percentage Float?
+  grade      String?
+
+  startedAt   DateTime @default(now())
+  submittedAt DateTime?
+  gradedAt    DateTime?
+
+  responses QuestionResponse[]
+
+  @@unique([studentId, examId])
+  @@index([schoolId])
+  @@map("exam_attempts")
+}
+
+enum AttemptStatus {
+  IN_PROGRESS
+  SUBMITTED
+  GRADED
+}
+
+// ─────────────────────────────────────────────
+// QUESTION RESPONSE (student's answer per question)
+// ─────────────────────────────────────────────
+
+model QuestionResponse {
+  id         String      @id @default(cuid())
+  attemptId  String
+  attempt    ExamAttempt  @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  questionId String
+  question   Question     @relation(fields: [questionId], references: [id])
+
+  selectedOption   String?
+  textResponse     String?
+  isCorrect        Boolean?
+  score            Float?
+  maxScore         Float    @default(1)
+  timeSpentSeconds Int?
+
+  misconception String?
+  feedback      String?
+
+  createdAt DateTime @default(now())
+
+  @@unique([attemptId, questionId])
+  @@map("question_responses")
+}
+
+// ─────────────────────────────────────────────
+// QUESTION TAG (skill / topic metadata)
+// ─────────────────────────────────────────────
+
+model QuestionTag {
+  id         String   @id @default(cuid())
+  questionId String
+  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  skill       String
+  topic       String?
+  subtopic    String?
+  bloomsLevel BloomsLevel?
+
+  @@unique([questionId, skill])
+  @@index([skill])
+  @@map("question_tags")
+}
+
+enum BloomsLevel {
+  REMEMBER
+  UNDERSTAND
+  APPLY
+  ANALYZE
+  EVALUATE
+  CREATE
 }
 
 // ─────────────────────────────────────────────
