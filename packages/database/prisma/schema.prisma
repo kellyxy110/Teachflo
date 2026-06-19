@@ -400,7 +400,7 @@ model LessonEmbedding {
   schoolId  String
   content   String
   metadata  Json?
-  embedding Unsupported("vector(1536)")
+  embedding Unsupported("vector(1024)")
   createdAt DateTime                     @default(now())
 
   @@index([schoolId])
@@ -413,7 +413,7 @@ model QuestionEmbedding {
   schoolId   String
   content    String
   metadata   Json?
-  embedding  Unsupported("vector(1536)")
+  embedding  Unsupported("vector(1024)")
   createdAt  DateTime                     @default(now())
 
   @@index([schoolId])
@@ -426,7 +426,7 @@ model DocumentChunk {
   schoolId   String
   content    String
   metadata   Json?
-  embedding  Unsupported("vector(1536)")
+  embedding  Unsupported("vector(1024)")
   chunkIndex Int                          @default(0)
   createdAt  DateTime                     @default(now())
 

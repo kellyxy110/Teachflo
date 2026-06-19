@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS lesson_embeddings (
   "schoolId" TEXT NOT NULL,
   content TEXT NOT NULL,
   metadata JSONB,
-  embedding vector(1536) NOT NULL,
+  embedding vector(1024) NOT NULL,
   "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -22,7 +22,7 @@ CREATE TABLE IF NOT EXISTS question_embeddings (
   "schoolId" TEXT NOT NULL,
   content TEXT NOT NULL,
   metadata JSONB,
-  embedding vector(1536) NOT NULL,
+  embedding vector(1024) NOT NULL,
   "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -33,7 +33,7 @@ CREATE TABLE IF NOT EXISTS document_chunks (
   "schoolId" TEXT NOT NULL,
   content TEXT NOT NULL,
   metadata JSONB,
-  embedding vector(1536) NOT NULL,
+  embedding vector(1024) NOT NULL,
   "chunkIndex" INTEGER NOT NULL DEFAULT 0,
   "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
