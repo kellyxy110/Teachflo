@@ -15,6 +15,7 @@ import {
   Settings,
   User,
   PenSquare,
+  Sparkles,
 } from "lucide-react";
 
 const navItems = [
@@ -27,6 +28,7 @@ const navItems = [
   { href: "/exams", label: "Exams", icon: FileText },
   { href: "/library", label: "Library", icon: Library },
   { href: "/analytics", label: "Analytics", icon: TrendingUp },
+  { href: "/study-buddy", label: "Study Buddy", icon: Sparkles },
 ];
 
 const bottomItems = [
