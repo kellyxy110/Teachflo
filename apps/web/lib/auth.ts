@@ -3,11 +3,21 @@ import { db } from "./db";
 
 const CLERK_KEY = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
 
-export async function getCurrentTeacher() {
+// Safe wrappers — redirect to /setup when env vars are not configured
+export async function safeAuth() {
   if (!CLERK_KEY) redirect("/setup");
-
   const { auth } = await import("@clerk/nextjs/server");
-  const { userId } = await auth();
+  return auth();
+}
+
+export async function safeCurrentUser() {
+  if (!CLERK_KEY) return null;
+  const { currentUser } = await import("@clerk/nextjs/server");
+  return currentUser();
+}
+
+export async function getCurrentTeacher() {
+  const { userId } = await safeAuth();
   if (!userId) redirect("/sign-in");
 
   const teacher = await db.teacher.findUnique({

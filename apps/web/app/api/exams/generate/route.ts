@@ -1,15 +1,19 @@
-import { auth } from "@clerk/nextjs/server";
 import OpenAI from "openai";
 import { buildExamPrompt } from "@teachflow/ai-prompts";
 import type { ExamInput } from "@teachflow/ai-prompts";
+import { safeAuth } from "@/lib/auth";
 
 function getOpenAI() {
   return new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 }
 
 export async function POST(request: Request) {
-  const { userId } = await auth();
-  if (!userId) return Response.json({ error: "Unauthorized" }, { status: 401 });
+  try {
+    const { userId } = await safeAuth();
+    if (!userId) return Response.json({ error: "Unauthorized" }, { status: 401 });
+  } catch {
+    return Response.json({ error: "Unauthorized" }, { status: 401 });
+  }
 
   const body = await request.json();
   const { subject, classLevel, topic, examType, difficulty, mcqCount, theoryCount, advancedCount } = body;

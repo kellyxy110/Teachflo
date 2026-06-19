@@ -1,5 +1,5 @@
-import { currentUser } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
+import { safeCurrentUser } from "@/lib/auth";
 import {
   GraduationCap, Users, BookOpen, PenSquare,
   TrendingUp, AlertTriangle, FileText, ArrowRight,
@@ -32,7 +32,7 @@ function StatCard({
 }
 
 export default async function DashboardPage() {
-  const user = await currentUser();
+  const user = await safeCurrentUser();
   const teacher = await getCurrentTeacher();
 
   if (!teacher) redirect("/onboarding");

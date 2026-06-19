@@ -1,5 +1,5 @@
-import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
+import { safeAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { setupSchool } from "@/app/actions/onboarding";
 import { GraduationCap } from "lucide-react";
@@ -13,7 +13,7 @@ const NIGERIAN_STATES = [
 ];
 
 export default async function OnboardingPage() {
-  const { userId } = await auth();
+  const { userId } = await safeAuth();
   if (!userId) redirect("/sign-in");
 
   const existing = await db.teacher.findUnique({ where: { clerkId: userId } });

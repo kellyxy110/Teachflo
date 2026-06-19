@@ -1,15 +1,15 @@
 "use server";
 
-import { auth, currentUser } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { revalidatePath } from "next/cache";
+import { safeAuth, safeCurrentUser } from "@/lib/auth";
 
 export async function setupSchool(formData: FormData) {
-  const { userId } = await auth();
+  const { userId } = await safeAuth();
   if (!userId) throw new Error("Unauthorized");
 
-  const user = await currentUser();
+  const user = await safeCurrentUser();
   if (!user) throw new Error("No user found");
 
   const schoolName = formData.get("schoolName") as string;
