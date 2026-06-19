@@ -8,6 +8,7 @@ AI-powered learning operating system for Nigerian secondary schools (JSS1–SS3)
 
 ## What it does
 
+- **Study Buddy** — AI learning cockpit with 5 modes (Explain, Test Me, Hint, Step-by-Step, Review Mistakes), real-time student context injection, and streaming responses
 - **AI lesson generation** — full lesson plans in seconds, with WAEC/JAMB/JUPEB/ELI12 rewrite modes
 - **Smart exam builder** — MCQ + theory questions with distractor analysis and difficulty scaling
 - **7-model AI router** — routes requests to the best free LLM based on intent (tutoring, exams, curriculum, documents, automation, reasoning)
@@ -59,10 +60,12 @@ teachflow-os/
 │       │   │   ├── homework/
 │       │   │   ├── analytics/
 │       │   │   ├── library/
+│       │   │   ├── study-buddy/      # AI learning cockpit
 │       │   │   ├── settings/
 │       │   │   └── onboarding/
 │       │   ├── api/
 │       │   │   ├── ai/chat/           # Multi-model streaming chat
+│       │   │   ├── study-buddy/chat/  # Learning-mode-aware streaming
 │       │   │   ├── lessons/generate/  # Groq lesson generation
 │       │   │   ├── lessons/rewrite/   # Groq lesson rewriting
 │       │   │   ├── exams/generate/    # DeepSeek exam generation
@@ -76,6 +79,7 @@ teachflow-os/
 │       │   ├── setup/
 │       │   └── page.tsx              # Landing page
 │       ├── actions/
+│       │   ├── study-buddy.ts        # Student context, skill map, mistakes
 │       │   ├── exam-attempts.ts      # Start, submit, grade, history
 │       │   ├── question-tags.ts      # AI auto-tagging, skill map
 │       │   ├── analytics.ts
@@ -102,6 +106,13 @@ teachflow-os/
 │           ├── layout/
 │           │   ├── Sidebar.tsx
 │           │   └── Header.tsx
+│           ├── study-buddy/
+│           │   ├── StudyBuddyClient.tsx  # Main orchestrator
+│           │   ├── ModeSelector.tsx      # 5 learning modes
+│           │   ├── ChatMessage.tsx       # Messages + AI metadata badges
+│           │   ├── ChatInput.tsx         # Auto-resize input
+│           │   ├── ContextPanel.tsx      # Skills, mistakes, session stats
+│           │   └── StudentSelector.tsx   # Searchable student picker
 │           └── ui/
 │               └── GradeBadge.tsx
 ├── packages/
@@ -114,6 +125,44 @@ teachflow-os/
 │   └── ai-prompts/               # Shared prompt builders
 └── turbo.json
 ```
+
+---
+
+## Study Buddy
+
+The Study Buddy (`/study-buddy`) is an AI learning cockpit — not a chatbot. It connects the AI router, student tracking, and semantic memory into one adaptive interface.
+
+### Learning modes
+
+| Mode | Behavior | AI Model |
+|------|----------|----------|
+| Explain | Clear teaching with analogies and examples | Groq llama-3.3 |
+| Test Me | Generates 3–5 practice questions on weak areas | DeepSeek V4 Flash |
+| Hint | Socratic guidance only, no direct answers | Groq llama-3.3 |
+| Step-by-Step | Numbered solution steps with reasoning | Groq llama-3.3 |
+| Review Mistakes | Analyzes errors, misconceptions, and remediation | Groq llama-3.3 |
+
+### Data flow
+
+```
+Student input
+  → Fetch student context (skill map, weak areas, recent mistakes)
+  → Select learning mode system prompt
+  → POST /api/study-buddy/chat
+    → AI router classifies intent → picks model
+    → pgvector RAG retrieval (if relevant documents exist)
+    → Stream response with metadata headers
+  → Display streaming message with model/intent/RAG badges
+  → Update session stats in sidebar
+```
+
+### Student context panel (right sidebar)
+
+- **Weak areas** — skills below 50%, shown as progress bars
+- **Skill graph** — all tracked skills with color-coded mastery levels
+- **Recent mistakes** — last 5 incorrect answers with misconception tags
+- **Recommended topics** — auto-derived from weakest skills
+- **Session stats** — topics covered, questions answered, accuracy this session
 
 ---
 
@@ -210,7 +259,7 @@ Nigerian secondary school standard:
 - [x] Phase 6: Semantic memory layer (pgvector, embeddings, RAG, dedup)
 - [x] Phase 1A: Student question tracking, exam attempts, skill tags
 - [ ] Phase 1B: PDF ingestion -> RAG pipeline (upload & understand)
-- [ ] Phase 1C: Study Buddy chat UI
+- [x] Phase 1C: Study Buddy — AI learning cockpit with 5 modes + student context
 - [ ] Phase 1D: AI Exam 2.0 (difficulty scaling, curriculum alignment)
 - [ ] Skill Graph visualization
 - [ ] Mistake Intelligence System
