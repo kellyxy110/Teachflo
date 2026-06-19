@@ -258,7 +258,7 @@ Nigerian secondary school standard:
 - [x] Phase 5: Landing page, Clerk RBAC, webhook hardening, production deploy
 - [x] Phase 6: Semantic memory layer (pgvector, embeddings, RAG, dedup)
 - [x] Phase 1A: Student question tracking, exam attempts, skill tags
-- [ ] Phase 1B: PDF ingestion -> RAG pipeline (upload & understand)
+- [x] Phase 1B: PDF ingestion -> RAG pipeline (upload & understand)
 - [x] Phase 1C: Study Buddy — AI learning cockpit with 5 modes + student context
 - [ ] Phase 1D: AI Exam 2.0 (difficulty scaling, curriculum alignment)
 - [ ] Skill Graph visualization
