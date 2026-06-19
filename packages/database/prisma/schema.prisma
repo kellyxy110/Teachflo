@@ -389,3 +389,48 @@ enum LibraryCategory {
   TEACHER_NOTES
   AI_NOTES
 }
+
+// ─────────────────────────────────────────────
+// VECTOR TABLES (pgvector — managed via raw SQL)
+// ─────────────────────────────────────────────
+
+model LessonEmbedding {
+  id        String                       @id @default(cuid())
+  lessonId  String                       @unique
+  schoolId  String
+  content   String
+  metadata  Json?
+  embedding Unsupported("vector(1536)")
+  createdAt DateTime                     @default(now())
+
+  @@index([schoolId])
+  @@map("lesson_embeddings")
+}
+
+model QuestionEmbedding {
+  id         String                       @id @default(cuid())
+  questionId String                       @unique
+  schoolId   String
+  content    String
+  metadata   Json?
+  embedding  Unsupported("vector(1536)")
+  createdAt  DateTime                     @default(now())
+
+  @@index([schoolId])
+  @@map("question_embeddings")
+}
+
+model DocumentChunk {
+  id         String                       @id @default(cuid())
+  documentId String
+  schoolId   String
+  content    String
+  metadata   Json?
+  embedding  Unsupported("vector(1536)")
+  chunkIndex Int                          @default(0)
+  createdAt  DateTime                     @default(now())
+
+  @@index([schoolId])
+  @@index([documentId])
+  @@map("document_chunks")
+}
