@@ -1,11 +1,11 @@
 import Link from "next/link";
-import { Plus, BookOpen, FileText } from "lucide-react";
+import { BookOpen, FileText, Upload } from "lucide-react";
 import { getLibraryResources } from "@/app/actions/library";
 import { LibraryClient } from "./LibraryClient";
 
 export default async function LibraryPage() {
-  const { lessons, exams } = await getLibraryResources();
-  const total = lessons.length + exams.length;
+  const { lessons, exams, documents, allSubjects } = await getLibraryResources();
+  const total = lessons.length + exams.length + documents.length;
 
   return (
     <div className="space-y-6">
@@ -13,7 +13,7 @@ export default async function LibraryPage() {
         <div>
           <h1 className="text-2xl font-bold text-text">Library</h1>
           <p className="text-text-2 text-sm mt-0.5">
-            {total} resource{total !== 1 ? "s" : ""} — lessons and exams in one place.
+            {total} resource{total !== 1 ? "s" : ""} — lessons, exams, and documents in one place.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -32,7 +32,12 @@ export default async function LibraryPage() {
         </div>
       </div>
 
-      <LibraryClient lessons={lessons} exams={exams} />
+      <LibraryClient
+        lessons={lessons}
+        exams={exams}
+        documents={documents}
+        subjects={allSubjects}
+      />
     </div>
   );
 }

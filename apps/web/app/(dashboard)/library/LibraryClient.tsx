@@ -2,7 +2,9 @@
 
 import { useState, useMemo } from "react";
 import Link from "next/link";
-import { Search, BookOpen, FileText, Clock, X, Sparkles } from "lucide-react";
+import { Search, BookOpen, FileText, Clock, X, Sparkles, Upload, Database } from "lucide-react";
+import { DocumentUpload } from "@/components/library/DocumentUpload";
+import { DocumentList } from "@/components/library/DocumentList";
 
 type Lesson = {
   id: string;
@@ -24,6 +26,20 @@ type Exam = {
   difficulty: string;
   createdAt: Date;
   _count: { questions: number };
+};
+
+type Doc = {
+  id: string;
+  title: string;
+  subject: string;
+  classLevel: string | null;
+  fileName: string;
+  fileSize: number;
+  pageCount: number | null;
+  status: string;
+  chunkCount: number;
+  error: string | null;
+  createdAt: Date;
 };
 
 const MODE_COLORS: Record<string, string> = {
@@ -56,9 +72,19 @@ function formatDate(date: Date): string {
   return new Date(date).toLocaleDateString("en-NG", { day: "numeric", month: "short" });
 }
 
-type Tab = "all" | "lessons" | "exams";
+type Tab = "all" | "lessons" | "exams" | "documents";
 
-export function LibraryClient({ lessons, exams }: { lessons: Lesson[]; exams: Exam[] }) {
+export function LibraryClient({
+  lessons,
+  exams,
+  documents,
+  subjects,
+}: {
+  lessons: Lesson[];
+  exams: Exam[];
+  documents: Doc[];
+  subjects: string[];
+}) {
   const [tab, setTab] = useState<Tab>("all");
   const [query, setQuery] = useState("");
   const [levelFilter, setLevelFilter] = useState("");
@@ -68,17 +94,19 @@ export function LibraryClient({ lessons, exams }: { lessons: Lesson[]; exams: Ex
     const s = new Set([
       ...lessons.map((l) => l.subject),
       ...exams.map((e) => e.subject),
+      ...documents.map((d) => d.subject),
     ]);
     return [...s].sort();
-  }, [lessons, exams]);
+  }, [lessons, exams, documents]);
 
   const allLevels = useMemo(() => {
     const s = new Set([
       ...lessons.map((l) => l.classLevel),
       ...exams.map((e) => e.classLevel),
+      ...documents.filter((d) => d.classLevel).map((d) => d.classLevel!),
     ]);
     return [...s].sort();
-  }, [lessons, exams]);
+  }, [lessons, exams, documents]);
 
   const filteredLessons = useMemo(() => {
     const q = query.toLowerCase();
@@ -100,33 +128,47 @@ export function LibraryClient({ lessons, exams }: { lessons: Lesson[]; exams: Ex
     });
   }, [exams, query, levelFilter, subjectFilter]);
 
+  const filteredDocs = useMemo(() => {
+    const q = query.toLowerCase();
+    return documents.filter((d) => {
+      const matchText = !q || d.title.toLowerCase().includes(q) || d.subject.toLowerCase().includes(q) || d.fileName.toLowerCase().includes(q);
+      const matchLevel = !levelFilter || d.classLevel === levelFilter;
+      const matchSubject = !subjectFilter || d.subject === subjectFilter;
+      return matchText && matchLevel && matchSubject;
+    });
+  }, [documents, query, levelFilter, subjectFilter]);
+
   const hasFilters = query || levelFilter || subjectFilter;
-  const isEmpty = lessons.length === 0 && exams.length === 0;
+  const isEmpty = lessons.length === 0 && exams.length === 0 && documents.length === 0;
 
   const showLessons = tab === "all" || tab === "lessons";
   const showExams = tab === "all" || tab === "exams";
+  const showDocs = tab === "all" || tab === "documents";
 
   if (isEmpty) {
     return (
-      <div className="bg-surface rounded-xl border border-border p-12 text-center">
-        <Sparkles size={40} className="text-muted mx-auto mb-3" />
-        <h3 className="font-semibold text-text mb-1">Library is empty</h3>
-        <p className="text-sm text-text-2 mt-1 mb-5">
-          Your saved lessons and exams will appear here.
-        </p>
-        <div className="flex gap-3 justify-center">
-          <Link
-            href="/lessons/new"
-            className="inline-flex items-center gap-2 bg-primary text-white px-4 py-2.5 rounded-lg text-sm font-semibold hover:bg-primary-600 transition-colors"
-          >
-            <BookOpen size={15} /> Generate Lesson
-          </Link>
-          <Link
-            href="/exams/new"
-            className="inline-flex items-center gap-2 border border-border text-text-2 px-4 py-2.5 rounded-lg text-sm font-semibold hover:border-primary/30 transition-colors"
-          >
-            <FileText size={15} /> Generate Exam
-          </Link>
+      <div className="space-y-6">
+        <DocumentUpload subjects={subjects} />
+        <div className="bg-surface rounded-xl border border-border p-12 text-center">
+          <Sparkles size={40} className="text-muted mx-auto mb-3" />
+          <h3 className="font-semibold text-text mb-1">Library is empty</h3>
+          <p className="text-sm text-text-2 mt-1 mb-5">
+            Upload documents, generate lessons, or create exams to get started.
+          </p>
+          <div className="flex gap-3 justify-center">
+            <Link
+              href="/lessons/new"
+              className="inline-flex items-center gap-2 bg-primary text-white px-4 py-2.5 rounded-lg text-sm font-semibold hover:bg-primary-600 transition-colors"
+            >
+              <BookOpen size={15} /> Generate Lesson
+            </Link>
+            <Link
+              href="/exams/new"
+              className="inline-flex items-center gap-2 border border-border text-text-2 px-4 py-2.5 rounded-lg text-sm font-semibold hover:border-primary/30 transition-colors"
+            >
+              <FileText size={15} /> Generate Exam
+            </Link>
+          </div>
         </div>
       </div>
     );
@@ -136,19 +178,28 @@ export function LibraryClient({ lessons, exams }: { lessons: Lesson[]; exams: Ex
     <div className="space-y-4">
       {/* Tabs + Filters */}
       <div className="flex flex-wrap items-center gap-2">
-        {(["all", "lessons", "exams"] as Tab[]).map((t) => (
-          <button
-            key={t}
-            onClick={() => setTab(t)}
-            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors capitalize ${
-              tab === t
-                ? "bg-primary text-white"
-                : "bg-surface border border-border text-text-2 hover:border-primary/30"
-            }`}
-          >
-            {t === "all" ? `All (${lessons.length + exams.length})` : t === "lessons" ? `Lessons (${lessons.length})` : `Exams (${exams.length})`}
-          </button>
-        ))}
+        {(["all", "lessons", "exams", "documents"] as Tab[]).map((t) => {
+          const counts = {
+            all: lessons.length + exams.length + documents.length,
+            lessons: lessons.length,
+            exams: exams.length,
+            documents: documents.length,
+          };
+          const labels = { all: "All", lessons: "Lessons", exams: "Exams", documents: "Documents" };
+          return (
+            <button
+              key={t}
+              onClick={() => setTab(t)}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                tab === t
+                  ? "bg-primary text-white"
+                  : "bg-surface border border-border text-text-2 hover:border-primary/30"
+              }`}
+            >
+              {labels[t]} ({counts[t]})
+            </button>
+          );
+        })}
 
         <div className="flex-1" />
 
@@ -156,7 +207,7 @@ export function LibraryClient({ lessons, exams }: { lessons: Lesson[]; exams: Ex
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
           <input
             type="text"
-            placeholder="Search…"
+            placeholder="Search..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             className="pl-8 pr-3 py-2 border border-border rounded-lg text-sm text-text placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-surface w-44"
@@ -187,6 +238,25 @@ export function LibraryClient({ lessons, exams }: { lessons: Lesson[]; exams: Ex
           </button>
         )}
       </div>
+
+      {/* Document upload (shown on documents tab or all tab) */}
+      {showDocs && <DocumentUpload subjects={subjects} />}
+
+      {/* Documents section */}
+      {showDocs && (
+        <div>
+          {tab === "all" && filteredDocs.length > 0 && (
+            <div className="flex items-center gap-2 mb-3">
+              <Database size={15} className="text-primary" />
+              <h2 className="text-sm font-semibold text-text">Documents</h2>
+              <span className="text-xs text-muted">({filteredDocs.length})</span>
+            </div>
+          )}
+          {tab === "documents" || (tab === "all" && filteredDocs.length > 0) ? (
+            <DocumentList documents={filteredDocs} />
+          ) : null}
+        </div>
+      )}
 
       {/* Lessons section */}
       {showLessons && filteredLessons.length > 0 && (
@@ -286,7 +356,7 @@ export function LibraryClient({ lessons, exams }: { lessons: Lesson[]; exams: Ex
       )}
 
       {/* Empty filtered state */}
-      {hasFilters && filteredLessons.length === 0 && filteredExams.length === 0 && (
+      {hasFilters && filteredLessons.length === 0 && filteredExams.length === 0 && filteredDocs.length === 0 && (
         <div className="bg-surface border border-border rounded-xl p-10 text-center">
           <p className="text-sm text-text-2">Nothing matches your filters.</p>
           <button

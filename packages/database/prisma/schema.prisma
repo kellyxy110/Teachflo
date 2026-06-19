@@ -31,8 +31,9 @@ model School {
   students Student[]
   lessons  Lesson[]
   exams    Exam[]
-  library  LibraryItem[]
-  scores   Score[]
+  library   LibraryItem[]
+  scores    Score[]
+  documents Document[]
 
   @@map("schools")
 }
@@ -483,6 +484,42 @@ enum BloomsLevel {
   ANALYZE
   EVALUATE
   CREATE
+}
+
+// ─────────────────────────────────────────────
+// DOCUMENT (uploaded PDFs for RAG)
+// ─────────────────────────────────────────────
+
+model Document {
+  id        String         @id @default(cuid())
+  schoolId  String
+  school    School         @relation(fields: [schoolId], references: [id])
+  teacherId String
+
+  title     String
+  subject   String
+  classLevel ClassLevel?
+  fileName  String
+  mimeType  String         @default("application/pdf")
+  fileSize  Int            @default(0)
+  pageCount Int?
+
+  status    DocumentStatus @default(PENDING)
+  chunkCount Int           @default(0)
+  error     String?
+
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+
+  @@index([schoolId])
+  @@map("documents")
+}
+
+enum DocumentStatus {
+  PENDING
+  PROCESSING
+  READY
+  FAILED
 }
 
 // ─────────────────────────────────────────────
