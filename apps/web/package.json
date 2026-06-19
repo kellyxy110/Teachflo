@@ -10,19 +10,20 @@
   },
   "dependencies": {
     "@clerk/nextjs": "^6.0.0",
-    "@tanstack/react-query": "^5.0.0",
     "@prisma/client": "^5.0.0",
+    "@tanstack/react-query": "^5.0.0",
     "@teachflow/ai-prompts": "workspace:*",
-    "openai": "^4.0.0",
     "@teachflow/database": "workspace:*",
     "@teachflow/shared": "workspace:*",
     "framer-motion": "^11.0.0",
     "lucide-react": "^0.400.0",
     "next": "16.2.7",
+    "openai": "^4.0.0",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "react-hook-form": "^7.0.0",
     "recharts": "^2.0.0",
+    "svix": "^1.96.0",
     "zod": "^3.0.0",
     "zustand": "^4.0.0"
   },
@@ -30,13 +31,13 @@
     "schema": "../../packages/database/prisma/schema.prisma"
   },
   "devDependencies": {
-    "prisma": "^5.0.0",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.2.7",
+    "prisma": "^5.0.0",
     "tailwindcss": "^4",
     "typescript": "^5"
   }
