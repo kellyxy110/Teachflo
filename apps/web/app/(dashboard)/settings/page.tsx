@@ -1,22 +1,19 @@
-import { Settings } from "lucide-react";
+import { getSettings } from "@/app/actions/settings";
+import { SettingsClient } from "./SettingsClient";
 
-export default function SettingsPage() {
+export default async function SettingsPage() {
+  const { school, teacher } = await getSettings();
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-2xl">
       <div>
         <h1 className="text-2xl font-bold text-text">Settings</h1>
         <p className="text-text-2 text-sm mt-0.5">
-          Configure your school profile, notifications, and subscription.
+          Manage your school profile and teacher details.
         </p>
       </div>
 
-      <div className="bg-surface rounded-xl border border-border p-12 text-center">
-        <Settings size={40} className="text-muted mx-auto mb-3" />
-        <h3 className="font-semibold text-text">Settings coming soon</h3>
-        <p className="text-sm text-text-2 mt-1">
-          School profile, notification preferences, and subscription management.
-        </p>
-      </div>
+      <SettingsClient school={school} teacher={teacher} />
     </div>
   );
 }
