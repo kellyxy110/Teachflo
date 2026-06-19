@@ -1,9 +1,12 @@
 import { redirect } from "next/navigation";
 import { db } from "./db";
+import { getRoleFromMetadata, type UserRole, type Permission, can } from "./roles";
 
 const CLERK_KEY = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
 
-// Safe wrappers — redirect to /setup when env vars are not configured
+// ─── Safe Clerk wrappers ──────────────────────────────────────────────────────
+// Redirect to /setup when env vars are not configured instead of crashing.
+
 export async function safeAuth() {
   if (!CLERK_KEY) redirect("/setup");
   const { auth } = await import("@clerk/nextjs/server");
@@ -15,6 +18,8 @@ export async function safeCurrentUser() {
   const { currentUser } = await import("@clerk/nextjs/server");
   return currentUser();
 }
+
+// ─── Teacher auth ─────────────────────────────────────────────────────────────
 
 export async function getCurrentTeacher() {
   const { userId } = await safeAuth();
@@ -37,4 +42,20 @@ export async function requireTeacher() {
 export async function requireSchool() {
   const teacher = await requireTeacher();
   return { teacher, schoolId: teacher.schoolId, school: teacher.school };
+}
+
+// ─── Role-based access control ────────────────────────────────────────────────
+// Reads role from Clerk publicMetadata — no DB query needed.
+
+export async function getCurrentRole(): Promise<UserRole | null> {
+  const { userId, sessionClaims } = await safeAuth();
+  if (!userId) return null;
+  const meta = (sessionClaims?.publicMetadata ?? {}) as Record<string, unknown>;
+  return getRoleFromMetadata(meta);
+}
+
+/** Redirect to /dashboard if the current user lacks the required permission. */
+export async function requirePermission(permission: Permission) {
+  const role = await getCurrentRole();
+  if (!can(role, permission)) redirect("/dashboard");
 }
