@@ -1,28 +1,38 @@
-import { Library, Sparkles } from "lucide-react";
+import Link from "next/link";
+import { Plus, BookOpen, FileText } from "lucide-react";
+import { getLibraryResources } from "@/app/actions/library";
+import { LibraryClient } from "./LibraryClient";
 
-export default function LibraryPage() {
+export default async function LibraryPage() {
+  const { lessons, exams } = await getLibraryResources();
+  const total = lessons.length + exams.length;
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-text">Library</h1>
           <p className="text-text-2 text-sm mt-0.5">
-            Browse, upload, and generate AI revision materials.
+            {total} resource{total !== 1 ? "s" : ""} — lessons and exams in one place.
           </p>
         </div>
-        <button className="flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary-600 transition-colors">
-          <Sparkles size={16} />
-          Generate AI Notes
-        </button>
+        <div className="flex items-center gap-2">
+          <Link
+            href="/lessons/new"
+            className="flex items-center gap-1.5 border border-border text-text-2 px-3 py-2 rounded-lg text-sm font-medium hover:border-primary/30 hover:text-text transition-colors"
+          >
+            <BookOpen size={14} /> New Lesson
+          </Link>
+          <Link
+            href="/exams/new"
+            className="flex items-center gap-1.5 bg-primary text-white px-3 py-2 rounded-lg text-sm font-semibold hover:bg-primary/90 transition-colors"
+          >
+            <FileText size={14} /> New Exam
+          </Link>
+        </div>
       </div>
 
-      <div className="bg-surface rounded-xl border border-border p-12 text-center">
-        <Library size={40} className="text-muted mx-auto mb-3" />
-        <h3 className="font-semibold text-text">Library is empty</h3>
-        <p className="text-sm text-text-2 mt-1">
-          Upload materials or generate AI revision handbooks for your students.
-        </p>
-      </div>
+      <LibraryClient lessons={lessons} exams={exams} />
     </div>
   );
 }
