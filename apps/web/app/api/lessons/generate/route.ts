@@ -1,10 +1,6 @@
-import OpenAI from "openai";
 import { buildLessonPrompt } from "@teachflow/ai-prompts";
 import { safeAuth } from "@/lib/auth";
-
-function getOpenAI() {
-  return new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-}
+import { getGroqClient, GROQ_MODEL } from "@/lib/ai";
 
 export async function POST(request: Request) {
   try {
@@ -23,8 +19,8 @@ export async function POST(request: Request) {
 
   const prompt = buildLessonPrompt({ subject, classLevel, topic, week, term });
 
-  const stream = await getOpenAI().chat.completions.create({
-    model: "gpt-4o",
+  const stream = await getGroqClient().chat.completions.create({
+    model: GROQ_MODEL,
     messages: [{ role: "user", content: prompt }],
     stream: true,
     max_tokens: 2000,

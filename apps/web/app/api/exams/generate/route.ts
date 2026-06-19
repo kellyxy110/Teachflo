@@ -1,11 +1,7 @@
-import OpenAI from "openai";
 import { buildExamPrompt } from "@teachflow/ai-prompts";
 import type { ExamInput } from "@teachflow/ai-prompts";
 import { safeAuth } from "@/lib/auth";
-
-function getOpenAI() {
-  return new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-}
+import { getOpenRouterClient, OPENROUTER_EXAM_MODEL } from "@/lib/ai";
 
 export async function POST(request: Request) {
   try {
@@ -33,8 +29,8 @@ export async function POST(request: Request) {
     advancedCount: advancedCount ?? 2,
   } as ExamInput);
 
-  const completion = await getOpenAI().chat.completions.create({
-    model: "gpt-4o",
+  const completion = await getOpenRouterClient().chat.completions.create({
+    model: OPENROUTER_EXAM_MODEL,
     messages: [{ role: "user", content: prompt }],
     temperature: 0.4,
     max_tokens: 6000,
