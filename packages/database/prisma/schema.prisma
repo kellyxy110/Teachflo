@@ -138,8 +138,10 @@ model Student {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  scores       Score[]
-  examAttempts ExamAttempt[]
+  scores          Score[]
+  examAttempts    ExamAttempt[]
+  mistakePatterns MistakePattern[]
+  learningPaths   LearningPath[]
 
   @@unique([schoolId, regNumber])
   @@map("students")
@@ -247,6 +249,11 @@ model Exam {
   difficulty Difficulty
   duration   Int?
 
+  examMode       ExamMode @default(STANDARD)
+  blueprint      Json?
+  totalQuestions  Int?
+  targetStudentId String?
+
   questions Question[]
   attempts  ExamAttempt[]
 
@@ -273,6 +280,14 @@ enum Difficulty {
   WAEC
   JAMB
   JUPEB
+}
+
+enum ExamMode {
+  STANDARD
+  DIAGNOSTIC
+  PRACTICE
+  ASSESSMENT
+  ADAPTIVE
 }
 
 // ─────────────────────────────────────────────
@@ -305,6 +320,15 @@ model Question {
   commonMistakes String?
   examTip        String?
   curriculumRef  String?
+
+  difficulty      String?  @default("medium")
+  bloomLevel      String?
+  skillTag        String?
+  topicTag        String?
+  subTopicTag     String?
+  questionSource  String?  @default("synthetic")
+  estimatedTime   Int?     @default(90)
+  relatedChunkIds String[]
 
   createdAt DateTime @default(now())
 
@@ -414,6 +438,12 @@ model ExamAttempt {
   percentage Float?
   grade      String?
 
+  examMode           ExamMode @default(STANDARD)
+  analytics          Json?
+  currentDifficulty  String?  @default("medium")
+  questionsAnswered  Int      @default(0)
+  adaptiveState      Json?
+
   startedAt   DateTime @default(now())
   submittedAt DateTime?
   gradedAt    DateTime?
@@ -449,8 +479,10 @@ model QuestionResponse {
   maxScore         Float    @default(1)
   timeSpentSeconds Int?
 
-  misconception String?
-  feedback      String?
+  misconception    String?
+  feedback         String?
+  errorType        String?
+  difficultyAtTime String?
 
   createdAt DateTime @default(now())
 
@@ -520,6 +552,84 @@ enum DocumentStatus {
   PROCESSING
   READY
   FAILED
+}
+
+// ─────────────────────────────────────────────
+// MISTAKE INTELLIGENCE (Phase 2B)
+// ─────────────────────────────────────────────
+
+model MistakePattern {
+  id              String   @id @default(cuid())
+  studentId       String
+  student         Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  schoolId        String
+  skill           String
+  errorType       String
+  pattern         String
+  rootCause       String?
+  prerequisiteGap String?
+  occurrences     Int      @default(1)
+  lastSeen        DateTime @default(now())
+  firstSeen       DateTime @default(now())
+  resolved        Boolean  @default(false)
+  createdAt       DateTime @default(now())
+
+  @@unique([studentId, skill, errorType])
+  @@index([studentId])
+  @@index([schoolId])
+  @@index([skill])
+  @@map("mistake_patterns")
+}
+
+// ─────────────────────────────────────────────
+// ADAPTIVE LEARNING PATHS (Phase 2A)
+// ─────────────────────────────────────────────
+
+model LearningPath {
+  id             String   @id @default(cuid())
+  studentId      String
+  student        Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  schoolId       String
+  subject        String
+  classLevel     String
+  steps          Json     @default("[]")
+  currentStep    Int      @default(0)
+  status         String   @default("ACTIVE")
+  lastComputedAt DateTime @default(now())
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([studentId, subject])
+  @@index([studentId])
+  @@index([schoolId])
+  @@map("learning_paths")
+}
+
+// ─────────────────────────────────────────────
+// CURRICULUM PLANS (Phase 3A)
+// ─────────────────────────────────────────────
+
+model CurriculumPlan {
+  id                 String   @id @default(cuid())
+  schoolId           String
+  teacherId          String
+  subject            String
+  classLevel         String
+  term               String
+  session            String
+  title              String
+  weeks              Json     @default("[]")
+  assessmentSchedule Json?
+  revisionCycles     Json?
+  performanceContext Json?
+  aiModel            String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@unique([schoolId, subject, classLevel, term, session])
+  @@index([schoolId])
+  @@index([teacherId])
+  @@map("curriculum_plans")
 }
 
 // ─────────────────────────────────────────────

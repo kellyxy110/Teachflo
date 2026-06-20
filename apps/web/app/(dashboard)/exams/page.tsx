@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Plus } from "lucide-react";
+import { Plus, Brain } from "lucide-react";
 import { getExams } from "@/app/actions/exams";
 import { ExamsListClient } from "./ExamsListClient";
 
@@ -15,13 +15,22 @@ export default async function ExamsPage() {
             {exams.length} saved exam{exams.length !== 1 ? "s" : ""}
           </p>
         </div>
-        <Link
-          href="/exams/new"
-          className="flex items-center gap-2 bg-primary text-white px-4 py-2.5 rounded-lg text-sm font-semibold hover:bg-primary-600 transition-colors"
-        >
-          <Plus size={16} />
-          New Exam
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link
+            href="/exams/v2/new"
+            className="flex items-center gap-2 bg-waec text-white px-4 py-2.5 rounded-lg text-sm font-semibold hover:opacity-90 transition-colors"
+          >
+            <Brain size={16} />
+            AI Exam 2.0
+          </Link>
+          <Link
+            href="/exams/new"
+            className="flex items-center gap-2 bg-primary text-white px-4 py-2.5 rounded-lg text-sm font-semibold hover:bg-primary-600 transition-colors"
+          >
+            <Plus size={16} />
+            New Exam
+          </Link>
+        </div>
       </div>
 
       <ExamsListClient exams={exams} />

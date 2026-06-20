@@ -9,25 +9,25 @@ import { db } from "@/lib/db";
 import { getCurrentTeacher } from "@/lib/auth";
 
 function StatCard({
-  icon: Icon, label, value, sub,
+  icon: Icon, label, value, sub, href,
   color = "text-primary", bg = "bg-primary-50",
 }: {
   icon: React.ElementType; label: string; value: string | number;
-  sub?: string; color?: string; bg?: string;
+  sub?: string; href: string; color?: string; bg?: string;
 }) {
   return (
-    <div className="bg-surface rounded-xl border border-border p-5">
+    <Link href={href} className="bg-surface rounded-xl border border-border p-5 hover:border-primary/40 hover:shadow-md transition-all group cursor-pointer">
       <div className="flex items-start justify-between">
         <div>
           <p className="text-sm text-text-2 font-medium">{label}</p>
           <p className="text-3xl font-bold text-text mt-1">{value}</p>
           {sub && <p className="text-xs text-muted mt-1">{sub}</p>}
         </div>
-        <div className={`${bg} p-2.5 rounded-lg`}>
+        <div className={`${bg} p-2.5 rounded-lg group-hover:scale-110 transition-transform`}>
           <Icon size={20} className={color} />
         </div>
       </div>
-    </div>
+    </Link>
   );
 }
 
@@ -81,14 +81,18 @@ export default async function DashboardPage() {
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <StatCard icon={GraduationCap} label="Total Classes" value={classCount}
+          href="/classes"
           sub={classCount === 0 ? "Add your first class" : `${classCount} active`}
           color="text-primary" bg="bg-primary-50" />
         <StatCard icon={Users} label="Total Students" value={studentCount}
+          href="/students"
           sub={studentCount === 0 ? "No students yet" : `across ${classCount} classes`}
           color="text-success" bg="bg-success-50" />
         <StatCard icon={BookOpen} label="Lessons Generated" value={lessonCount}
+          href="/lessons"
           sub="This term" color="text-warning" bg="bg-warning-50" />
         <StatCard icon={PenSquare} label="Pending Homework" value={homeworkCount}
+          href="/homework"
           sub={homeworkCount === 0 ? "All clear" : "assignments open"}
           color="text-danger" bg="bg-danger-50" />
       </div>
@@ -109,14 +113,13 @@ export default async function DashboardPage() {
           ) : (
             <div className="space-y-2">
               {recentLessons.map((l) => (
-                <div key={l.id} className="flex items-center justify-between py-2 border-b border-border last:border-0">
+                <Link key={l.id} href={`/lessons/${l.id}`} className="flex items-center justify-between py-2 border-b border-border last:border-0 hover:bg-bg/50 rounded-lg px-2 -mx-2 transition-colors">
                   <div>
                     <p className="text-sm font-medium text-text">{l.topic}</p>
                     <p className="text-xs text-muted">{l.subject} · {l.classLevel}</p>
                   </div>
-                  <Link href={`/lessons/${l.id}`}
-                    className="text-xs text-primary hover:underline">View</Link>
-                </div>
+                  <span className="text-xs text-primary">View →</span>
+                </Link>
               ))}
             </div>
           )}
@@ -131,7 +134,7 @@ export default async function DashboardPage() {
             </Link>
           </div>
           <div className="space-y-3">
-            <div className="flex items-center gap-3 p-3 bg-bg rounded-lg">
+            <Link href="/scores" className="flex items-center gap-3 p-3 bg-bg rounded-lg hover:bg-bg/80 transition-colors">
               <TrendingUp size={16} className="text-success shrink-0" />
               <div>
                 <p className="text-sm font-medium text-text">School Average</p>
@@ -139,14 +142,14 @@ export default async function DashboardPage() {
                   {studentCount > 0 ? "Enter scores to see performance" : "Add students to get started"}
                 </p>
               </div>
-            </div>
-            <div className="flex items-center gap-3 p-3 bg-bg rounded-lg">
+            </Link>
+            <Link href="/analytics" className="flex items-center gap-3 p-3 bg-bg rounded-lg hover:bg-bg/80 transition-colors">
               <AlertTriangle size={16} className="text-warning shrink-0" />
               <div>
                 <p className="text-sm font-medium text-text">At-Risk Students</p>
                 <p className="text-xs text-muted">No at-risk students identified yet</p>
               </div>
-            </div>
+            </Link>
           </div>
         </div>
       </div>
@@ -162,7 +165,7 @@ export default async function DashboardPage() {
           </div>
           <div className="space-y-2">
             {recentExams.map((exam) => (
-              <div key={exam.id} className="flex items-center justify-between py-2 border-b border-border last:border-0">
+              <Link key={exam.id} href={`/exams/${exam.id}`} className="flex items-center justify-between py-2 border-b border-border last:border-0 hover:bg-bg/50 rounded-lg px-2 -mx-2 transition-colors">
                 <div>
                   <p className="text-sm font-medium text-text">{exam.title}</p>
                   <p className="text-xs text-muted">
@@ -176,7 +179,7 @@ export default async function DashboardPage() {
                     "bg-gray-100 text-gray-600"}`}>
                   {exam.examType.replace("_", " ")}
                 </span>
-              </div>
+              </Link>
             ))}
           </div>
         </div>

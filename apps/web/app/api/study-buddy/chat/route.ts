@@ -1,6 +1,7 @@
 import { safeAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { routedChatStream } from "@/lib/ai/router";
+import { rateLimit } from "@/lib/rate-limit";
 
 export type LearningMode =
   | "explain"
@@ -44,6 +45,14 @@ export async function POST(request: Request) {
   }
   if (!userId)
     return Response.json({ error: "Unauthorized" }, { status: 401 });
+
+  const { ok, remaining } = rateLimit(`study-buddy:${userId}`);
+  if (!ok) {
+    return Response.json(
+      { error: "Too many requests. Please wait a moment." },
+      { status: 429, headers: { "Retry-After": "60", "X-RateLimit-Remaining": String(remaining) } }
+    );
+  }
 
   const teacher = await db.teacher.findUnique({
     where: { clerkId: userId },
@@ -93,7 +102,7 @@ export async function POST(request: Request) {
   const systemPrompt = contextParts.join("\n");
 
   try {
-    const { stream, metadata } = await routedChatStream({
+    const { stream } = await routedChatStream({
       message,
       schoolId: teacher.schoolId,
       useRAG: true,
@@ -115,15 +124,6 @@ export async function POST(request: Request) {
       headers: {
         "Content-Type": "text/plain; charset=utf-8",
         "X-Accel-Buffering": "no",
-        "X-AI-Model": metadata.model,
-        "X-AI-Provider": metadata.provider,
-        "X-AI-Intent": metadata.intent,
-        "X-AI-Reason": metadata.reason,
-        "X-AI-RAG-Used": String(metadata.ragUsed),
-        "X-AI-Learning-Mode": mode,
-        ...(metadata.ragChunks
-          ? { "X-AI-RAG-Chunks": String(metadata.ragChunks) }
-          : {}),
       },
     });
   } catch (error) {

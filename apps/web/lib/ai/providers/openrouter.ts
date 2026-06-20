@@ -17,7 +17,7 @@ export function getOpenRouterClient(): OpenAI {
     apiKey: process.env.OPENROUTER_API_KEY,
     baseURL: "https://openrouter.ai/api/v1",
     defaultHeaders: {
-      "HTTP-Referer": "https://teachflow.vercel.app",
+      "HTTP-Referer": "https://teachflow-os.vercel.app",
       "X-Title": "TeachFlow OS",
     },
   });

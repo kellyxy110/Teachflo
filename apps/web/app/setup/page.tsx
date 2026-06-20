@@ -2,23 +2,53 @@ export default function SetupPage() {
   const vars = [
     {
       key: "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY",
-      hint: "Clerk dashboard → API Keys",
+      hint: "Clerk dashboard → API Keys → Publishable key",
       required: true,
     },
     {
       key: "CLERK_SECRET_KEY",
-      hint: "Clerk dashboard → API Keys",
+      hint: "Clerk dashboard → API Keys → Secret key",
+      required: true,
+    },
+    {
+      key: "CLERK_WEBHOOK_SECRET",
+      hint: "Clerk dashboard → Webhooks → Signing secret",
       required: true,
     },
     {
       key: "DATABASE_URL",
-      hint: "PostgreSQL connection string",
+      hint: "Supabase → Settings → Database → Connection string (Transaction)",
       required: true,
     },
     {
-      key: "OPENAI_API_KEY",
-      hint: "platform.openai.com → API keys",
+      key: "GROQ_API_KEY",
+      hint: "console.groq.com → API Keys",
       required: true,
+    },
+    {
+      key: "OPENROUTER_API_KEY",
+      hint: "openrouter.ai → Keys",
+      required: true,
+    },
+    {
+      key: "NEXT_PUBLIC_CLERK_SIGN_IN_URL",
+      hint: "Set to: /sign-in",
+      required: false,
+    },
+    {
+      key: "NEXT_PUBLIC_CLERK_SIGN_UP_URL",
+      hint: "Set to: /sign-up",
+      required: false,
+    },
+    {
+      key: "NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL",
+      hint: "Set to: /dashboard",
+      required: false,
+    },
+    {
+      key: "NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL",
+      hint: "Set to: /onboarding",
+      required: false,
     },
   ];
 
@@ -72,14 +102,12 @@ export default function SetupPage() {
             <p>
               1. Go to{" "}
               <span className="font-mono">
-                vercel.com → Project → Settings → Environment Variables
+                vercel.com → teachflow-os → Settings → Environment Variables
               </span>
             </p>
-            <p>2. Add the four keys above and redeploy.</p>
+            <p>2. Add all the keys above and redeploy.</p>
             <p>
-              3. Run{" "}
-              <span className="font-mono">pnpm db:push</span> to migrate your
-              database.
+              3. Required AI providers: <span className="font-mono">Groq</span> (free) + <span className="font-mono">OpenRouter</span> (pay-per-use).
             </p>
           </div>
         </div>

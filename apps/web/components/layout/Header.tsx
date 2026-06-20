@@ -23,6 +23,9 @@ const pageTitles: Record<string, string> = {
   "/exams": "Exams",
   "/library": "Library",
   "/analytics": "Analytics",
+  "/study-buddy": "Study Buddy",
+  "/intelligence": "Intelligence",
+  "/onboarding": "Setup",
   "/settings": "Settings",
 };
 

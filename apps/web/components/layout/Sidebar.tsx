@@ -16,6 +16,7 @@ import {
   User,
   PenSquare,
   Sparkles,
+  Brain,
 } from "lucide-react";
 
 const navItems = [
@@ -29,6 +30,7 @@ const navItems = [
   { href: "/library", label: "Library", icon: Library },
   { href: "/analytics", label: "Analytics", icon: TrendingUp },
   { href: "/study-buddy", label: "Study Buddy", icon: Sparkles },
+  { href: "/intelligence", label: "Intelligence", icon: Brain },
 ];
 
 const bottomItems = [

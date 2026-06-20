@@ -1,6 +1,7 @@
 import { safeAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { routedChatStream, classifyIntent } from "@/lib/ai/router";
+import { routedChatStream } from "@/lib/ai/router";
+import { rateLimit } from "@/lib/rate-limit";
 
 export async function POST(request: Request) {
   let userId: string | null = null;
@@ -14,6 +15,14 @@ export async function POST(request: Request) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const { ok, remaining } = rateLimit(`ai-chat:${userId}`);
+  if (!ok) {
+    return Response.json(
+      { error: "Too many requests. Please wait a moment." },
+      { status: 429, headers: { "Retry-After": "60", "X-RateLimit-Remaining": String(remaining) } }
+    );
+  }
+
   const teacher = await db.teacher.findUnique({
     where: { clerkId: userId },
     select: { schoolId: true },
@@ -22,19 +31,25 @@ export async function POST(request: Request) {
     return Response.json({ error: "Teacher not found" }, { status: 404 });
   }
 
-  const body = await request.json();
-  const { message, useRAG, systemPrompt } = body as {
-    message: string;
-    useRAG?: boolean;
-    systemPrompt?: string;
-  };
+  const text = await request.text();
+  if (text.length > 10_000) {
+    return Response.json({ error: "Payload too large" }, { status: 413 });
+  }
 
+  let body: { message?: string; useRAG?: boolean; systemPrompt?: string };
+  try {
+    body = JSON.parse(text);
+  } catch {
+    return Response.json({ error: "Invalid JSON" }, { status: 400 });
+  }
+
+  const { message, useRAG, systemPrompt } = body;
   if (!message) {
     return Response.json({ error: "message is required" }, { status: 400 });
   }
 
   try {
-    const { stream, metadata } = await routedChatStream({
+    const { stream } = await routedChatStream({
       message,
       schoolId: teacher.schoolId,
       useRAG: useRAG ?? true,
@@ -56,14 +71,6 @@ export async function POST(request: Request) {
       headers: {
         "Content-Type": "text/plain; charset=utf-8",
         "X-Accel-Buffering": "no",
-        "X-AI-Model": metadata.model,
-        "X-AI-Provider": metadata.provider,
-        "X-AI-Intent": metadata.intent,
-        "X-AI-Reason": metadata.reason,
-        "X-AI-RAG-Used": String(metadata.ragUsed),
-        ...(metadata.ragChunks
-          ? { "X-AI-RAG-Chunks": String(metadata.ragChunks) }
-          : {}),
       },
     });
   } catch (error) {

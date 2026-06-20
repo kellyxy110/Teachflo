@@ -1,13 +1,21 @@
 import { buildLessonPrompt } from "@teachflow/ai-prompts";
 import { safeAuth } from "@/lib/auth";
 import { getGroqClient, GROQ_MODEL } from "@/lib/ai";
+import { rateLimit } from "@/lib/rate-limit";
 
 export async function POST(request: Request) {
+  let userId: string | null = null;
   try {
-    const { userId } = await safeAuth();
+    const auth = await safeAuth();
+    userId = auth.userId;
     if (!userId) return Response.json({ error: "Unauthorized" }, { status: 401 });
   } catch {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const { ok } = rateLimit(`lesson-gen:${userId}`);
+  if (!ok) {
+    return Response.json({ error: "Too many requests. Please wait a moment." }, { status: 429 });
   }
 
   const body = await request.json();

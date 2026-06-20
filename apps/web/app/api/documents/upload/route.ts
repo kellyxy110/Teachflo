@@ -59,7 +59,7 @@ export async function POST(request: Request) {
       teacherId: teacher.id,
       title,
       subject,
-      classLevel: (classLevel as any) || null,
+      classLevel: (["JS1","JS2","JS3","SS1","SS2","SS3"].includes(classLevel ?? "") ? classLevel as "JS1"|"JS2"|"JS3"|"SS1"|"SS2"|"SS3" : null),
       fileName: file.name,
       mimeType: file.type,
       fileSize: file.size,
