@@ -1,6 +1,6 @@
 import { buildLessonPrompt } from "@teachflow/ai-prompts";
 import { safeAuth } from "@/lib/auth";
-import { getGroqClient, GROQ_MODEL } from "@/lib/ai";
+import { getOpenRouterClient, OPENROUTER_LESSON_MODEL } from "@/lib/ai";
 import { rateLimit } from "@/lib/rate-limit";
 
 export async function POST(request: Request) {
@@ -27,8 +27,8 @@ export async function POST(request: Request) {
 
   const prompt = buildLessonPrompt({ subject, classLevel, topic, week, term });
 
-  const stream = await getGroqClient().chat.completions.create({
-    model: GROQ_MODEL,
+  const stream = await getOpenRouterClient(OPENROUTER_LESSON_MODEL).chat.completions.create({
+    model: OPENROUTER_LESSON_MODEL,
     messages: [{ role: "user", content: prompt }],
     stream: true,
     max_tokens: 2000,

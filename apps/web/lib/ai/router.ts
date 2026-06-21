@@ -1,6 +1,8 @@
 import type OpenAI from "openai";
+import { getCerebrasClient, CEREBRAS_MODELS } from "./providers/cerebras";
 import { getGroqClient, GROQ_MODELS } from "./providers/groq";
 import { getOpenRouterClient, OPENROUTER_MODELS } from "./providers/openrouter";
+import { searchTavily } from "./providers/tavily";
 import { retrieveRAGContext } from "../rag/retriever";
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -26,6 +28,7 @@ export interface ChatRequest {
   message: string;
   schoolId?: string;
   useRAG?: boolean;
+  useSearch?: boolean;
   systemPrompt?: string;
 }
 
@@ -104,61 +107,75 @@ export function classifyIntent(message: string): {
 
 // ── Model Router ───────────────────────────────────────────────────────────
 
-const ROUTE_MAP: Record<
-  Intent,
-  {
-    getClient: () => OpenAI;
-    model: string;
-    provider: string;
-    reason: string;
+interface RouteConfig {
+  getClient: () => OpenAI;
+  model: string;
+  provider: string;
+  reason: string;
+}
+
+function tutoringRoute(): RouteConfig {
+  if (process.env.CEREBRAS_API_KEY) {
+    return {
+      getClient: getCerebrasClient,
+      model: CEREBRAS_MODELS.CHAT,
+      provider: "cerebras",
+      reason: "Cerebras — fastest inference for real-time tutoring",
+    };
   }
-> = {
-  tutoring: {
+  return {
     getClient: getGroqClient,
     model: GROQ_MODELS.TEACHING,
     provider: "groq",
     reason: "Groq LPU — fast streaming for tutoring responses",
-  },
-  exam: {
-    getClient: getOpenRouterClient,
-    model: OPENROUTER_MODELS.EXAM,
-    provider: "openrouter",
-    reason: "DeepSeek V4 Flash — structured JSON exam output",
-  },
-  curriculum: {
-    getClient: getOpenRouterClient,
-    model: OPENROUTER_MODELS.REASONING,
-    provider: "openrouter",
-    reason: "Qwen3 80B — deep reasoning for curriculum planning",
-  },
-  document: {
-    getClient: getOpenRouterClient,
-    model: OPENROUTER_MODELS.MULTIMODAL,
-    provider: "openrouter",
-    reason: "Gemma 4 31B — document and multimodal understanding",
-  },
-  automation: {
-    getClient: getOpenRouterClient,
-    model: OPENROUTER_MODELS.AGENT,
-    provider: "openrouter",
-    reason: "Kimi K2.6 — autonomous task execution and UI generation",
-  },
-  complex: {
-    getClient: getOpenRouterClient,
-    model: OPENROUTER_MODELS.FRONTIER,
-    provider: "openrouter",
-    reason: "Hermes 3 405B — complex reasoning fallback",
-  },
-  general: {
-    getClient: getOpenRouterClient,
-    model: OPENROUTER_MODELS.GENERAL,
-    provider: "openrouter",
-    reason: "Llama 3.3 70B — general educational assistance",
-  },
-};
+  };
+}
+
+function buildRouteMap(): Record<Intent, RouteConfig> {
+  return {
+    tutoring: tutoringRoute(),
+    exam: {
+      getClient: () => getOpenRouterClient(OPENROUTER_MODELS.EXAM),
+      model: OPENROUTER_MODELS.EXAM,
+      provider: "openrouter",
+      reason: "DeepSeek V4 Flash — structured JSON exam output",
+    },
+    curriculum: {
+      getClient: () => getOpenRouterClient(OPENROUTER_MODELS.REASONING),
+      model: OPENROUTER_MODELS.REASONING,
+      provider: "openrouter",
+      reason: "Qwen3 80B — deep reasoning for curriculum planning",
+    },
+    document: {
+      getClient: () => getOpenRouterClient(OPENROUTER_MODELS.MULTIMODAL),
+      model: OPENROUTER_MODELS.MULTIMODAL,
+      provider: "openrouter",
+      reason: "Gemma 4 31B — document and multimodal understanding",
+    },
+    automation: {
+      getClient: () => getOpenRouterClient(OPENROUTER_MODELS.AGENT),
+      model: OPENROUTER_MODELS.AGENT,
+      provider: "openrouter",
+      reason: "Kimi K2.6 — autonomous task execution and UI generation",
+    },
+    complex: {
+      getClient: () => getOpenRouterClient(OPENROUTER_MODELS.FRONTIER),
+      model: OPENROUTER_MODELS.FRONTIER,
+      provider: "openrouter",
+      reason: "Hermes 3 405B — complex reasoning fallback",
+    },
+    general: {
+      getClient: () => getOpenRouterClient(OPENROUTER_MODELS.GENERAL),
+      model: OPENROUTER_MODELS.GENERAL,
+      provider: "openrouter",
+      reason: "Llama 3.3 70B — general educational assistance",
+    },
+  };
+}
 
 export function routeToModel(intent: Intent): RouteResult {
-  const route = ROUTE_MAP[intent] ?? ROUTE_MAP.general;
+  const routeMap = buildRouteMap();
+  const route = routeMap[intent] ?? routeMap.general;
   return {
     client: route.getClient(),
     model: route.model,
@@ -170,7 +187,19 @@ export function routeToModel(intent: Intent): RouteResult {
 
 // ── Fallback Chain ─────────────────────────────────────────────────────────
 
+function tutoringFallbackChain(): Intent[] {
+  if (process.env.CEREBRAS_API_KEY) {
+    return ["tutoring", "general", "complex"];
+  }
+  return ["tutoring", "general", "complex"];
+}
+
 const FALLBACK_CHAIN: Intent[] = ["general", "complex"];
+
+function getFallbackChain(primary: Intent): Intent[] {
+  if (primary === "tutoring") return tutoringFallbackChain();
+  return [primary, ...FALLBACK_CHAIN.filter((i) => i !== primary)];
+}
 
 async function tryCompletion(
   intents: Intent[],
@@ -223,27 +252,70 @@ async function tryStream(
   throw lastError ?? new Error("All models in fallback chain failed");
 }
 
-// ── System Prompt ──────────────────────────────────────────────────────────
+// ── Context Building ──────────────────────────────────────────────────────
 
 const DEFAULT_SYSTEM_PROMPT =
   "You are TeachFlow AI, an intelligent educational assistant for Nigerian secondary schools (JSS1–SS3). " +
   "You are aligned with WAEC, JAMB, and JUPEB curriculum standards. " +
   "Provide clear, accurate, and pedagogically sound responses.";
 
+async function gatherContext(
+  req: ChatRequest
+): Promise<{ ragContext: string; ragChunks: number; searchContext: string }> {
+  let ragContext = "";
+  let ragChunks = 0;
+  let searchContext = "";
+
+  const promises: Promise<void>[] = [];
+
+  if (req.useRAG && req.schoolId) {
+    promises.push(
+      retrieveRAGContext(req.message, req.schoolId, 5)
+        .then((chunks) => {
+          if (chunks.length > 0) {
+            ragContext = chunks.map((c) => c.content).join("\n\n---\n\n");
+            ragChunks = chunks.length;
+          }
+        })
+        .catch(() => {})
+    );
+  }
+
+  if (req.useSearch) {
+    promises.push(
+      searchTavily(req.message, 3)
+        .then((results) => {
+          if (results.length > 0) {
+            searchContext = results
+              .map((r) => `[${r.title}](${r.url})\n${r.content}`)
+              .join("\n\n");
+          }
+        })
+        .catch(() => {})
+    );
+  }
+
+  await Promise.all(promises);
+  return { ragContext, ragChunks, searchContext };
+}
+
 function buildMessages(
   message: string,
   systemPrompt: string | undefined,
-  ragContext: string
+  ragContext: string,
+  searchContext: string
 ): OpenAI.Chat.Completions.ChatCompletionMessageParam[] {
-  const system = [
-    systemPrompt || DEFAULT_SYSTEM_PROMPT,
-    ragContext
-      ? `\n\nRelevant context from school knowledge base:\n${ragContext}`
-      : "",
-  ].join("");
+  const parts = [systemPrompt || DEFAULT_SYSTEM_PROMPT];
+
+  if (ragContext) {
+    parts.push(`\n\nRelevant context from school knowledge base:\n${ragContext}`);
+  }
+  if (searchContext) {
+    parts.push(`\n\nRecent web search results:\n${searchContext}`);
+  }
 
   return [
-    { role: "system" as const, content: system },
+    { role: "system" as const, content: parts.join("") },
     { role: "user" as const, content: message },
   ];
 }
@@ -251,25 +323,10 @@ function buildMessages(
 // ── Main Chat (non-streaming) ──────────────────────────────────────────────
 
 export async function routedChat(req: ChatRequest): Promise<ChatResponse> {
-  const { intent, reason } = classifyIntent(req.message);
-
-  let ragContext = "";
-  let ragChunks = 0;
-  if (req.useRAG && req.schoolId) {
-    try {
-      const chunks = await retrieveRAGContext(req.message, req.schoolId, 5);
-      if (chunks.length > 0) {
-        ragContext = chunks.map((c) => c.content).join("\n\n---\n\n");
-        ragChunks = chunks.length;
-      }
-    } catch {
-      // RAG failure is non-fatal — proceed without context
-    }
-  }
-
-  const messages = buildMessages(req.message, req.systemPrompt, ragContext);
-  const chain: Intent[] = [intent, ...FALLBACK_CHAIN.filter((i) => i !== intent)];
-
+  const { intent } = classifyIntent(req.message);
+  const { ragContext, ragChunks, searchContext } = await gatherContext(req);
+  const messages = buildMessages(req.message, req.systemPrompt, ragContext, searchContext);
+  const chain = getFallbackChain(intent);
   const { completion, route } = await tryCompletion(chain, messages);
 
   return {
@@ -291,25 +348,10 @@ export async function routedChatStream(
   stream: AsyncIterable<OpenAI.Chat.Completions.ChatCompletionChunk>;
   metadata: StreamMetadata;
 }> {
-  const { intent, reason } = classifyIntent(req.message);
-
-  let ragContext = "";
-  let ragChunks = 0;
-  if (req.useRAG && req.schoolId) {
-    try {
-      const chunks = await retrieveRAGContext(req.message, req.schoolId, 5);
-      if (chunks.length > 0) {
-        ragContext = chunks.map((c) => c.content).join("\n\n---\n\n");
-        ragChunks = chunks.length;
-      }
-    } catch {
-      // RAG failure non-fatal
-    }
-  }
-
-  const messages = buildMessages(req.message, req.systemPrompt, ragContext);
-  const chain: Intent[] = [intent, ...FALLBACK_CHAIN.filter((i) => i !== intent)];
-
+  const { intent } = classifyIntent(req.message);
+  const { ragContext, ragChunks, searchContext } = await gatherContext(req);
+  const messages = buildMessages(req.message, req.systemPrompt, ragContext, searchContext);
+  const chain = getFallbackChain(intent);
   const { stream, route } = await tryStream(chain, messages);
 
   return {

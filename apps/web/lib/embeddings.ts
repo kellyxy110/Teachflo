@@ -1,16 +1,21 @@
+import { jinaEmbed, JINA_DIMENSIONS } from "./ai/providers/jina";
+
 export const EMBEDDING_DIMENSIONS = parseInt(
-  process.env.EMBEDDING_DIMENSIONS || "1024"
+  process.env.EMBEDDING_DIMENSIONS || String(JINA_DIMENSIONS)
 );
 
-const EMBEDDING_MODEL = process.env.EMBEDDING_MODEL || "bge-m3";
+const EMBEDDING_MODEL = process.env.EMBEDDING_MODEL || "jina-embeddings-v3";
+
+function useJina(): boolean {
+  return !!process.env.JINA_API_KEY;
+}
 
 function getEmbeddingURL(): string {
   const base = process.env.EMBEDDING_PROVIDER_URL;
   if (!base) {
     throw new Error(
-      "EMBEDDING_PROVIDER_URL is not set. " +
-        "Set it to an OpenAI-compatible embedding endpoint " +
-        "(e.g. https://api.jina.ai/v1 or a self-hosted service)."
+      "EMBEDDING_PROVIDER_URL is not set and JINA_API_KEY is not available. " +
+        "Set JINA_API_KEY or provide an OpenAI-compatible embedding endpoint."
     );
   }
   return base.endsWith("/embeddings") ? base : `${base}/embeddings`;
@@ -31,11 +36,10 @@ interface EmbeddingResponse {
   data: Array<{ embedding: number[]; index: number }>;
 }
 
-async function callEmbeddingAPI(
+async function callGenericEmbeddingAPI(
   input: string | string[]
 ): Promise<number[][]> {
   const url = getEmbeddingURL();
-
   const response = await fetch(url, {
     method: "POST",
     headers: getHeaders(),
@@ -51,6 +55,11 @@ async function callEmbeddingAPI(
   return data.data
     .sort((a, b) => a.index - b.index)
     .map((d) => d.embedding);
+}
+
+async function callEmbeddingAPI(input: string | string[]): Promise<number[][]> {
+  if (useJina()) return jinaEmbed(input);
+  return callGenericEmbeddingAPI(input);
 }
 
 export async function generateEmbedding(text: string): Promise<number[]> {

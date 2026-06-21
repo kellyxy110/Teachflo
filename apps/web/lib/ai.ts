@@ -1,21 +1,6 @@
-/**
- * AI provider clients for TeachFlow OS
- *
- * Groq       → lesson generation + rewriting (streaming)
- *              Ultra-fast LPU inference — makes the live-typing UX feel instant.
- *              Model: llama-3.3-70b-versatile
- *
- * OpenRouter → exam generation (JSON mode)
- *              Routes to DeepSeek V4 Flash — 1M context, rock-solid JSON output,
- *              distractor analysis without hallucinating options.
- *              Model: deepseek/deepseek-v4-flash:free
- *
- * Both use the OpenAI-compatible API so we keep the same SDK with no new packages.
- */
-
 import OpenAI from "openai";
 
-// ── Groq ──────────────────────────────────────────────────────────────────────
+// ── Groq (Study Buddy fallback, lesson rewriting) ────────────────────────
 export const GROQ_MODEL = "llama-3.3-70b-versatile";
 
 export function getGroqClient(): OpenAI {
@@ -28,18 +13,33 @@ export function getGroqClient(): OpenAI {
   });
 }
 
-// ── OpenRouter ────────────────────────────────────────────────────────────────
+// ── OpenRouter (per-model keys, fallback to shared key) ──────────────────
 export const OPENROUTER_EXAM_MODEL = "deepseek/deepseek-v4-flash:free";
+export const OPENROUTER_LESSON_MODEL = "qwen/qwen3-next-80b-a3b-instruct:free";
 
-export function getOpenRouterClient(): OpenAI {
-  if (!process.env.OPENROUTER_API_KEY) {
-    throw new Error("OPENROUTER_API_KEY is not set");
+export function getOpenRouterClient(model?: string): OpenAI {
+  const MODEL_KEY_MAP: Record<string, string> = {
+    "deepseek/deepseek-v4-flash:free": "OPENROUTER_KEY_DEEPSEEK",
+    "qwen/qwen3-next-80b-a3b-instruct:free": "OPENROUTER_KEY_QWEN",
+    "meta-llama/llama-3.3-70b-instruct:free": "OPENROUTER_KEY_LLAMA",
+    "google/gemma-4-31b-it:free": "OPENROUTER_KEY_GEMMA",
+    "moonshotai/kimi-k2.6:free": "OPENROUTER_KEY_KIMI",
+    "nousresearch/hermes-3-llama-3.1-405b:free": "OPENROUTER_KEY_HERMES",
+  };
+
+  let apiKey: string | undefined;
+  if (model) {
+    const envVar = MODEL_KEY_MAP[model];
+    if (envVar) apiKey = process.env[envVar];
   }
+  if (!apiKey) apiKey = process.env.OPENROUTER_API_KEY;
+  if (!apiKey) throw new Error("No OpenRouter API key available");
+
   return new OpenAI({
-    apiKey: process.env.OPENROUTER_API_KEY,
+    apiKey,
     baseURL: "https://openrouter.ai/api/v1",
     defaultHeaders: {
-      "HTTP-Referer": "https://teachflow.vercel.app",
+      "HTTP-Referer": "https://teachflow-os.vercel.app",
       "X-Title": "TeachFlow OS",
     },
   });

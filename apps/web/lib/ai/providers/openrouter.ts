@@ -9,16 +9,39 @@ export const OPENROUTER_MODELS = {
   FRONTIER: "nousresearch/hermes-3-llama-3.1-405b:free",
 } as const;
 
-export function getOpenRouterClient(): OpenAI {
-  if (!process.env.OPENROUTER_API_KEY) {
-    throw new Error("OPENROUTER_API_KEY is not set");
+const MODEL_KEY_MAP: Record<string, string> = {
+  [OPENROUTER_MODELS.EXAM]: "OPENROUTER_KEY_DEEPSEEK",
+  [OPENROUTER_MODELS.REASONING]: "OPENROUTER_KEY_QWEN",
+  [OPENROUTER_MODELS.GENERAL]: "OPENROUTER_KEY_LLAMA",
+  [OPENROUTER_MODELS.MULTIMODAL]: "OPENROUTER_KEY_GEMMA",
+  [OPENROUTER_MODELS.AGENT]: "OPENROUTER_KEY_KIMI",
+  [OPENROUTER_MODELS.FRONTIER]: "OPENROUTER_KEY_HERMES",
+};
+
+const DEFAULT_HEADERS = {
+  "HTTP-Referer": "https://teachflow-os.vercel.app",
+  "X-Title": "TeachFlow OS",
+};
+
+function resolveKey(model?: string): string {
+  if (model) {
+    const envVar = MODEL_KEY_MAP[model];
+    if (envVar) {
+      const key = process.env[envVar];
+      if (key) return key;
+    }
   }
+  const fallback = process.env.OPENROUTER_API_KEY;
+  if (!fallback) {
+    throw new Error("No OpenRouter API key available");
+  }
+  return fallback;
+}
+
+export function getOpenRouterClient(model?: string): OpenAI {
   return new OpenAI({
-    apiKey: process.env.OPENROUTER_API_KEY,
+    apiKey: resolveKey(model),
     baseURL: "https://openrouter.ai/api/v1",
-    defaultHeaders: {
-      "HTTP-Referer": "https://teachflow-os.vercel.app",
-      "X-Title": "TeachFlow OS",
-    },
+    defaultHeaders: DEFAULT_HEADERS,
   });
 }

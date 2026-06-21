@@ -37,7 +37,7 @@ export async function POST(request: Request) {
     advancedCount: advancedCount ?? 2,
   } as ExamInput);
 
-  const completion = await getOpenRouterClient().chat.completions.create({
+  const completion = await getOpenRouterClient(OPENROUTER_EXAM_MODEL).chat.completions.create({
     model: OPENROUTER_EXAM_MODEL,
     messages: [{ role: "user", content: prompt }],
     temperature: 0.4,
