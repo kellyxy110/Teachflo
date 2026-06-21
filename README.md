@@ -2,7 +2,7 @@
 
 AI-powered learning operating system for Nigerian secondary schools (JSS1–SS3), aligned with WAEC, JAMB, and JUPEB curriculum standards.
 
-**Live:** [web-ten-psi-28.vercel.app](https://web-ten-psi-28.vercel.app)
+**Live:** [teachflow-os.vercel.app](https://teachflow-os.vercel.app)
 
 ---
 
@@ -260,7 +260,7 @@ Nigerian secondary school standard:
 - [x] Phase 1A: Student question tracking, exam attempts, skill tags
 - [x] Phase 1B: PDF ingestion -> RAG pipeline (upload & understand)
 - [x] Phase 1C: Study Buddy — AI learning cockpit with 5 modes + student context
-- [ ] Phase 1D: AI Exam 2.0 (difficulty scaling, curriculum alignment)
+- [x] Phase 1D: AI Exam 2.0 — adaptive assessment engine with 4 modes, misconception detection, skill graph integration
 - [ ] Skill Graph visualization
 - [ ] Mistake Intelligence System
 - [ ] Adaptive Learning Engine
