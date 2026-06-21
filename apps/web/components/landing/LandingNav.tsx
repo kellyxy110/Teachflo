@@ -43,7 +43,7 @@ export function LandingNav() {
           <div className="hidden md:flex items-center gap-1">
             {[
               { href: "#modes", label: "Features" },
-              { href: "#modes", label: "Practice" },
+              { href: "#practice", label: "Practice" },
               { href: "/dashboard", label: "Dashboard", external: true },
             ].map(({ href, label, external }) =>
               external ? (

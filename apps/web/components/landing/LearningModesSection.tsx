@@ -161,8 +161,9 @@ export function LearningModesSection() {
       id="modes"
       aria-label="Learning modes"
       style={{ background: "#04081a" }}
-      className="py-24 px-6"
+      className="py-24 px-6 relative"
     >
+      <span id="practice" className="absolute top-0" />
       <div className="max-w-6xl mx-auto">
         {/* Section header */}
         <motion.div
