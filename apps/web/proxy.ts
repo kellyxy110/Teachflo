@@ -25,6 +25,10 @@ if (isValidKey) {
       "/terms",
       "/privacy",
       "/cookies",
+      "/robots.txt",
+      "/sitemap.xml",
+      "/icon.svg",
+      "/api/webhooks/clerk",
       "/__clerk(.*)",
     ]);
 

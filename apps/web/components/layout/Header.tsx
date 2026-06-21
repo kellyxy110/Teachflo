@@ -2,16 +2,9 @@
 
 import { usePathname } from "next/navigation";
 import { Bell } from "lucide-react";
+import { UserButton } from "@clerk/nextjs";
 
-// Lazy-load Clerk components so the Header doesn't crash when
-// NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY is absent (e.g. /setup page).
 const CLERK_KEY = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
-
-let UserButton: React.ComponentType<{ afterSignOutUrl?: string }> | null = null;
-if (CLERK_KEY) {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  UserButton = require("@clerk/nextjs").UserButton;
-}
 
 const pageTitles: Record<string, string> = {
   "/dashboard": "Dashboard",
@@ -51,7 +44,7 @@ export function Header() {
         >
           <Bell size={18} />
         </button>
-        {UserButton && <UserButton afterSignOutUrl="/sign-in" />}
+        {CLERK_KEY && <UserButton afterSignOutUrl="/sign-in" />}
       </div>
     </header>
   );
