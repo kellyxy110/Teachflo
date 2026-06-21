@@ -17,6 +17,7 @@ import {
   PenSquare,
   Sparkles,
   Brain,
+  FlaskConical,
 } from "lucide-react";
 
 const navItems = [
@@ -30,6 +31,7 @@ const navItems = [
   { href: "/library", label: "Library", icon: Library },
   { href: "/analytics", label: "Analytics", icon: TrendingUp },
   { href: "/study-buddy", label: "Study Buddy", icon: Sparkles },
+  { href: "/knowledge-studio", label: "Knowledge Studio", icon: FlaskConical },
   { href: "/intelligence", label: "Intelligence", icon: Brain },
 ];
 
