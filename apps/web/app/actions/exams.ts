@@ -61,7 +61,7 @@ export async function saveExam(data: {
       examType: data.examType,
       difficulty: data.difficulty,
       duration: data.generated.exam.duration ?? null,
-      aiModel: "gpt-4o",
+      aiModel: "openrouter/free-tier",
     },
   });
 
