@@ -8,6 +8,8 @@ import { retrieveRAGContext } from "../rag/retriever";
 // Emergency fallback pool — tried after all intent-based routes fail.
 // Ordered by capability: largest/most capable first.
 const EMERGENCY_MODELS = [
+  OPENROUTER_MODELS.MINIMAX_M3,
+  OPENROUTER_MODELS.SONNET_4_5,
   OPENROUTER_MODELS.GPT_OSS,
   OPENROUTER_MODELS.NEMOTRON_ULTRA,
   OPENROUTER_MODELS.NEMOTRON_REASON,

@@ -51,6 +51,8 @@ export function getOpenRouterClient(model?: string): OpenAI {
 
 export const LESSON_MODELS = [
   "qwen/qwen3-next-80b-a3b-instruct:free",
+  "minimax/minimax-m3:free",
+  "anthropic/claude-sonnet-4.5:free",
   "openai/gpt-oss-120b:free",
   "nvidia/nemotron-3-ultra-550b-a55b:free",
   "nousresearch/hermes-3-llama-3.1-405b:free",
@@ -63,6 +65,8 @@ export const LESSON_MODELS = [
 
 export const EXAM_MODELS = [
   "deepseek/deepseek-v4-flash:free",
+  "minimax/minimax-m3:free",
+  "anthropic/claude-sonnet-4.5:free",
   "openai/gpt-oss-120b:free",
   "nvidia/nemotron-3-ultra-550b-a55b:free",
   "qwen/qwen3-next-80b-a3b-instruct:free",
@@ -73,6 +77,8 @@ export const EXAM_MODELS = [
 
 export const DOCUMENT_MODELS = [
   "google/gemma-4-31b-it:free",
+  "minimax/minimax-m3:free",
+  "anthropic/claude-sonnet-4.5:free",
   "openai/gpt-oss-120b:free",
   "nvidia/nemotron-nano-12b-v2-vl:free",
   "google/gemma-4-26b-a4b-it:free",

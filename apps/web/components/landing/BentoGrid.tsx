@@ -1,5 +1,6 @@
 "use client";
-import { motion } from "framer-motion";
+import { useState, useMemo } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Brain,
   TrendingUp,
@@ -9,6 +10,8 @@ import {
   Lightbulb,
   BarChart2,
   Zap,
+  CheckCircle,
+  XCircle,
 } from "lucide-react";
 
 // Framer Motion's useReducedMotion automatically detects prefers-reduced-motion.
@@ -63,6 +66,169 @@ function SkillBar({ label, pct, color }: { label: string; pct: number; color: st
         />
       </div>
     </div>
+  );
+}
+
+// ── Daily Challenge data & component ────────────────────────────
+const DAILY_CHALLENGES = [
+  {
+    subject: "Physics",
+    level: "SS1",
+    board: "WAEC",
+    question: "A stone of mass 2 kg is thrown vertically upward with velocity 20 m/s. What is the maximum height reached? (g = 10 m/s²)",
+    options: ["10 m", "20 m", "40 m", "200 m"],
+    answer: 1,
+    explanation: "Using v² = u² − 2gh → 0 = 400 − 2(10)h → h = 20 m.",
+  },
+  {
+    subject: "Chemistry",
+    level: "SS2",
+    board: "WAEC",
+    question: "What is the IUPAC name for CH₃CH₂OH?",
+    options: ["Methanol", "Ethanol", "Propanol", "Butanol"],
+    answer: 1,
+    explanation: "CH₃CH₂OH has 2 carbon atoms with an -OH group → Ethanol.",
+  },
+  {
+    subject: "Mathematics",
+    level: "SS1",
+    board: "JAMB",
+    question: "Simplify: log₁₀ 100 + log₁₀ 10",
+    options: ["2", "3", "10", "1000"],
+    answer: 1,
+    explanation: "log₁₀ 100 = 2, log₁₀ 10 = 1. So 2 + 1 = 3.",
+  },
+  {
+    subject: "Biology",
+    level: "SS2",
+    board: "WAEC",
+    question: "Which organelle is responsible for protein synthesis?",
+    options: ["Mitochondria", "Ribosome", "Golgi apparatus", "Lysosome"],
+    answer: 1,
+    explanation: "Ribosomes translate mRNA into amino acid chains (proteins).",
+  },
+  {
+    subject: "English",
+    level: "SS1",
+    board: "WAEC",
+    question: "Choose the correct option: The team ___ playing well today.",
+    options: ["are", "is", "were", "have"],
+    answer: 1,
+    explanation: "'Team' is a collective noun treated as singular → 'is'.",
+  },
+];
+
+function DailyChallenge() {
+  const challenge = useMemo(() => {
+    const dayIndex = Math.floor(Date.now() / 86400000) % DAILY_CHALLENGES.length;
+    return DAILY_CHALLENGES[dayIndex];
+  }, []);
+
+  const [selected, setSelected] = useState<number | null>(null);
+  const [started, setStarted] = useState(false);
+
+  const pick = (i: number) => {
+    if (selected !== null) return;
+    setSelected(i);
+  };
+
+  if (!started) {
+    return (
+      <>
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{ background: "radial-gradient(ellipse at bottom left, rgba(245,158,11,0.1), transparent 70%)" }}
+        />
+        <div className="flex items-center gap-2 mb-4">
+          <div className="p-2 rounded-xl" style={{ background: "rgba(245,158,11,0.15)" }}>
+            <Flame size={18} style={{ color: "#f59e0b" }} />
+          </div>
+          <span className="text-sm font-bold" style={{ color: "#e2e8f0" }}>Daily Challenge</span>
+          <span className="ml-auto text-xs font-bold" style={{ color: "#f59e0b" }}>🔥 New daily</span>
+        </div>
+        <div
+          className="flex-1 rounded-xl p-4 mb-4"
+          style={{ background: "rgba(245,158,11,0.06)", border: "1px solid rgba(245,158,11,0.15)" }}
+        >
+          <div className="text-xs font-semibold mb-2" style={{ color: "#fbbf24" }}>
+            {challenge.subject} • {challenge.level} • {challenge.board}
+          </div>
+          <p className="text-sm leading-relaxed" style={{ color: "#e2e8f0" }}>
+            {challenge.question}
+          </p>
+        </div>
+        <button
+          onClick={() => setStarted(true)}
+          className="w-full py-2.5 rounded-xl text-sm font-bold transition-all hover:opacity-90"
+          style={{ background: "linear-gradient(135deg, #f59e0b, #d97706)", color: "#fff" }}
+        >
+          Attempt Challenge →
+        </button>
+      </>
+    );
+  }
+
+  return (
+    <>
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{ background: "radial-gradient(ellipse at bottom left, rgba(245,158,11,0.1), transparent 70%)" }}
+      />
+      <div className="flex items-center gap-2 mb-3">
+        <div className="p-2 rounded-xl" style={{ background: "rgba(245,158,11,0.15)" }}>
+          <Flame size={18} style={{ color: "#f59e0b" }} />
+        </div>
+        <span className="text-sm font-bold" style={{ color: "#e2e8f0" }}>Daily Challenge</span>
+        {selected !== null && (
+          <span className="ml-auto text-xs font-bold" style={{ color: selected === challenge.answer ? "#10b981" : "#ef4444" }}>
+            {selected === challenge.answer ? "Correct!" : "Wrong"}
+          </span>
+        )}
+      </div>
+      <div className="text-xs font-semibold mb-2 px-1" style={{ color: "#fbbf24" }}>
+        {challenge.subject} • {challenge.level} • {challenge.board}
+      </div>
+      <p className="text-xs leading-relaxed mb-3 px-1" style={{ color: "#94a3b8" }}>
+        {challenge.question}
+      </p>
+      <div className="space-y-1.5 mb-3">
+        {challenge.options.map((opt, i) => {
+          const isSelected = selected === i;
+          const isCorrect = selected !== null && i === challenge.answer;
+          const isWrong = isSelected && i !== challenge.answer;
+          return (
+            <button
+              key={i}
+              onClick={() => pick(i)}
+              className="w-full text-left px-3 py-2 rounded-lg text-xs transition-all"
+              style={{
+                background: isCorrect ? "rgba(16,185,129,0.15)" : isWrong ? "rgba(220,38,38,0.12)" : "rgba(255,255,255,0.04)",
+                border: isCorrect ? "1px solid rgba(16,185,129,0.4)" : isWrong ? "1px solid rgba(220,38,38,0.3)" : "1px solid rgba(255,255,255,0.08)",
+                color: isCorrect ? "#10b981" : isWrong ? "#ef4444" : "#c7d2fe",
+              }}
+            >
+              <span style={{ color: "#475569" }}>{String.fromCharCode(65 + i)}.</span> {opt}
+              {isCorrect && <CheckCircle size={12} className="inline ml-1.5" />}
+              {isWrong && <XCircle size={12} className="inline ml-1.5" />}
+            </button>
+          );
+        })}
+      </div>
+      <AnimatePresence>
+        {selected !== null && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            className="rounded-lg p-3"
+            style={{ background: "rgba(59,130,246,0.08)", border: "1px solid rgba(59,130,246,0.2)" }}
+          >
+            <p className="text-xs leading-relaxed" style={{ color: "#94a3b8" }}>
+              {challenge.explanation}
+            </p>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </>
   );
 }
 
@@ -134,36 +300,9 @@ export function BentoGrid() {
             </>
           ))}
 
-          {/* DAILY CHALLENGE */}
+          {/* DAILY CHALLENGE — interactive */}
           {card(0.08, "p-6 flex flex-col", (
-            <>
-              <div
-                className="absolute inset-0 pointer-events-none"
-                style={{ background: "radial-gradient(ellipse at bottom left, rgba(245,158,11,0.1), transparent 70%)" }}
-              />
-              <div className="flex items-center gap-2 mb-4">
-                <div className="p-2 rounded-xl" style={{ background: "rgba(245,158,11,0.15)" }}>
-                  <Flame size={18} style={{ color: "#f59e0b" }} />
-                </div>
-                <span className="text-sm font-bold" style={{ color: "#e2e8f0" }}>Daily Challenge</span>
-                <span className="ml-auto text-xs font-bold" style={{ color: "#f59e0b" }}>🔥 7 day streak</span>
-              </div>
-              <div
-                className="flex-1 rounded-xl p-4 mb-4"
-                style={{ background: "rgba(245,158,11,0.06)", border: "1px solid rgba(245,158,11,0.15)" }}
-              >
-                <div className="text-xs font-semibold mb-2" style={{ color: "#fbbf24" }}>Physics • SS1 • WAEC</div>
-                <p className="text-sm leading-relaxed" style={{ color: "#e2e8f0" }}>
-                  A stone of mass 2 kg is thrown vertically upward with velocity 20 m/s. What is the maximum height reached?
-                </p>
-              </div>
-              <button
-                className="w-full py-2.5 rounded-xl text-sm font-bold transition-all hover:opacity-90"
-                style={{ background: "linear-gradient(135deg, #f59e0b, #d97706)", color: "#fff" }}
-              >
-                Attempt Challenge →
-              </button>
-            </>
+            <DailyChallenge />
           ))}
 
           {/* AI LESSON GENERATOR */}

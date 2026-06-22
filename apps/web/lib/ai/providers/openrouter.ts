@@ -18,6 +18,10 @@ export const OPENROUTER_MODELS = {
   GEMMA_26B:       "google/gemma-4-26b-a4b-it:free",
   QWEN_CODER:      "qwen/qwen3-coder:free",
   LLAMA_3B:        "meta-llama/llama-3.2-3b-instruct:free",
+  // Premium models (free while available — fallback skips if unavailable)
+  MINIMAX_M3:      "minimax/minimax-m3:free",
+  SONNET_4_5:      "anthropic/claude-sonnet-4.5:free",
+  R1_DISTILL:      "deepseek/deepseek-r1-distill-qwen-1.5b:free",
 } as const;
 
 const MODEL_KEY_MAP: Record<string, string> = {
