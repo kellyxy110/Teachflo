@@ -18,6 +18,7 @@ import {
   Sparkles,
   Brain,
   FlaskConical,
+  Code2,
 } from "lucide-react";
 
 const navItems = [
@@ -33,6 +34,7 @@ const navItems = [
   { href: "/study-buddy", label: "Study Buddy", icon: Sparkles },
   { href: "/knowledge-studio", label: "Knowledge Studio", icon: FlaskConical },
   { href: "/intelligence", label: "Intelligence", icon: Brain },
+  { href: "/code-lab", label: "Code Lab", icon: Code2 },
 ];
 
 const bottomItems = [
