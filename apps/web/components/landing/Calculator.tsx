@@ -234,6 +234,7 @@ export function Calculator({ open, onClose }: Props) {
   const [mode, setMode] = useState<AngleMode>("DEG");
   const [mem, setMem] = useState(0);
   const [hist, setHist] = useState<{ e: string; r: string }[]>([]);
+  const [shift, setShift] = useState(false);
 
   const [eqType, setEqType] = useState<EqType>("quadratic");
   const [eqC, setEqC] = useState<string[]>(Array(12).fill(""));
@@ -367,33 +368,11 @@ export function Calculator({ open, onClose }: Props) {
 
   useEffect(() => { if (tab === "graph") setTimeout(drawGraph, 60); }, [tab, drawGraph]);
 
-  // Button styles
-  const bs: Record<string, string> = {
-    mode: "bg-blue-500/20 text-blue-300 border-blue-500/30 font-black",
-    con: "bg-purple-500/15 text-purple-300 border-purple-500/25",
-    clr: "bg-red-500/20 text-red-400 border-red-500/25",
-    del: "bg-amber-500/15 text-amber-400 border-amber-500/20",
-    fn: "bg-emerald-500/12 text-emerald-300 border-emerald-500/18",
-    fn2: "bg-teal-500/10 text-teal-300 border-teal-500/15",
-    op: "bg-blue-500/12 text-blue-300 border-blue-500/18",
-    num: "bg-white/5 text-slate-200 border-white/8",
-    mem: "bg-violet-500/10 text-violet-300 border-violet-500/15",
-    eq: "bg-gradient-to-r from-blue-500 to-violet-500 text-white font-black border-transparent shadow-lg shadow-blue-500/20",
+  // Casio-style button helper: fires action, auto-deactivates shift
+  const shiftAction = (normalAction: () => void, shiftedAction: () => void) => {
+    if (shift) { shiftedAction(); setShift(false); }
+    else normalAction();
   };
-
-  type Btn = [string, () => void, string];
-  const grid: Btn[][] = [
-    [[mode, () => setMode(m => m === "DEG" ? "RAD" : m === "RAD" ? "GRAD" : "DEG"), "mode"], ["π", () => append("π"), "con"], ["ℯ", () => append("ℯ"), "con"], ["φ", () => append("φ"), "con"], ["C", clear, "clr"], ["⌫", backspace, "del"]],
-    [["sin", () => append("sin("), "fn"], ["cos", () => append("cos("), "fn"], ["tan", () => append("tan("), "fn"], ["log", () => append("log("), "fn"], ["ln", () => append("ln("), "fn"], ["(", () => append("("), "op"]],
-    [["sin⁻¹", () => append("sin⁻¹("), "fn"], ["cos⁻¹", () => append("cos⁻¹("), "fn"], ["tan⁻¹", () => append("tan⁻¹("), "fn"], ["10^x", () => append("10**("), "fn"], ["e^x", () => append("exp("), "fn"], [")", () => append(")"), "op"]],
-    [["sinh", () => append("sinh("), "fn2"], ["cosh", () => append("cosh("), "fn2"], ["tanh", () => append("tanh("), "fn2"], ["log₂", () => append("log₂("), "fn2"], ["2^x", () => append("2**("), "fn2"], ["^", () => append("^"), "op"]],
-    [["x²", () => append("**2"), "fn2"], ["x³", () => append("**3"), "fn2"], ["xⁿ", () => append("**("), "fn2"], ["√", () => append("√("), "fn"], ["∛", () => append("∛("), "fn"], ["%", () => append("/100"), "op"]],
-    [["nPr", () => append("nPr("), "fn2"], ["nCr", () => append("nCr("), "fn2"], ["n!", () => append("!"), "fn2"], ["1/x", () => setExpr(e => `(1/(${e || result}))`), "fn2"], ["|x|", () => append("abs("), "fn2"], ["EE", () => append("*10**("), "op"]],
-    [["M+", () => memOp("+"), "mem"], ["M−", () => memOp("-"), "mem"], ["MR", () => memOp("R"), "mem"], ["MC", () => memOp("C"), "mem"], ["±", () => setExpr(e => e.startsWith("-") ? e.slice(1) : "-" + e), "op"], [".", () => append("."), "num"]],
-    [["7", () => append("7"), "num"], ["8", () => append("8"), "num"], ["9", () => append("9"), "num"], ["÷", () => append("÷"), "op"], ["×", () => append("×"), "op"], ["−", () => append("−"), "op"]],
-    [["4", () => append("4"), "num"], ["5", () => append("5"), "num"], ["6", () => append("6"), "num"], ["+", () => append("+"), "op"], ["00", () => append("00"), "num"], [",", () => append(","), "num"]],
-    [["1", () => append("1"), "num"], ["2", () => append("2"), "num"], ["3", () => append("3"), "num"], ["0", () => append("0"), "num"], ["Ans", () => append(result !== "Error" ? result : "0"), "con"], ["=", evaluate, "eq"]],
-  ];
 
   const eqCfg: Record<EqType, { lbl: string; n: string; cnt: number }> = {
     quadratic: { lbl: "Quadratic", n: "ax² + bx + c = 0", cnt: 3 },
@@ -436,30 +415,145 @@ export function Calculator({ open, onClose }: Props) {
                 </div>
               </div>
 
-              {/* ═══ STANDARD ═══ */}
+              {/* ═══ STANDARD (Casio fx-991ES PLUS style) ═══ */}
               {tab === "standard" && (
-                <div>
-                  <div className="px-4 pt-3 pb-2" style={{ background: "rgba(0,0,0,0.2)" }}>
-                    <div className="text-right">
-                      <div className="text-xs min-h-4 truncate font-mono" style={{ color: "#334155" }}>{expr || "0"}</div>
-                      <div className="text-3xl font-black mt-0.5 truncate" style={{ color: result === "Error" ? "#ef4444" : result !== "0" ? "#60a5fa" : "#64748b" }}>{result}</div>
+                <div style={{ background: "#1a1a2e", borderRadius: "0 0 24px 24px" }}>
+                  {/* Calculator body branding */}
+                  <div className="flex items-center justify-between px-4 pt-2 pb-0.5">
+                    <span className="text-[10px] font-bold tracking-widest" style={{ color: "#6b7280" }}>TeachFlow CALC</span>
+                    <span className="text-[8px] tracking-wider" style={{ color: "#4b5563" }}>NATURAL-V.P.A.M.</span>
+                  </div>
+
+                  {/* LCD Display */}
+                  <div className="mx-3 mb-2 rounded-lg overflow-hidden" style={{ background: "linear-gradient(180deg, #c8d5b9 0%, #b8c9a3 100%)", border: "2px solid #3a3a4a", boxShadow: "inset 0 2px 8px rgba(0,0,0,0.3), inset 0 -1px 4px rgba(0,0,0,0.1)" }}>
+                    {/* Mode indicators */}
+                    <div className="flex items-center gap-2 px-2.5 pt-1.5 pb-0">
+                      {shift && <span className="text-[8px] font-black px-1 rounded" style={{ background: "#d4a017", color: "#1a1a2e" }}>SHIFT</span>}
+                      <span className="text-[8px] font-bold" style={{ color: "#4a5a3a" }}>{mode}</span>
+                      {mem !== 0 && <span className="text-[8px] font-bold" style={{ color: "#4a5a3a" }}>M</span>}
+                    </div>
+                    {/* Expression line */}
+                    <div className="px-2.5 text-right">
+                      <div className="text-[11px] min-h-[16px] truncate font-mono" style={{ color: "#3a4a2a" }}>{expr || " "}</div>
+                    </div>
+                    {/* Result line */}
+                    <div className="px-2.5 pb-2 text-right">
+                      <div className="text-2xl font-black truncate font-mono" style={{ color: result === "Error" ? "#8b0000" : "#1a2a0a" }}>{result}</div>
                     </div>
                   </div>
-                  <div className="p-2.5 grid grid-cols-6 gap-1.5">
-                    {grid.flat().map(([label, action, style], i) => (
-                      <button key={i} onClick={action} className={`h-9 rounded-xl text-[11px] font-bold transition-all hover:opacity-75 active:scale-90 border ${bs[style]}`}>{label}</button>
-                    ))}
+
+                  {/* Button grid */}
+                  <div className="px-2.5 pb-3 flex flex-col gap-[5px]">
+
+                    {/* Row 1: SHIFT, MODE, angle, M+, M-, AC */}
+                    <div className="grid grid-cols-6 gap-[5px]">
+                      <button onClick={() => setShift(s => !s)} className="h-[34px] rounded-md text-[10px] font-black transition-all active:scale-95" style={{ background: shift ? "#d4a017" : "transparent", color: shift ? "#1a1a2e" : "#d4a017", border: "2px solid #d4a017", boxShadow: shift ? "0 0 8px rgba(212,160,23,0.4)" : "none" }}>SHIFT</button>
+                      <button onClick={() => setMode(m => m === "DEG" ? "RAD" : m === "RAD" ? "GRAD" : "DEG")} className="h-[34px] rounded-md text-[10px] font-bold transition-all active:scale-95" style={{ background: "#4a4a5e", color: "#e2e8f0", boxShadow: "0 2px 4px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.1)" }}>{mode}</button>
+                      <button onClick={() => memOp("+")} className="h-[34px] rounded-md text-[10px] font-bold transition-all active:scale-95" style={{ background: "#4a4a5e", color: "#e2e8f0", boxShadow: "0 2px 4px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.1)" }}>M+</button>
+                      <button onClick={() => memOp("-")} className="h-[34px] rounded-md text-[10px] font-bold transition-all active:scale-95" style={{ background: "#4a4a5e", color: "#e2e8f0", boxShadow: "0 2px 4px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.1)" }}>M-</button>
+                      <button onClick={() => memOp("R")} className="h-[34px] rounded-md text-[10px] font-bold transition-all active:scale-95" style={{ background: "#4a4a5e", color: "#e2e8f0", boxShadow: "0 2px 4px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.1)" }}>MR</button>
+                      <button onClick={clear} className="h-[34px] rounded-md text-[10px] font-black transition-all active:scale-95" style={{ background: "#c0392b", color: "#fff", boxShadow: "0 2px 4px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.15)" }}>AC</button>
+                    </div>
+
+                    {/* Row 2: Trig functions + ( ) */}
+                    <div className="grid grid-cols-6 gap-[5px]">
+                      {[
+                        { normal: "sin", shifted: "sin⁻¹", normalAct: () => append("sin("), shiftAct: () => append("sin⁻¹(") },
+                        { normal: "cos", shifted: "cos⁻¹", normalAct: () => append("cos("), shiftAct: () => append("cos⁻¹(") },
+                        { normal: "tan", shifted: "tan⁻¹", normalAct: () => append("tan("), shiftAct: () => append("tan⁻¹(") },
+                        { normal: "sinh", shifted: "asinh", normalAct: () => append("sinh("), shiftAct: () => append("asinh(") },
+                        { normal: "cosh", shifted: "acosh", normalAct: () => append("cosh("), shiftAct: () => append("acosh(") },
+                        { normal: "tanh", shifted: "atanh", normalAct: () => append("tanh("), shiftAct: () => append("atanh(") },
+                      ].map((btn, i) => (
+                        <button key={i} onClick={() => shiftAction(btn.normalAct, btn.shiftAct)} className="relative h-[34px] rounded-md text-[10px] font-bold transition-all active:scale-95" style={{ background: "#1a6b5a", color: "#e2e8f0", boxShadow: "0 2px 4px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.1)" }}>
+                          {shift && <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 text-[7px] font-bold whitespace-nowrap" style={{ color: "#d4a017" }}>{btn.shifted}</span>}
+                          {shift ? btn.shifted : btn.normal}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Row 3: ln, log, sqrt, x^2, (, ) */}
+                    <div className="grid grid-cols-6 gap-[5px]">
+                      {[
+                        { normal: "ln", shifted: "eˣ", normalAct: () => append("ln("), shiftAct: () => append("exp(") },
+                        { normal: "log", shifted: "10ˣ", normalAct: () => append("log("), shiftAct: () => append("10**(") },
+                        { normal: "√", shifted: "∛", normalAct: () => append("√("), shiftAct: () => append("∛(") },
+                        { normal: "x²", shifted: "x³", normalAct: () => append("**2"), shiftAct: () => append("**3") },
+                        { normal: "(", shifted: "nPr", normalAct: () => append("("), shiftAct: () => append("nPr(") },
+                        { normal: ")", shifted: "nCr", normalAct: () => append(")"), shiftAct: () => append("nCr(") },
+                      ].map((btn, i) => (
+                        <button key={i} onClick={() => shiftAction(btn.normalAct, btn.shiftAct)} className="relative h-[34px] rounded-md text-[10px] font-bold transition-all active:scale-95" style={{ background: "#1a6b5a", color: "#e2e8f0", boxShadow: "0 2px 4px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.1)" }}>
+                          {shift && <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 text-[7px] font-bold whitespace-nowrap" style={{ color: "#d4a017" }}>{btn.shifted}</span>}
+                          {shift ? btn.shifted : btn.normal}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Row 4: Extra functions: x^n, n!, 1/x, |x|, pi, e */}
+                    <div className="grid grid-cols-6 gap-[5px]">
+                      <button onClick={() => append("**(") } className="h-[34px] rounded-md text-[10px] font-bold transition-all active:scale-95" style={{ background: "#1a6b5a", color: "#e2e8f0", boxShadow: "0 2px 4px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.1)" }}>x&#8319;</button>
+                      <button onClick={() => append("!")} className="h-[34px] rounded-md text-[10px] font-bold transition-all active:scale-95" style={{ background: "#1a6b5a", color: "#e2e8f0", boxShadow: "0 2px 4px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.1)" }}>n!</button>
+                      <button onClick={() => setExpr(e => `(1/(${e || result}))`)} className="h-[34px] rounded-md text-[10px] font-bold transition-all active:scale-95" style={{ background: "#1a6b5a", color: "#e2e8f0", boxShadow: "0 2px 4px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.1)" }}>x&#8315;&#185;</button>
+                      <button onClick={() => append("abs(")} className="h-[34px] rounded-md text-[10px] font-bold transition-all active:scale-95" style={{ background: "#1a6b5a", color: "#e2e8f0", boxShadow: "0 2px 4px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.1)" }}>|x|</button>
+                      <button onClick={() => append("π")} className="h-[34px] rounded-md text-[10px] font-bold transition-all active:scale-95" style={{ background: "#1a6b5a", color: "#e2e8f0", boxShadow: "0 2px 4px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.1)" }}>π</button>
+                      <button onClick={() => append("ℯ")} className="h-[34px] rounded-md text-[10px] font-bold transition-all active:scale-95" style={{ background: "#1a6b5a", color: "#e2e8f0", boxShadow: "0 2px 4px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.1)" }}>ℯ</button>
+                    </div>
+
+                    {/* Row 5: 7 8 9 DEL ÷ × */}
+                    <div className="grid grid-cols-6 gap-[5px]">
+                      {["7", "8", "9"].map(n => (
+                        <button key={n} onClick={() => append(n)} className="h-[38px] rounded-md text-sm font-bold transition-all active:scale-95" style={{ background: "#2d2d3f", color: "#f1f5f9", boxShadow: "0 3px 6px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.08)" }}>{n}</button>
+                      ))}
+                      <button onClick={backspace} className="h-[38px] rounded-md text-[10px] font-black transition-all active:scale-95" style={{ background: "#d4a017", color: "#1a1a2e", boxShadow: "0 3px 6px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.2)" }}>DEL</button>
+                      <button onClick={() => append("÷")} className="h-[38px] rounded-md text-sm font-bold transition-all active:scale-95" style={{ background: "#3a3a50", color: "#e2e8f0", boxShadow: "0 3px 6px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.1)" }}>÷</button>
+                      <button onClick={() => append("×")} className="h-[38px] rounded-md text-sm font-bold transition-all active:scale-95" style={{ background: "#3a3a50", color: "#e2e8f0", boxShadow: "0 3px 6px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.1)" }}>×</button>
+                    </div>
+
+                    {/* Row 6: 4 5 6 + - % */}
+                    <div className="grid grid-cols-6 gap-[5px]">
+                      {["4", "5", "6"].map(n => (
+                        <button key={n} onClick={() => append(n)} className="h-[38px] rounded-md text-sm font-bold transition-all active:scale-95" style={{ background: "#2d2d3f", color: "#f1f5f9", boxShadow: "0 3px 6px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.08)" }}>{n}</button>
+                      ))}
+                      <button onClick={() => append("+")} className="h-[38px] rounded-md text-sm font-bold transition-all active:scale-95" style={{ background: "#3a3a50", color: "#e2e8f0", boxShadow: "0 3px 6px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.1)" }}>+</button>
+                      <button onClick={() => append("−")} className="h-[38px] rounded-md text-sm font-bold transition-all active:scale-95" style={{ background: "#3a3a50", color: "#e2e8f0", boxShadow: "0 3px 6px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.1)" }}>−</button>
+                      <button onClick={() => append("/100")} className="h-[38px] rounded-md text-[10px] font-bold transition-all active:scale-95" style={{ background: "#3a3a50", color: "#e2e8f0", boxShadow: "0 3px 6px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.1)" }}>%</button>
+                    </div>
+
+                    {/* Row 7: 1 2 3 EXP Ans ^ */}
+                    <div className="grid grid-cols-6 gap-[5px]">
+                      {["1", "2", "3"].map(n => (
+                        <button key={n} onClick={() => append(n)} className="h-[38px] rounded-md text-sm font-bold transition-all active:scale-95" style={{ background: "#2d2d3f", color: "#f1f5f9", boxShadow: "0 3px 6px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.08)" }}>{n}</button>
+                      ))}
+                      <button onClick={() => append("*10**(")} className="h-[38px] rounded-md text-[10px] font-bold transition-all active:scale-95" style={{ background: "#3a3a50", color: "#e2e8f0", boxShadow: "0 3px 6px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.1)" }}>EXP</button>
+                      <button onClick={() => append(result !== "Error" ? result : "0")} className="h-[38px] rounded-md text-[10px] font-bold transition-all active:scale-95" style={{ background: "#3a3a50", color: "#e2e8f0", boxShadow: "0 3px 6px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.1)" }}>Ans</button>
+                      <button onClick={() => append("^")} className="h-[38px] rounded-md text-sm font-bold transition-all active:scale-95" style={{ background: "#3a3a50", color: "#e2e8f0", boxShadow: "0 3px 6px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.1)" }}>^</button>
+                    </div>
+
+                    {/* Row 8: 0, 00, ., +/-, MC, comma */}
+                    <div className="grid grid-cols-6 gap-[5px]">
+                      <button onClick={() => append("0")} className="h-[38px] rounded-md text-sm font-bold transition-all active:scale-95" style={{ background: "#2d2d3f", color: "#f1f5f9", boxShadow: "0 3px 6px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.08)" }}>0</button>
+                      <button onClick={() => append("00")} className="h-[38px] rounded-md text-sm font-bold transition-all active:scale-95" style={{ background: "#2d2d3f", color: "#f1f5f9", boxShadow: "0 3px 6px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.08)" }}>00</button>
+                      <button onClick={() => append(".")} className="h-[38px] rounded-md text-sm font-bold transition-all active:scale-95" style={{ background: "#2d2d3f", color: "#f1f5f9", boxShadow: "0 3px 6px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.08)" }}>.</button>
+                      <button onClick={() => setExpr(e => e.startsWith("-") ? e.slice(1) : "-" + e)} className="h-[38px] rounded-md text-sm font-bold transition-all active:scale-95" style={{ background: "#3a3a50", color: "#e2e8f0", boxShadow: "0 3px 6px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.1)" }}>(&#8211;)</button>
+                      <button onClick={() => memOp("C")} className="h-[38px] rounded-md text-[10px] font-bold transition-all active:scale-95" style={{ background: "#4a4a5e", color: "#e2e8f0", boxShadow: "0 3px 6px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.1)" }}>MC</button>
+                      <button onClick={() => append(",")} className="h-[38px] rounded-md text-sm font-bold transition-all active:scale-95" style={{ background: "#2d2d3f", color: "#f1f5f9", boxShadow: "0 3px 6px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.08)" }}>,</button>
+                    </div>
+
+                    {/* Row 9: = button spanning full width */}
+                    <button onClick={evaluate} className="h-[40px] rounded-md text-base font-black transition-all active:scale-[0.98]" style={{ background: "linear-gradient(180deg, #2563eb 0%, #1d4ed8 100%)", color: "#fff", boxShadow: "0 4px 12px rgba(37,99,235,0.4), inset 0 1px 0 rgba(255,255,255,0.2)", letterSpacing: "0.1em" }}>=</button>
                   </div>
+
+                  {/* History */}
                   {hist.length > 0 && (
                     <div className="px-3 pb-3">
                       <div className="flex items-center justify-between mb-1.5">
-                        <span className="text-[10px] font-bold" style={{ color: "#334155" }}>History</span>
-                        <button onClick={() => setHist([])} style={{ color: "#334155" }}><RotateCcw size={10} /></button>
+                        <span className="text-[10px] font-bold" style={{ color: "#4b5563" }}>History</span>
+                        <button onClick={() => setHist([])} style={{ color: "#4b5563" }}><RotateCcw size={10} /></button>
                       </div>
                       <div className="space-y-1 max-h-20 overflow-y-auto">
                         {hist.map(({ e, r }, i) => (
-                          <button key={i} onClick={() => { setExpr(e); setResult(r); }} className="w-full text-right text-[10px] rounded-lg px-2.5 py-1 hover:opacity-80" style={{ background: "rgba(255,255,255,0.03)", color: "#475569" }}>
-                            {e} <span style={{ color: "#3b82f6" }}>= {r}</span>
+                          <button key={i} onClick={() => { setExpr(e); setResult(r); }} className="w-full text-right text-[10px] rounded-lg px-2.5 py-1 hover:opacity-80" style={{ background: "rgba(255,255,255,0.03)", color: "#6b7280" }}>
+                            {e} <span style={{ color: "#2563eb" }}>= {r}</span>
                           </button>
                         ))}
                       </div>

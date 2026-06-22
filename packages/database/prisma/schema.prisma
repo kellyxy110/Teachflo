@@ -50,18 +50,23 @@ enum Plan {
 // ─────────────────────────────────────────────
 
 model Teacher {
-  id        String      @id @default(cuid())
-  clerkId   String      @unique
-  schoolId  String
-  school    School      @relation(fields: [schoolId], references: [id])
-  firstName String
-  lastName  String
-  email     String
-  role      TeacherRole @default(TEACHER)
-  subjects  String[]
-  isActive  Boolean     @default(true)
-  createdAt DateTime    @default(now())
-  updatedAt DateTime    @updatedAt
+  id           String      @id @default(cuid())
+  clerkId      String      @unique
+  schoolId     String
+  school       School      @relation(fields: [schoolId], references: [id])
+  firstName    String
+  lastName     String
+  email        String
+  role         TeacherRole @default(TEACHER)
+  subjects     String[]
+  isActive     Boolean     @default(true)
+  photoUrl     String?
+  bio          String?
+  qualification String?
+  department   String?
+  yearsOfExp   Int?
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
 
   lessons  Lesson[]
   exams    Exam[]

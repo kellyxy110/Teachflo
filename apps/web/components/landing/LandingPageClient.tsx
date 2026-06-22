@@ -3,6 +3,7 @@ import { useEffect } from "react";
 import { HeroSection } from "./HeroSection";
 import { LearningModesSection } from "./LearningModesSection";
 import { EducationalTickers } from "./EducationalTickers";
+import { SchoolShowcase } from "./SchoolShowcase";
 import { LandingNav } from "./LandingNav";
 import { LandingFooter } from "./LandingFooter";
 
@@ -65,7 +66,10 @@ export function LandingPageClient() {
       {/* 3 — Learning Modes: Learn / Practice / Explore tab system */}
       <LearningModesSection />
 
-      {/* 4 — Footer: kellyxyhub + nav links */}
+      {/* 4 — School Showcase: photos of students/teachers in modern settings */}
+      <SchoolShowcase />
+
+      {/* 5 — Footer: kellyxyhub + nav links */}
       <LandingFooter />
     </div>
   );

@@ -35,6 +35,11 @@ type Props = {
     email: string;
     role: string;
     subjects: string[];
+    photoUrl: string | null;
+    bio: string | null;
+    qualification: string | null;
+    department: string | null;
+    yearsOfExp: number | null;
   };
 };
 
@@ -193,6 +198,38 @@ export function SettingsClient({ school, teacher }: Props) {
           </div>
 
           <form action={handleTeacher} className="p-6 space-y-4">
+            {/* Profile Photo */}
+            <div className="flex items-center gap-5 pb-4 border-b border-border">
+              <div className="shrink-0">
+                {teacher.photoUrl ? (
+                  <img
+                    src={teacher.photoUrl}
+                    alt={`${teacher.firstName}'s photo`}
+                    className="w-20 h-20 rounded-full object-cover border-2 border-primary/30"
+                  />
+                ) : (
+                  <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center text-primary text-2xl font-bold border-2 border-primary/20">
+                    {teacher.firstName[0]}{teacher.lastName[0]}
+                  </div>
+                )}
+              </div>
+              <div className="flex-1">
+                <label className="block text-sm font-medium text-text mb-1.5">
+                  Profile Photo URL
+                </label>
+                <input
+                  name="photoUrl"
+                  type="url"
+                  defaultValue={teacher.photoUrl ?? ""}
+                  placeholder="https://example.com/my-photo.jpg"
+                  className="w-full px-3 py-2.5 border border-border rounded-lg text-sm text-text placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-bg"
+                />
+                <p className="text-xs text-muted mt-1">
+                  Paste a link to your profile photo. Supported: Clerk avatar, Google, LinkedIn, or any public URL.
+                </p>
+              </div>
+            </div>
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-text mb-1.5">
@@ -234,19 +271,71 @@ export function SettingsClient({ school, teacher }: Props) {
                 </p>
               </div>
 
-              <div className="sm:col-span-2">
+              <div>
+                <label className="block text-sm font-medium text-text mb-1.5">
+                  Department
+                </label>
+                <input
+                  name="department"
+                  type="text"
+                  defaultValue={teacher.department ?? ""}
+                  placeholder="e.g. Science, Arts, Commercial"
+                  className="w-full px-3 py-2.5 border border-border rounded-lg text-sm text-text placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-bg"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-text mb-1.5">
+                  Qualification
+                </label>
+                <input
+                  name="qualification"
+                  type="text"
+                  defaultValue={teacher.qualification ?? ""}
+                  placeholder="e.g. B.Sc Education, M.Ed"
+                  className="w-full px-3 py-2.5 border border-border rounded-lg text-sm text-text placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-bg"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-text mb-1.5">
+                  Years of Experience
+                </label>
+                <input
+                  name="yearsOfExp"
+                  type="number"
+                  min={0}
+                  max={50}
+                  defaultValue={teacher.yearsOfExp ?? ""}
+                  placeholder="e.g. 8"
+                  className="w-full px-3 py-2.5 border border-border rounded-lg text-sm text-text placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-bg"
+                />
+              </div>
+
+              <div>
                 <label className="block text-sm font-medium text-text mb-1.5">
                   Subjects Taught
-                  <span className="text-xs text-muted font-normal ml-1">
-                    (comma-separated)
-                  </span>
+                  <span className="text-xs text-muted font-normal ml-1">(comma-separated)</span>
                 </label>
                 <input
                   name="subjects"
                   type="text"
                   defaultValue={teacher.subjects.join(", ")}
-                  placeholder="e.g. Mathematics, Physics, Chemistry"
+                  placeholder="e.g. Mathematics, Physics"
                   className="w-full px-3 py-2.5 border border-border rounded-lg text-sm text-text placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-bg"
+                />
+              </div>
+
+              <div className="sm:col-span-2">
+                <label className="block text-sm font-medium text-text mb-1.5">
+                  Bio
+                </label>
+                <textarea
+                  name="bio"
+                  rows={3}
+                  defaultValue={teacher.bio ?? ""}
+                  placeholder="Tell us about yourself — teaching philosophy, achievements, areas of expertise..."
+                  className="w-full px-3 py-2.5 border border-border rounded-lg text-sm text-text placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-bg resize-y"
                 />
               </div>
             </div>

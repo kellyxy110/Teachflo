@@ -36,12 +36,27 @@ export async function updateTeacher(formData: FormData) {
   const subjects = subjectsRaw
     ? subjectsRaw.split(",").map((s) => s.trim()).filter(Boolean)
     : [];
+  const bio = (formData.get("bio") as string)?.trim() || null;
+  const qualification = (formData.get("qualification") as string)?.trim() || null;
+  const department = (formData.get("department") as string)?.trim() || null;
+  const yearsOfExpRaw = formData.get("yearsOfExp") as string;
+  const yearsOfExp = yearsOfExpRaw ? parseInt(yearsOfExpRaw) || null : null;
+  const photoUrl = (formData.get("photoUrl") as string)?.trim() || null;
 
   if (!firstName) throw new Error("First name is required");
 
   await db.teacher.update({
     where: { id: teacher.id },
-    data: { firstName, lastName: lastName ?? "", subjects },
+    data: {
+      firstName,
+      lastName: lastName ?? "",
+      subjects,
+      bio,
+      qualification,
+      department,
+      yearsOfExp,
+      photoUrl,
+    },
   });
 
   revalidatePath("/settings");

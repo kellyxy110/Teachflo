@@ -3,6 +3,12 @@ import path from "path";
 
 const nextConfig: NextConfig = {
   transpilePackages: ["@teachflow/shared", "@teachflow/database", "@teachflow/ai-prompts"],
+  images: {
+    remotePatterns: [
+      { protocol: "https", hostname: "images.unsplash.com" },
+      { protocol: "https", hostname: "img.clerk.com" },
+    ],
+  },
   turbopack: {
     root: path.resolve(__dirname, "../.."),
   },
