@@ -1,7 +1,7 @@
 import { safeAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { rateLimit } from "@/lib/rate-limit";
-import { getOpenRouterClient, OPENROUTER_MODELS } from "@/lib/ai/providers/openrouter";
+import { openRouterStream, DOCUMENT_MODELS } from "@/lib/ai";
 
 export const maxDuration = 60;
 
@@ -94,18 +94,23 @@ export async function POST(request: Request) {
     contextParts.join("\n\n---\n\n"),
   ].join("");
 
-  const client = getOpenRouterClient(OPENROUTER_MODELS.MULTIMODAL);
-
-  const stream = await client.chat.completions.create({
-    model: OPENROUTER_MODELS.MULTIMODAL,
-    messages: [
-      { role: "system", content: systemPrompt },
-      { role: "user", content: `Generate ${type} from this document.` },
-    ],
-    temperature: type === "exam-questions" ? 0.4 : 0.5,
-    max_tokens: 4000,
-    stream: true,
-  });
+  let stream: Awaited<ReturnType<typeof openRouterStream>>;
+  try {
+    stream = await openRouterStream(
+      DOCUMENT_MODELS,
+      [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: `Generate ${type} from this document.` },
+      ],
+      {
+        temperature: type === "exam-questions" ? 0.4 : 0.5,
+        max_tokens: 4000,
+      }
+    );
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "Generation failed";
+    return Response.json({ error: msg }, { status: 502 });
+  }
 
   const encoder = new TextEncoder();
   const readable = new ReadableStream({

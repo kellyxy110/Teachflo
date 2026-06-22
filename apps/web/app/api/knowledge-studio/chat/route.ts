@@ -2,9 +2,7 @@ import { safeAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { rateLimit } from "@/lib/rate-limit";
 import { generateEmbedding } from "@/lib/embeddings";
-import OpenAI from "openai";
-import { getOpenRouterClient, OPENROUTER_MODELS } from "@/lib/ai/providers/openrouter";
-import { getGroqClient, GROQ_MODELS } from "@/lib/ai/providers/groq";
+import { openRouterStream, LESSON_MODELS, EXAM_MODELS, DOCUMENT_MODELS } from "@/lib/ai";
 
 export const maxDuration = 60;
 
@@ -43,28 +41,16 @@ const MODE_PROMPTS: Record<StudioMode, string> = {
     "Structure as: Similarities, Differences, Gaps. Cite with [Source: chunk X].",
 };
 
-function selectModel(mode: StudioMode): { client: OpenAI; model: string; provider: string } {
+function modelsForMode(mode: StudioMode): readonly string[] {
   switch (mode) {
     case "explain":
     case "step-by-step":
-      return {
-        client: getGroqClient(),
-        model: GROQ_MODELS.TEACHING,
-        provider: "groq",
-      };
+      return LESSON_MODELS;
     case "quiz-me":
-      return {
-        client: getOpenRouterClient(OPENROUTER_MODELS.EXAM),
-        model: OPENROUTER_MODELS.EXAM,
-        provider: "openrouter/deepseek",
-      };
+      return EXAM_MODELS;
     case "summarize":
     case "compare":
-      return {
-        client: getOpenRouterClient(OPENROUTER_MODELS.MULTIMODAL),
-        model: OPENROUTER_MODELS.MULTIMODAL,
-        provider: "openrouter/gemma",
-      };
+      return DOCUMENT_MODELS;
   }
 }
 
@@ -150,18 +136,25 @@ export async function POST(request: Request) {
     contextParts.join("\n\n---\n\n"),
   ].join("");
 
-  const { client, model, provider } = selectModel(mode);
+  const models = modelsForMode(mode);
 
-  const stream = await client.chat.completions.create({
-    model,
-    messages: [
-      { role: "system", content: systemPrompt },
-      { role: "user", content: message },
-    ],
-    temperature: mode === "quiz-me" ? 0.4 : 0.6,
-    max_tokens: mode === "summarize" ? 3000 : 2000,
-    stream: true,
-  });
+  let stream: Awaited<ReturnType<typeof openRouterStream>>;
+  try {
+    stream = await openRouterStream(
+      models,
+      [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: message },
+      ],
+      {
+        temperature: mode === "quiz-me" ? 0.4 : 0.6,
+        max_tokens: mode === "summarize" ? 3000 : 2000,
+      }
+    );
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "Knowledge Studio AI failed";
+    return Response.json({ error: msg }, { status: 502 });
+  }
 
   const chunkMeta = chunks.map((c) => ({
     id: c.id,
@@ -187,8 +180,6 @@ export async function POST(request: Request) {
     headers: {
       "Content-Type": "text/plain; charset=utf-8",
       "X-Accel-Buffering": "no",
-      "X-KS-Model": model,
-      "X-KS-Provider": provider,
       "X-KS-Mode": mode,
       "X-KS-Chunks": JSON.stringify(chunkMeta),
       "X-KS-Chunk-Count": String(chunks.length),

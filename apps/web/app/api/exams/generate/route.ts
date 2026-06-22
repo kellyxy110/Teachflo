@@ -1,7 +1,7 @@
 import { buildExamPrompt } from "@teachflow/ai-prompts";
 import type { ExamInput } from "@teachflow/ai-prompts";
 import { safeAuth } from "@/lib/auth";
-import { getOpenRouterClient, OPENROUTER_EXAM_MODEL } from "@/lib/ai";
+import { openRouterCompletion, EXAM_MODELS } from "@/lib/ai";
 import { rateLimit } from "@/lib/rate-limit";
 
 export async function POST(request: Request) {
@@ -37,19 +37,24 @@ export async function POST(request: Request) {
     advancedCount: advancedCount ?? 2,
   } as ExamInput);
 
-  const completion = await getOpenRouterClient(OPENROUTER_EXAM_MODEL).chat.completions.create({
-    model: OPENROUTER_EXAM_MODEL,
-    messages: [{ role: "user", content: prompt }],
-    temperature: 0.4,
-    max_tokens: 6000,
-    response_format: { type: "json_object" },
-  });
-
-  const raw = completion.choices[0]?.message?.content ?? "{}";
+  let raw: string;
+  try {
+    const { completion } = await openRouterCompletion(
+      EXAM_MODELS,
+      [{ role: "user", content: prompt }],
+      { temperature: 0.4, max_tokens: 6000, json: true }
+    );
+    raw = completion.choices[0]?.message?.content ?? "{}";
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "AI generation failed";
+    return Response.json({ error: msg }, { status: 502 });
+  }
 
   let parsed: Record<string, unknown>;
   try {
-    parsed = JSON.parse(raw);
+    // Strip markdown code fences if a model wrapped the output
+    const cleaned = raw.replace(/^```json?\s*/i, "").replace(/\s*```$/i, "").trim();
+    parsed = JSON.parse(cleaned);
   } catch {
     return Response.json({ error: "Failed to parse AI response as JSON" }, { status: 500 });
   }

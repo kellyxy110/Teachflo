@@ -1,7 +1,7 @@
 import { safeAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { rateLimit } from "@/lib/rate-limit";
-import { getOpenRouterClient, OPENROUTER_MODELS } from "@/lib/ai/providers/openrouter";
+import { openRouterCompletion, DOCUMENT_MODELS } from "@/lib/ai";
 
 export const maxDuration = 60;
 
@@ -49,37 +49,39 @@ export async function POST(request: Request) {
 
   const sample = chunks.map((c) => c.content).join("\n\n---\n\n");
 
-  const client = getOpenRouterClient(OPENROUTER_MODELS.REASONING);
-
-  const completion = await client.chat.completions.create({
-    model: OPENROUTER_MODELS.REASONING,
-    messages: [
-      {
-        role: "system",
-        content:
-          "Analyze the following document and return a JSON object with these fields:\n" +
-          '- "topics": array of topic strings detected\n' +
-          '- "concepts": array of {name, definition} objects for key concepts\n' +
-          '- "difficulty": one of "Basic", "Intermediate", "Advanced", "Mixed"\n' +
-          '- "subjectArea": detected subject area\n' +
-          '- "classLevelEstimate": estimated Nigerian class level (JS1-SS3)\n' +
-          '- "examRelevance": array of exam types this aligns with (WAEC/JAMB/JUPEB)\n' +
-          '- "coverage": brief description of what the document covers\n' +
-          '- "chunkCount": total chunks analyzed\n\n' +
-          "Return ONLY valid JSON, no markdown.",
-      },
-      { role: "user", content: sample },
-    ],
-    temperature: 0.3,
-    max_tokens: 2000,
-    response_format: { type: "json_object" },
-  });
-
-  const raw = completion.choices[0]?.message?.content ?? "{}";
+  let raw: string;
+  try {
+    const { completion } = await openRouterCompletion(
+      DOCUMENT_MODELS,
+      [
+        {
+          role: "system",
+          content:
+            "Analyze the following document and return a JSON object with these fields:\n" +
+            '- "topics": array of topic strings detected\n' +
+            '- "concepts": array of {name, definition} objects for key concepts\n' +
+            '- "difficulty": one of "Basic", "Intermediate", "Advanced", "Mixed"\n' +
+            '- "subjectArea": detected subject area\n' +
+            '- "classLevelEstimate": estimated Nigerian class level (JS1-SS3)\n' +
+            '- "examRelevance": array of exam types this aligns with (WAEC/JAMB/JUPEB)\n' +
+            '- "coverage": brief description of what the document covers\n' +
+            '- "chunkCount": total chunks analyzed\n\n' +
+            "Return ONLY valid JSON, no markdown.",
+        },
+        { role: "user", content: sample },
+      ],
+      { temperature: 0.3, max_tokens: 2000, json: true }
+    );
+    raw = completion.choices[0]?.message?.content ?? "{}";
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "Analysis failed";
+    return Response.json({ error: msg }, { status: 502 });
+  }
 
   let analysis: Record<string, unknown>;
   try {
-    analysis = JSON.parse(raw);
+    const cleaned = raw.replace(/^```json?\s*/i, "").replace(/\s*```$/i, "").trim();
+    analysis = JSON.parse(cleaned);
   } catch {
     return Response.json({ error: "Failed to parse analysis" }, { status: 500 });
   }

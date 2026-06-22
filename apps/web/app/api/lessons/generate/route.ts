@@ -1,6 +1,6 @@
 import { buildLessonPrompt } from "@teachflow/ai-prompts";
 import { safeAuth } from "@/lib/auth";
-import { getOpenRouterClient, OPENROUTER_LESSON_MODEL } from "@/lib/ai";
+import { openRouterStream, LESSON_MODELS } from "@/lib/ai";
 import { rateLimit } from "@/lib/rate-limit";
 
 export async function POST(request: Request) {
@@ -27,13 +27,17 @@ export async function POST(request: Request) {
 
   const prompt = buildLessonPrompt({ subject, classLevel, topic, week, term });
 
-  const stream = await getOpenRouterClient(OPENROUTER_LESSON_MODEL).chat.completions.create({
-    model: OPENROUTER_LESSON_MODEL,
-    messages: [{ role: "user", content: prompt }],
-    stream: true,
-    max_tokens: 2000,
-    temperature: 0.7,
-  });
+  let stream: Awaited<ReturnType<typeof openRouterStream>>;
+  try {
+    stream = await openRouterStream(
+      LESSON_MODELS,
+      [{ role: "user", content: prompt }],
+      { max_tokens: 2000, temperature: 0.7 }
+    );
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "AI generation failed";
+    return Response.json({ error: msg }, { status: 502 });
+  }
 
   const encoder = new TextEncoder();
   const readable = new ReadableStream({

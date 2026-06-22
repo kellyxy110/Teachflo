@@ -1,19 +1,13 @@
-import { getOpenRouterClient, OPENROUTER_MODELS } from "@/lib/ai/providers/openrouter";
-import { getGroqClient, GROQ_MODELS } from "@/lib/ai/providers/groq";
+import { openRouterCompletion, EXAM_MODELS, LESSON_MODELS, DOCUMENT_MODELS } from "@/lib/ai";
 import { retrieveRAGContext } from "@/lib/rag/retriever";
 import type { ExamBlueprint, GeneratedQuestion, DifficultyLevel, BloomLevel } from "./types";
 
-interface ModelConfig {
-  getClient: () => import("openai").default;
-  model: string;
-}
-
-const MODEL_MAP: Record<string, ModelConfig> = {
-  MCQ: { getClient: getOpenRouterClient, model: OPENROUTER_MODELS.EXAM },
-  SHORT_ANSWER: { getClient: getOpenRouterClient, model: OPENROUTER_MODELS.REASONING },
-  STRUCTURED: { getClient: getGroqClient, model: GROQ_MODELS.TEACHING },
-  DOCUMENT: { getClient: getOpenRouterClient, model: OPENROUTER_MODELS.MULTIMODAL },
-  COMPLEX: { getClient: getOpenRouterClient, model: OPENROUTER_MODELS.FRONTIER },
+const MODEL_MAP: Record<string, readonly string[]> = {
+  MCQ: EXAM_MODELS,
+  SHORT_ANSWER: LESSON_MODELS,
+  STRUCTURED: LESSON_MODELS,
+  DOCUMENT: DOCUMENT_MODELS,
+  COMPLEX: EXAM_MODELS,
 };
 
 export async function generateQuestionsFromBlueprint(
@@ -78,25 +72,23 @@ export async function generateSingleAdaptiveQuestion(
   }
 
   const prompt = buildSingleQuestionPrompt(blueprint, difficulty, targetSkill, ragContext);
-  const config = MODEL_MAP.MCQ;
-  const client = config.getClient();
+  const models = MODEL_MAP.MCQ;
 
-  const completion = await client.chat.completions.create({
-    model: config.model,
-    messages: [
+  const { completion } = await openRouterCompletion(
+    models,
+    [
       {
         role: "system",
         content: "You are an expert Nigerian curriculum exam question generator. Return ONLY valid JSON. No markdown.",
       },
       { role: "user", content: prompt },
     ],
-    temperature: 0.6,
-    max_tokens: 1500,
-    response_format: { type: "json_object" },
-  });
+    { temperature: 0.6, max_tokens: 1500, json: true }
+  );
 
   const raw = completion.choices[0]?.message?.content ?? "{}";
-  const parsed = JSON.parse(raw);
+  const cleaned = raw.replace(/^```json?\s*/i, "").replace(/\s*```$/i, "").trim();
+  const parsed = JSON.parse(cleaned);
 
   return normalizeQuestion(parsed, difficulty, targetSkill, blueprint.topic, ragContext ? "RAG" : "synthetic");
 }
@@ -108,26 +100,24 @@ async function generateBatch(
   ragContext: string
 ): Promise<GeneratedQuestion[]> {
   const prompt = buildBatchPrompt(type, count, blueprint, ragContext);
-  const config = MODEL_MAP[type] ?? MODEL_MAP.MCQ;
-  const client = config.getClient();
+  const models = MODEL_MAP[type] ?? MODEL_MAP.MCQ;
 
   try {
-    const completion = await client.chat.completions.create({
-      model: config.model,
-      messages: [
+    const { completion } = await openRouterCompletion(
+      models,
+      [
         {
           role: "system",
           content: "You are an expert Nigerian curriculum exam question generator for WAEC/JAMB/JUPEB. Return ONLY valid JSON. No markdown, no explanation.",
         },
         { role: "user", content: prompt },
       ],
-      temperature: 0.5,
-      max_tokens: 6000,
-      response_format: { type: "json_object" },
-    });
+      { temperature: 0.5, max_tokens: 6000, json: true }
+    );
 
     const raw = completion.choices[0]?.message?.content ?? "{}";
-    const parsed = JSON.parse(raw);
+    const cleaned = raw.replace(/^```json?\s*/i, "").replace(/\s*```$/i, "").trim();
+    const parsed = JSON.parse(cleaned);
     const questions: GeneratedQuestion[] = [];
 
     const arr = Array.isArray(parsed.questions) ? parsed.questions : [parsed];

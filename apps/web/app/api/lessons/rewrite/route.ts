@@ -1,7 +1,7 @@
 import { buildRewritePrompt } from "@teachflow/ai-prompts";
 import type { RewriteInput } from "@teachflow/ai-prompts";
 import { safeAuth } from "@/lib/auth";
-import { getGroqClient, GROQ_MODEL } from "@/lib/ai";
+import { openRouterStream, LESSON_MODELS } from "@/lib/ai";
 import { rateLimit } from "@/lib/rate-limit";
 
 export async function POST(request: Request) {
@@ -38,13 +38,17 @@ export async function POST(request: Request) {
     subject,
   } as RewriteInput);
 
-  const stream = await getGroqClient().chat.completions.create({
-    model: GROQ_MODEL,
-    messages: [{ role: "user", content: prompt }],
-    stream: true,
-    max_tokens: 2500,
-    temperature: 0.6,
-  });
+  let stream: Awaited<ReturnType<typeof openRouterStream>>;
+  try {
+    stream = await openRouterStream(
+      LESSON_MODELS,
+      [{ role: "user", content: prompt }],
+      { max_tokens: 2500, temperature: 0.6 }
+    );
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "AI rewrite failed";
+    return Response.json({ error: msg }, { status: 502 });
+  }
 
   const encoder = new TextEncoder();
   const readable = new ReadableStream({

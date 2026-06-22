@@ -61,36 +61,36 @@ function evalExpr(raw: string, mode: AngleMode): string {
     e = e.replace(/nPr\(([^,]+),([^)]+)\)/g, (_, n, r) => String(permutation(Number(n), Number(r))));
     e = e.replace(/nCr\(([^,]+),([^)]+)\)/g, (_, n, r) => String(combination(Number(n), Number(r))));
 
-    // Inverse hyperbolic (before regular hyp)
+    // Inverse hyperbolic (before regular hyp — must not be re-matched)
     e = e.replace(/asinh\(/g, "Math.asinh(");
     e = e.replace(/acosh\(/g, "Math.acosh(");
     e = e.replace(/atanh\(/g, "Math.atanh(");
 
-    // Hyperbolic (before regular trig)
-    e = e.replace(/sinh\(/g, "Math.sinh(");
-    e = e.replace(/cosh\(/g, "Math.cosh(");
-    e = e.replace(/tanh\(/g, "Math.tanh(");
+    // Hyperbolic (lookbehind prevents matching inside Math.asinh etc.)
+    e = e.replace(/(?<![a-zA-Z.])sinh\(/g, "Math.sinh(");
+    e = e.replace(/(?<![a-zA-Z.])cosh\(/g, "Math.cosh(");
+    e = e.replace(/(?<![a-zA-Z.])tanh\(/g, "Math.tanh(");
 
     // Inverse trig (output in current angle mode)
     e = e.replace(/sin⁻¹\(/g, `((__x)=>Math.asin(__x)${ic})(`);
     e = e.replace(/cos⁻¹\(/g, `((__x)=>Math.acos(__x)${ic})(`);
     e = e.replace(/tan⁻¹\(/g, `((__x)=>Math.atan(__x)${ic})(`);
 
-    // Regular trig (input converted from current angle mode)
-    e = e.replace(/sin\(/g, `((__x)=>Math.sin(__x${ac}))(`);
-    e = e.replace(/cos\(/g, `((__x)=>Math.cos(__x${ac}))(`);
-    e = e.replace(/tan\(/g, `((__x)=>Math.tan(__x${ac}))(`);
+    // Regular trig (lookbehind prevents matching inside Math.asin etc.)
+    e = e.replace(/(?<![a-zA-Z.])sin\(/g, `((__x)=>Math.sin(__x${ac}))(`);
+    e = e.replace(/(?<![a-zA-Z.])cos\(/g, `((__x)=>Math.cos(__x${ac}))(`);
+    e = e.replace(/(?<![a-zA-Z.])tan\(/g, `((__x)=>Math.tan(__x${ac}))(`);
 
     // Logs
     e = e.replace(/log₂\(/g, "Math.log2(");
-    e = e.replace(/log\(/g, "Math.log10(");
+    e = e.replace(/(?<![a-zA-Z.])log\(/g, "Math.log10(");
     e = e.replace(/ln\(/g, "Math.log(");
-    e = e.replace(/exp\(/g, "Math.exp(");
+    e = e.replace(/(?<![a-zA-Z.])exp\(/g, "Math.exp(");
 
     // Roots
     e = e.replace(/√\(/g, "Math.sqrt(");
     e = e.replace(/∛\(/g, "Math.cbrt(");
-    e = e.replace(/abs\(/g, "Math.abs(");
+    e = e.replace(/(?<![a-zA-Z.])abs\(/g, "Math.abs(");
 
     // eslint-disable-next-line no-new-func
     const result = Function(`"use strict"; return (${e})`)();
@@ -223,6 +223,8 @@ const vStr = (v: V3, d: 2 | 3) => d === 2 ? `(${fmt(v[0])}, ${fmt(v[1])})` : `($
 
 // ── Component ─────────────────────────────────────────────────
 
+const GRAPH_COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444"];
+
 interface Props { open: boolean; onClose: () => void; }
 
 export function Calculator({ open, onClose }: Props) {
@@ -248,7 +250,6 @@ export function Calculator({ open, onClose }: Props) {
   const [gExpr, setGExpr] = useState("sin(x)");
   const [gFns, setGFns] = useState<string[]>(["sin(x)"]);
   const [gBounds, setGB] = useState({ xMin: -10, xMax: 10, yMin: -5, yMax: 5 });
-  const gColors = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444"];
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   const append = (s: string) => setExpr(p => (p === "Error" ? s : p + s));
@@ -349,7 +350,7 @@ export function Calculator({ open, onClose }: Props) {
     for (let y = Math.ceil(yMin); y <= yMax; y++) { if (y === 0) continue; ctx.fillText(String(y), Math.min(W - 5, Math.max(25, toX(0) - 5)), toY(y) + 4); }
 
     gFns.forEach((fn, fi) => {
-      ctx.strokeStyle = gColors[fi % gColors.length];
+      ctx.strokeStyle = GRAPH_COLORS[fi % GRAPH_COLORS.length];
       ctx.lineWidth = 2;
       ctx.beginPath();
       let started = false;
@@ -362,7 +363,7 @@ export function Calculator({ open, onClose }: Props) {
       }
       ctx.stroke();
     });
-  }, [gFns, gBounds, mode, gColors]);
+  }, [gFns, gBounds, mode]);
 
   useEffect(() => { if (tab === "graph") setTimeout(drawGraph, 60); }, [tab, drawGraph]);
 
@@ -587,8 +588,8 @@ export function Calculator({ open, onClose }: Props) {
                   {gFns.length > 0 && (
                     <div className="flex flex-wrap gap-2 mt-3">
                       {gFns.map((fn, i) => (
-                        <span key={i} className="flex items-center gap-1.5 px-2 py-1 rounded-lg text-[10px] font-mono" style={{ background: "rgba(255,255,255,0.04)", border: `1px solid ${gColors[i % gColors.length]}40`, color: gColors[i % gColors.length] }}>
-                          <span className="w-2 h-2 rounded-full" style={{ background: gColors[i % gColors.length] }} />
+                        <span key={i} className="flex items-center gap-1.5 px-2 py-1 rounded-lg text-[10px] font-mono" style={{ background: "rgba(255,255,255,0.04)", border: `1px solid ${GRAPH_COLORS[i % GRAPH_COLORS.length]}40`, color: GRAPH_COLORS[i % GRAPH_COLORS.length] }}>
+                          <span className="w-2 h-2 rounded-full" style={{ background: GRAPH_COLORS[i % GRAPH_COLORS.length] }} />
                           y={fn}
                           <button onClick={() => { setGFns(f => f.filter((_, j) => j !== i)); setTimeout(drawGraph, 60); }} className="ml-0.5 opacity-60 hover:opacity-100">×</button>
                         </span>

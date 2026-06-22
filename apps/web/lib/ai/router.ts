@@ -5,6 +5,17 @@ import { getOpenRouterClient, OPENROUTER_MODELS } from "./providers/openrouter";
 import { searchTavily } from "./providers/tavily";
 import { retrieveRAGContext } from "../rag/retriever";
 
+// Emergency fallback pool — tried after all intent-based routes fail.
+// Ordered by capability: largest/most capable first.
+const EMERGENCY_MODELS = [
+  OPENROUTER_MODELS.GPT_OSS,
+  OPENROUTER_MODELS.NEMOTRON_ULTRA,
+  OPENROUTER_MODELS.NEMOTRON_REASON,
+  OPENROUTER_MODELS.GEMMA_26B,
+  OPENROUTER_MODELS.NEMOTRON_30B,
+  OPENROUTER_MODELS.LLAMA_3B,
+] as const;
+
 // ── Types ──────────────────────────────────────────────────────────────────
 
 export type Intent =
@@ -209,6 +220,7 @@ async function tryCompletion(
   route: RouteResult;
 }> {
   let lastError: Error | null = null;
+
   for (const intent of intents) {
     const route = routeToModel(intent);
     try {
@@ -223,6 +235,32 @@ async function tryCompletion(
       lastError = error instanceof Error ? error : new Error(String(error));
     }
   }
+
+  // Intent chain exhausted — try emergency OpenRouter pool
+  for (const model of EMERGENCY_MODELS) {
+    try {
+      const client = getOpenRouterClient(model);
+      const completion = await client.chat.completions.create({
+        model,
+        messages,
+        temperature: 0.7,
+        max_tokens: 2000,
+      });
+      return {
+        completion,
+        route: {
+          client,
+          model,
+          provider: "openrouter",
+          intent: "general",
+          reason: `Emergency fallback — ${model}`,
+        },
+      };
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error));
+    }
+  }
+
   throw lastError ?? new Error("All models in fallback chain failed");
 }
 
@@ -234,6 +272,7 @@ async function tryStream(
   route: RouteResult;
 }> {
   let lastError: Error | null = null;
+
   for (const intent of intents) {
     const route = routeToModel(intent);
     try {
@@ -249,6 +288,33 @@ async function tryStream(
       lastError = error instanceof Error ? error : new Error(String(error));
     }
   }
+
+  // Intent chain exhausted — try emergency OpenRouter pool
+  for (const model of EMERGENCY_MODELS) {
+    try {
+      const client = getOpenRouterClient(model);
+      const stream = await client.chat.completions.create({
+        model,
+        messages,
+        temperature: 0.7,
+        max_tokens: 2000,
+        stream: true,
+      });
+      return {
+        stream,
+        route: {
+          client,
+          model,
+          provider: "openrouter",
+          intent: "general",
+          reason: `Emergency fallback — ${model}`,
+        },
+      };
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error));
+    }
+  }
+
   throw lastError ?? new Error("All models in fallback chain failed");
 }
 
