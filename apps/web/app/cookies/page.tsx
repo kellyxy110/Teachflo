@@ -20,7 +20,7 @@ export default function CookiesPage() {
         <h2 className="text-lg font-semibold text-text mt-8">Analytics</h2>
         <p>We do not use third-party analytics cookies. No tracking pixels or advertising cookies are used.</p>
         <h2 className="text-lg font-semibold text-text mt-8">Contact</h2>
-        <p>For questions about our cookie usage, contact judithluchi@gmail.com.</p>
+        <p>For questions about our cookie usage, contact kellyxy110@gmail.com.</p>
       </div>
     </main>
   );

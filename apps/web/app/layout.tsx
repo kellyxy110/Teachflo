@@ -67,12 +67,17 @@ export default function RootLayout({
       "@type": "Offer",
       price: "0",
       priceCurrency: "NGN",
-      description: "Free forever plan with 7 AI models",
+      description: "Free forever plan with 18 AI models",
     },
     author: {
       "@type": "Organization",
       name: "KellyxyHub",
       url: "https://kellyxy.vercel.app",
+      founder: {
+        "@type": "Person",
+        name: "Ekeleme Kelechi David",
+        url: "https://kellyxy.vercel.app",
+      },
     },
     audience: {
       "@type": "EducationalAudience",
@@ -86,7 +91,8 @@ export default function RootLayout({
       "Student skill graph and analytics",
       "Mistake intelligence and learning path engine",
       "RAG-powered curriculum generator",
-      "7 free AI models with smart routing",
+      "18 free AI models with smart routing",
+      "Code Lab — interactive coding practice (HTML, CSS, JS, Python)",
     ],
   };
 

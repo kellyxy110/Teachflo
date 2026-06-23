@@ -24,7 +24,7 @@ export default function TermsPage() {
         <h2 className="text-lg font-semibold text-text mt-8">4. Data</h2>
         <p>Student and school data is stored securely and used only to provide the service. We do not sell user data to third parties.</p>
         <h2 className="text-lg font-semibold text-text mt-8">5. Contact</h2>
-        <p>For questions about these terms, contact us at judithluchi@gmail.com.</p>
+        <p>For questions about these terms, contact us at kellyxy110@gmail.com.</p>
       </div>
     </main>
   );

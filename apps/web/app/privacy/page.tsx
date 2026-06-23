@@ -24,7 +24,7 @@ export default function PrivacyPage() {
         <h2 className="text-lg font-semibold text-text mt-8">Third-Party AI Models</h2>
         <p>Educational prompts are sent to AI providers (Groq, OpenRouter) for content generation. No student personal information is included in AI requests.</p>
         <h2 className="text-lg font-semibold text-text mt-8">Data Retention</h2>
-        <p>School and student data is retained for the duration of the account. Teachers can request data deletion by contacting judithluchi@gmail.com.</p>
+        <p>School and student data is retained for the duration of the account. Teachers can request data deletion by contacting kellyxy110@gmail.com.</p>
         <h2 className="text-lg font-semibold text-text mt-8">Children&apos;s Privacy</h2>
         <p>TeachFlow OS is used by schools under teacher supervision. Student data is managed by teachers and school administrators, not collected directly from minors.</p>
       </div>

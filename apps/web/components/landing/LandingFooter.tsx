@@ -117,7 +117,7 @@ export function LandingFooter() {
               {[
                 { icon: Github, href: "https://github.com/kellyxy110/Teachflo", label: "GitHub" },
                 { icon: Twitter, href: "https://x.com/kellyxyhub", label: "Twitter" },
-                { icon: Mail, href: "mailto:luchijudith@gmail.com", label: "Email" },
+                { icon: Mail, href: "mailto:kellyxy110@gmail.com", label: "Email" },
               ].map(({ icon: Icon, href, label }) => (
                 <a
                   key={label}
