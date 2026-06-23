@@ -114,6 +114,7 @@ function SkillBar({ label, pct, color }: { label: string; pct: number; color: st
 
 // ── Daily Challenge ──────────────────────────────────────────────────────────
 const DAILY_CHALLENGES = [
+  // ── Physics ───────────────────────────────────────────────────
   {
     subject: "Physics", level: "SS1", board: "WAEC",
     question: "A stone of mass 2 kg is thrown vertically upward with velocity 20 m/s. What is the maximum height reached? (g = 10 m/s²)",
@@ -121,11 +122,37 @@ const DAILY_CHALLENGES = [
     explanation: "Using v² = u² − 2gh → 0 = 400 − 2(10)h → h = 20 m.",
   },
   {
+    subject: "Physics", level: "SS2", board: "WAEC",
+    question: "What is the SI unit of electric resistance?",
+    options: ["Ampere", "Volt", "Ohm", "Watt"], answer: 2,
+    explanation: "The SI unit of resistance is the Ohm (Ω), named after Georg Ohm.",
+  },
+  {
+    subject: "Physics", level: "SS3", board: "JAMB",
+    question: "An object travels 60 m in 3 s. What is its average speed?",
+    options: ["10 m/s", "15 m/s", "20 m/s", "30 m/s"], answer: 2,
+    explanation: "Speed = Distance ÷ Time = 60 ÷ 3 = 20 m/s.",
+  },
+  // ── Chemistry ─────────────────────────────────────────────────
+  {
     subject: "Chemistry", level: "SS2", board: "WAEC",
     question: "What is the IUPAC name for CH₃CH₂OH?",
     options: ["Methanol", "Ethanol", "Propanol", "Butanol"], answer: 1,
     explanation: "CH₃CH₂OH has 2 carbon atoms with an -OH group → Ethanol.",
   },
+  {
+    subject: "Chemistry", level: "SS1", board: "WAEC",
+    question: "Which of the following is a noble gas?",
+    options: ["Chlorine", "Nitrogen", "Argon", "Hydrogen"], answer: 2,
+    explanation: "Argon (Ar) is in Group 18 — the noble gases. It has a full outer electron shell.",
+  },
+  {
+    subject: "Chemistry", level: "SS3", board: "JAMB",
+    question: "What is the molar mass of NaCl? (Na=23, Cl=35.5)",
+    options: ["48.5 g/mol", "58.5 g/mol", "68.5 g/mol", "78.5 g/mol"], answer: 1,
+    explanation: "Molar mass of NaCl = 23 + 35.5 = 58.5 g/mol.",
+  },
+  // ── Mathematics ───────────────────────────────────────────────
   {
     subject: "Mathematics", level: "SS1", board: "JAMB",
     question: "Simplify: log₁₀ 100 + log₁₀ 10",
@@ -133,16 +160,62 @@ const DAILY_CHALLENGES = [
     explanation: "log₁₀ 100 = 2, log₁₀ 10 = 1. So 2 + 1 = 3.",
   },
   {
+    subject: "Mathematics", level: "SS2", board: "WAEC",
+    question: "If 2x + 5 = 13, find the value of x.",
+    options: ["3", "4", "5", "6"], answer: 1,
+    explanation: "2x + 5 = 13 → 2x = 8 → x = 4.",
+  },
+  {
+    subject: "Mathematics", level: "SS3", board: "JAMB",
+    question: "What is the area of a circle with radius 7 cm? (π ≈ 22/7)",
+    options: ["44 cm²", "154 cm²", "308 cm²", "616 cm²"], answer: 1,
+    explanation: "Area = πr² = (22/7) × 7² = (22/7) × 49 = 154 cm².",
+  },
+  // ── Biology ───────────────────────────────────────────────────
+  {
     subject: "Biology", level: "SS2", board: "WAEC",
     question: "Which organelle is responsible for protein synthesis?",
     options: ["Mitochondria", "Ribosome", "Golgi apparatus", "Lysosome"], answer: 1,
     explanation: "Ribosomes translate mRNA into amino acid chains (proteins).",
   },
   {
+    subject: "Biology", level: "SS1", board: "WAEC",
+    question: "What is the powerhouse of the cell?",
+    options: ["Nucleus", "Ribosome", "Mitochondria", "Cell membrane"], answer: 2,
+    explanation: "The mitochondria produces ATP through cellular respiration — the cell's energy currency.",
+  },
+  {
+    subject: "Biology", level: "SS3", board: "JAMB",
+    question: "Which blood group is the universal donor?",
+    options: ["A", "B", "AB", "O"], answer: 3,
+    explanation: "Blood group O has no antigens on red blood cells, so it can be donated to anyone.",
+  },
+  // ── English Language ──────────────────────────────────────────
+  {
     subject: "English", level: "SS1", board: "WAEC",
     question: "Choose the correct option: The team ___ playing well today.",
     options: ["are", "is", "were", "have"], answer: 1,
     explanation: "'Team' is a collective noun treated as singular → 'is'.",
+  },
+  {
+    subject: "English", level: "SS2", board: "WAEC",
+    question: "Identify the figure of speech: 'The stars danced in the night sky.'",
+    options: ["Simile", "Metaphor", "Personification", "Hyperbole"], answer: 2,
+    explanation: "Stars cannot literally dance — attributing a human action to a non-human thing is personification.",
+  },
+  // ── Government ────────────────────────────────────────────────
+  {
+    subject: "Government", level: "SS2", board: "WAEC",
+    question: "Which arm of government is responsible for making laws in Nigeria?",
+    options: ["Executive", "Judiciary", "Legislature", "Civil Service"], answer: 2,
+    explanation: "The Legislature (National Assembly) is responsible for law-making in Nigeria.",
+  },
+  // ── Economics ─────────────────────────────────────────────────
+  {
+    subject: "Economics", level: "SS3", board: "JAMB",
+    question: "When supply increases and demand remains constant, the equilibrium price will:",
+    options: ["Rise", "Fall", "Stay the same", "Double"], answer: 1,
+    explanation: "An increase in supply shifts the supply curve right, leading to a lower equilibrium price.",
   },
 ];
 

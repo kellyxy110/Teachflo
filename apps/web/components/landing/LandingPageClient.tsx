@@ -4,7 +4,6 @@ import { HeroSection } from "./HeroSection";
 import { LearningModesSection } from "./LearningModesSection";
 import { EducationalTickers } from "./EducationalTickers";
 import { SchoolShowcase } from "./SchoolShowcase";
-import { BentoGrid } from "./BentoGrid";
 import { LandingNav } from "./LandingNav";
 import { LandingFooter } from "./LandingFooter";
 
@@ -105,12 +104,7 @@ export function LandingPageClient() {
         <SchoolShowcase />
       </div>
 
-      {/* 5 — Bento Grid (dashboard preview with animated glowing cards) */}
-      <div className="landing-section" id="practice">
-        <BentoGrid />
-      </div>
-
-      {/* 6 — Footer */}
+      {/* 5 — Footer */}
       <LandingFooter />
     </div>
   );
