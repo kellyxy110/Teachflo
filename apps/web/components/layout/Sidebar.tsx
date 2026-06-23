@@ -13,7 +13,6 @@ import {
   Library,
   TrendingUp,
   Settings,
-  User,
   PenSquare,
   Sparkles,
   Brain,
@@ -30,7 +29,7 @@ const navItems = [
   { href: "/scores", label: "Scores", icon: ClipboardList },
   { href: "/exams", label: "Exams", icon: FileText },
   { href: "/library", label: "Library", icon: Library },
-  { href: "/analytics", label: "Analytics", icon: TrendingUp },
+  { href: "/analytics", label: "Analytics", icon: BarChart2 },
   { href: "/study-buddy", label: "Study Buddy", icon: Sparkles },
   { href: "/knowledge-studio", label: "Knowledge Studio", icon: FlaskConical },
   { href: "/intelligence", label: "Intelligence", icon: Brain },
@@ -45,7 +44,7 @@ export function Sidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="fixed left-0 top-0 h-full w-56 bg-surface border-r border-border flex flex-col z-40">
+    <aside className="fixed left-0 top-0 h-full w-56 bg-surface border-r border-border flex flex-col z-40 transition-colors duration-200">
       {/* Logo */}
       <div className="px-4 py-5 border-b border-border">
         <h1 className="font-bold text-text text-lg leading-tight">TeachFlow OS</h1>
@@ -66,7 +65,7 @@ export function Sidebar() {
                 ${
                   active
                     ? "bg-primary-50 text-primary border-l-2 border-primary -ml-[2px] pl-[14px]"
-                    : "text-text-2 hover:bg-gray-50 hover:text-text"
+                    : "text-text-2 hover:bg-border/20 hover:text-text"
                 }
               `}
             >
@@ -91,7 +90,7 @@ export function Sidebar() {
                 ${
                   active
                     ? "bg-primary-50 text-primary"
-                    : "text-text-2 hover:bg-gray-50 hover:text-text"
+                    : "text-text-2 hover:bg-border/20 hover:text-text"
                 }
               `}
             >

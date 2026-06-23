@@ -116,7 +116,7 @@ export function LandingFooter() {
             <div className="flex items-center gap-3">
               {[
                 { icon: Github, href: "https://github.com/kellyxy110/Teachflo", label: "GitHub" },
-                { icon: Twitter, href: "https://x.com/kellyxyhub", label: "Twitter" },
+                { icon: Twitter, href: "https://x.com/EkelemeKelechi1", label: "Twitter" },
                 { icon: Mail, href: "mailto:kellyxy110@gmail.com", label: "Email" },
               ].map(({ icon: Icon, href, label }) => (
                 <a
