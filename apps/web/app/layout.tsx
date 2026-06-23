@@ -51,11 +51,6 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const publishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
-  const isValidKey =
-    typeof publishableKey === "string" &&
-    (publishableKey.startsWith("pk_test_") ||
-      publishableKey.startsWith("pk_live_"));
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "SoftwareApplication",
@@ -98,7 +93,7 @@ export default function RootLayout({
     ],
   };
 
-  const inner = (
+  return (
     <html lang="en-NG" className={inter.className} suppressHydrationWarning>
       <head>
         <script
@@ -112,12 +107,10 @@ export default function RootLayout({
         />
       </head>
       <body className="min-h-screen bg-bg antialiased">
-        <ThemeProvider>{children}</ThemeProvider>
+        <ClerkProvider>
+          <ThemeProvider>{children}</ThemeProvider>
+        </ClerkProvider>
       </body>
     </html>
   );
-
-  if (!isValidKey) return inner;
-
-  return <ClerkProvider publishableKey={publishableKey!}>{inner}</ClerkProvider>;
 }
