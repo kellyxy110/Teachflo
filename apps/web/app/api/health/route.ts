@@ -7,11 +7,16 @@ export async function GET() {
   const checks: Record<string, { ok: boolean; detail?: string }> = {};
 
   // Check env vars
+  const pubKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY ?? "";
   checks.clerk_key = {
-    ok: !!(process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY ?? "").startsWith("pk_"),
-    detail: process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
-      ? "present"
-      : "missing",
+    ok: pubKey.startsWith("pk_test_") || pubKey.startsWith("pk_live_"),
+    detail: pubKey ? `starts_with:${pubKey.slice(0, 8)}` : "missing",
+  };
+
+  const secKey = process.env.CLERK_SECRET_KEY ?? "";
+  checks.clerk_secret = {
+    ok: secKey.startsWith("sk_test_") || secKey.startsWith("sk_live_"),
+    detail: secKey ? `starts_with:${secKey.slice(0, 8)}` : "missing",
   };
 
   checks.database_url = {
