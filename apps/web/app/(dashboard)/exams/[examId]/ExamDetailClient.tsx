@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Printer, Eye, EyeOff, ChevronDown, ChevronUp } from "lucide-react";
+import { MathText } from "@/components/ui/MathText";
 import type { Question } from "@prisma/client";
 
 export function ExamDetailClient({
@@ -133,10 +134,10 @@ function QuestionBlock({ q, showAnswers }: { q: Question; showAnswers: boolean }
     <div className="space-y-2">
       <div className="flex items-start gap-3">
         <span className="shrink-0 font-bold text-sm text-text w-6 mt-0.5">{q.number}.</span>
-        <p className="text-sm text-text leading-relaxed flex-1">
-          {q.stem || q.questionText}
+        <div className="text-sm text-text leading-relaxed flex-1">
+          <MathText text={q.stem || q.questionText || ""} />
           {q.markScheme && <span className="ml-2 text-xs text-muted">[{q.markScheme} marks]</span>}
-        </p>
+        </div>
       </div>
 
       {isMCQ && (
@@ -158,7 +159,7 @@ function QuestionBlock({ q, showAnswers }: { q: Question; showAnswers: boolean }
                 }`}
               >
                 <span className="font-medium w-4 shrink-0">{key}.</span>
-                <span>{val}</span>
+                <MathText text={val!} />
               </div>
             ))}
         </div>

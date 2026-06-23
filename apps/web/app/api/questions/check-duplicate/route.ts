@@ -1,6 +1,7 @@
 import { safeAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { checkDuplicateQuestion } from "@/lib/vector-search";
+import { rateLimit } from "@/lib/rate-limit";
 
 export async function POST(request: Request) {
   let userId: string | null = null;
@@ -11,6 +12,9 @@ export async function POST(request: Request) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
   if (!userId) return Response.json({ error: "Unauthorized" }, { status: 401 });
+
+  const { ok } = await rateLimit(`dup-check:${userId}`);
+  if (!ok) return Response.json({ error: "Too many requests" }, { status: 429 });
 
   const teacher = await db.teacher.findUnique({
     where: { clerkId: userId },
@@ -24,8 +28,8 @@ export async function POST(request: Request) {
     threshold?: number;
   };
 
-  if (!questionText) {
-    return Response.json({ error: "questionText is required" }, { status: 400 });
+  if (!questionText || questionText.length > 10000) {
+    return Response.json({ error: "questionText is required (max 10000 chars)" }, { status: 400 });
   }
 
   try {

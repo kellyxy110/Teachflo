@@ -2,8 +2,12 @@ import { headers } from "next/headers";
 import { Webhook } from "svix";
 import type { WebhookEvent } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
+import { rateLimit } from "@/lib/rate-limit";
 
 export async function POST(request: Request) {
+  const { ok } = await rateLimit("webhook:clerk");
+  if (!ok) return Response.json({ error: "Too many requests" }, { status: 429 });
+
   const WEBHOOK_SECRET = process.env.CLERK_WEBHOOK_SECRET;
   if (!WEBHOOK_SECRET) {
     return Response.json({ error: "CLERK_WEBHOOK_SECRET is not set" }, { status: 500 });

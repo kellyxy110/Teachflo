@@ -18,6 +18,7 @@ import {
   Brain,
   FlaskConical,
   Code2,
+  Upload,
 } from "lucide-react";
 
 const navItems = [
@@ -34,6 +35,7 @@ const navItems = [
   { href: "/knowledge-studio", label: "Knowledge Studio", icon: FlaskConical },
   { href: "/intelligence", label: "Intelligence", icon: Brain },
   { href: "/code-lab", label: "Code Lab", icon: Code2 },
+  { href: "/import", label: "Smart Import", icon: Upload },
 ];
 
 const bottomItems = [

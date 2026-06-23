@@ -663,3 +663,170 @@ Set these in the Vercel dashboard (Settings > Environment Variables):
 | `NEXT_PUBLIC_CLERK_SIGN_UP_URL` | Yes | `/sign-up` |
 | `NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL` | Yes | `/dashboard` |
 | `NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL` | Yes | `/onboarding` |
+| `UPSTASH_REDIS_REST_URL` | Optional | Upstash Redis for distributed rate limiting |
+| `UPSTASH_REDIS_REST_TOKEN` | Optional | Upstash Redis auth token |
+| `NEXT_PUBLIC_SENTRY_DSN` | Optional | Sentry DSN for error tracking |
+| `SENTRY_AUTH_TOKEN` | Optional | Sentry auth token for source map uploads |
+
+---
+
+## Smart Import Engine
+
+### Overview
+
+Teachers upload CSV or Excel files — result sheets, broadsheets, student lists — and TeachFlow automatically maps columns and imports data.
+
+### How It Works
+
+1. **Upload** — Drag-and-drop or click to browse. Supports CSV, XLSX, XLS, TSV.
+2. **AI Column Mapping** — Headers and 5 sample rows are sent to the AI. It recognizes Nigerian school conventions:
+
+| File Header | Maps To |
+|-------------|---------|
+| S/N, No | Skipped |
+| Surname, Last Name | `lastName` |
+| Other Names, First Name, Given Name | `firstName` |
+| Reg No, Adm No, Admission Number | `regNumber` |
+| 1st Test, CA 1, Test 1 | `ca1` |
+| 2nd Test, CA 2, Test 2 | `ca2` |
+| Exam, Examination | `exam` |
+| Total, Aggregate, Overall | `total` |
+| Position, Rank | Skipped |
+
+3. **Review** — Teacher confirms or adjusts mappings, selects class, subject, term, and session.
+4. **Preview** — Shows first 8 rows as they'll be imported with mapped column names.
+5. **Execute** — Creates/updates students and upserts scores.
+
+### Student Matching
+
+- If a reg number is provided, matches by `schoolId + regNumber`
+- Otherwise matches by `schoolId + classId + firstName + lastName` (case-insensitive)
+- If no match found, creates a new student
+
+### Score Handling
+
+- Uses Prisma upsert on unique constraint: `studentId + subject + term + session`
+- Re-importing the same file updates existing scores (no duplicates)
+- Auto-calculates total if missing: `CA1 + CA2 + Exam`
+- Auto-assigns grade using Nigerian A-F scale if grade column is missing
+
+---
+
+## Code Lab
+
+### Overview
+
+Interactive coding lessons across 4 languages with 18 total lessons. No server-side execution — validation is regex-based.
+
+### Languages & Lessons
+
+| Language | Lessons | Topics |
+|----------|---------|--------|
+| **HTML** | 5 | Headings, Paragraphs, Links, Lists, Forms |
+| **CSS** | 4 | Color, Background/Padding, Flexbox, Grid |
+| **JavaScript** | 5 | Variables, Functions, Arrays/Loops, Objects, Async/Await |
+| **Python** | 5 | Print/Variables, If/Else, Lists/Loops, Functions, Classes |
+
+### Features
+
+- **Progressive unlock** — Complete lesson N to unlock N+1
+- **Difficulty badges** — Beginner (green), Intermediate (amber), Advanced (red)
+- **Live preview** — HTML and CSS render in real-time
+- **Hint system** — One-line hints per lesson
+- **Solution toggle** — View and reset to solution code
+- **Tab support** — Tab key inserts 2 spaces
+- **Line numbers** — Gutter with line numbers
+- **Progress tracking** — Per-language completion bar
+
+---
+
+## Observability
+
+### Sentry Error Tracking
+
+- **SDK**: `@sentry/nextjs` v10.59
+- **Region**: EU (`de.sentry.io`)
+- **Pattern**: `instrumentation.ts` + `instrumentation-client.ts` (Next.js 15+ pattern)
+- **Tunnel**: `/monitoring` route bypasses ad-blockers
+- **Session Replay**: 10% of sessions, 100% on error
+- **Source Maps**: Auto-uploaded on every production build via `SENTRY_AUTH_TOKEN`
+- **Request Error Capture**: `onRequestError = Sentry.captureRequestError` in instrumentation
+
+### Rate Limiting
+
+Distributed rate limiting via Upstash Redis REST API with automatic in-memory fallback:
+
+```
+Request → rateLimit("key") → Upstash Redis (if env var set)
+                            → In-memory Map (if no Redis)
+```
+
+- All API routes are rate-limited
+- Sliding window: 60 seconds
+- Limit: 10 requests per window per key
+- Key format: `feature:userId` (e.g., `lesson-gen:user_abc123`)
+
+### Caching
+
+KV cache with TTL via Upstash Redis:
+
+```typescript
+const stats = await withCache("dashboard-stats:schoolId", 60, async () => {
+  // expensive DB queries
+});
+```
+
+- Falls back to in-memory Map when Upstash is not configured
+- Dashboard stats cached for 60 seconds per school
+
+---
+
+## Theme System
+
+### Architecture
+
+Class-based dark mode using Tailwind CSS v4 custom properties.
+
+### Components
+
+- **ThemeProvider** (`components/layout/ThemeProvider.tsx`) — React context managing theme state
+- **Header toggle** — Sun/Moon button in dashboard header
+- **CSS variables** — Defined in `globals.css` for both `:root` (light) and `.dark` (dark)
+
+### How It Works
+
+1. On mount, `ThemeProvider` reads `localStorage("tf-theme")`
+2. If no stored preference, checks `prefers-color-scheme` media query
+3. Applies `.dark` class to `<html>` element
+4. Toggle button switches between themes and persists to localStorage
+5. Components use semantic tokens: `bg-bg`, `text-text`, `border-border`
+
+### Tailwind v4 Configuration
+
+```css
+/* globals.css */
+@custom-variant dark (&:is(.dark *));
+```
+
+This tells Tailwind v4 to scope `dark:` variants to elements inside `.dark` class, rather than using `@media (prefers-color-scheme: dark)`.
+
+### CSS Variables
+
+```css
+:root {
+  --color-bg: #ffffff;
+  --color-surface: #f8fafc;
+  --color-text: #0f172a;
+  --color-text-2: #475569;
+  --color-border: #e2e8f0;
+  --color-primary: #3b82f6;
+}
+
+.dark {
+  --color-bg: #0b1120;
+  --color-surface: #111827;
+  --color-text: #f1f5f9;
+  --color-text-2: #94a3b8;
+  --color-border: #1e293b;
+  --color-primary: #3b82f6;
+}

@@ -338,37 +338,12 @@ const CURRICULUM: Record<Language, Lesson[]> = {
   ],
 };
 
-// ── Syntax highlighting (minimal) ────────────────────────────────
-function highlightLine(code: string, lang: Language): string {
-  let h = code
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
-
-  if (lang === "html") {
-    h = h.replace(/(&lt;\/?)([\w-]+)/g, '$1<span style="color:#e44d26">$2</span>');
-    h = h.replace(/([\w-]+)(=)/g, '<span style="color:#9cdcfe">$1</span>$2');
-  } else if (lang === "css") {
-    h = h.replace(/^([\w.#-]+)\s*\{/gm, '<span style="color:#d7ba7d">$1</span> {');
-    h = h.replace(/([\w-]+)\s*:/g, '<span style="color:#9cdcfe">$1</span>:');
-  } else if (lang === "javascript" || lang === "python") {
-    h = h.replace(/\b(function|const|let|var|return|if|else|for|while|async|await|class|def|import|from|in|of|this|self|new|try|catch)\b/g, '<span style="color:#c586c0">$1</span>');
-    h = h.replace(/(["'`])([^"'`]*)\1/g, '<span style="color:#ce9178">$&</span>');
-    h = h.replace(/\b(\d+)\b/g, '<span style="color:#b5cea8">$1</span>');
-  }
-
-  h = h.replace(/(\/\/.*$|#.*$)/gm, '<span style="color:#6a9955">$&</span>');
-  h = h.replace(/(&lt;!--.*?--&gt;)/g, '<span style="color:#6a9955">$&</span>');
-
-  return h;
-}
-
 // ── Component ────────────────────────────────────────────────────
 
 export function CodeLabClient() {
   const [lang, setLang] = useState<Language>("html");
   const [lessonIdx, setLessonIdx] = useState(0);
-  const [code, setCode] = useState("");
+  const [code, setCode] = useState(CURRICULUM["html"][0].starterCode);
   const [result, setResult] = useState<{ pass: boolean; message: string } | null>(null);
   const [showHint, setShowHint] = useState(false);
   const [showSolution, setShowSolution] = useState(false);
@@ -401,10 +376,6 @@ export function CodeLabClient() {
     }
   }, [lessonIdx, lessons.length, lang, selectLesson]);
 
-  // Initialize starter code on first render
-  if (!code && lesson) {
-    setCode(lesson.starterCode);
-  }
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
@@ -529,7 +500,7 @@ export function CodeLabClient() {
                 {showHint ? "Hide Hint" : "Hint"}
               </button>
               <button
-                onClick={() => { setShowSolution(!showSolution); if (!showSolution) setCode(lesson.solution); }}
+                onClick={() => { setShowSolution(!showSolution); setCode(showSolution ? lesson.starterCode : lesson.solution); }}
                 className="text-xs px-2.5 py-1 rounded-md text-text-2 border border-border hover:border-primary/40 transition-colors"
               >
                 {showSolution ? "Reset" : "Solution"}
@@ -550,17 +521,18 @@ export function CodeLabClient() {
               value={code}
               onChange={(e) => { setCode(e.target.value); setResult(null); }}
               spellCheck={false}
-              className="w-full min-h-[200px] px-4 py-3 font-mono text-sm bg-[#1e1e2e] text-[#d4d4d4] resize-y outline-none leading-relaxed"
+              className="w-full min-h-[200px] pl-10 pr-4 py-3 font-mono text-sm bg-[#1e1e2e] text-[#d4d4d4] resize-y outline-none leading-relaxed"
               style={{ tabSize: 2 }}
               onKeyDown={(e) => {
                 if (e.key === "Tab") {
                   e.preventDefault();
-                  const start = e.currentTarget.selectionStart;
-                  const end = e.currentTarget.selectionEnd;
+                  const ta = e.currentTarget;
+                  const start = ta.selectionStart;
+                  const end = ta.selectionEnd;
                   setCode(code.substring(0, start) + "  " + code.substring(end));
-                  setTimeout(() => {
-                    e.currentTarget.selectionStart = e.currentTarget.selectionEnd = start + 2;
-                  }, 0);
+                  requestAnimationFrame(() => {
+                    ta.selectionStart = ta.selectionEnd = start + 2;
+                  });
                 }
               }}
             />

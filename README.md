@@ -228,8 +228,10 @@ teachflow-os/
 │   │   │   ├── scores/          # Score entry & grading
 │   │   │   ├── homework/        # Homework management
 │   │   │   ├── library/         # Document library
+│   │   │   ├── code-lab/        # Interactive coding lessons
+│   │   │   ├── import/          # Smart Import Engine
 │   │   │   └── settings/        # Profile & school settings
-│   │   ├── api/                 # 15 API endpoints
+│   │   ├── api/                 # 17 API endpoints
 │   │   └── page.tsx             # Landing page
 │   ├── lib/
 │   │   ├── ai/                  # Model router & providers
@@ -265,6 +267,15 @@ teachflow-os/
 - [x] Intelligence Core (mistake patterns, learning paths, curriculum plans)
 - [x] Scientific Calculator (5 tabs)
 - [x] Practice Arena (4 games)
+- [x] Code Lab — interactive HTML/CSS/JS/Python lessons
+- [x] Smart Import Engine — CSV/Excel upload with AI column mapping
+- [x] Dark/Light mode toggle (class-based, CSS variables)
+- [x] Sentry error tracking (EU region, source maps, Session Replay)
+- [x] Upstash Redis distributed rate limiting + KV cache
+- [ ] Smart Import Phase 2 — PDF/OCR import, auto-badges, leaderboards
+- [ ] Academic Achievement Engine — badges, stars, growth tracking
+- [ ] Portal Connect — sync with SchoolTry, EduMESS, etc.
+- [ ] Academic Passport — lifelong cross-school student profile
 - [ ] Skill Graph visualization (interactive)
 - [ ] Parent Insight Dashboard
 - [ ] Classroom Live Mode

@@ -6,6 +6,7 @@ import {
   Clock, ChevronRight, CheckCircle2, XCircle, Brain,
   BarChart2, Zap, Loader2, AlertTriangle, Target,
 } from "lucide-react";
+import { MathText } from "@/components/ui/MathText";
 import {
   submitQuestionResponse,
   getNextAdaptiveQuestion,
@@ -267,9 +268,9 @@ export function ExamTaker({ exam }: { exam: ExamData }) {
 
       {/* Question stem */}
       <div className="p-6 rounded-xl bg-surface border border-border">
-        <p className="text-base font-semibold text-text leading-relaxed whitespace-pre-wrap">
-          {currentQ.stem}
-        </p>
+        <div className="text-base font-semibold text-text leading-relaxed whitespace-pre-wrap">
+          <MathText text={currentQ.stem} />
+        </div>
       </div>
 
       {/* Answer area */}
@@ -289,7 +290,7 @@ export function ExamTaker({ exam }: { exam: ExamData }) {
                   }`}
                 >
                   <span className="font-bold text-primary mr-3">{key}.</span>
-                  <span className="text-text">{text}</span>
+                  <MathText text={text!} className="text-text" />
                 </button>
               ))}
             </div>

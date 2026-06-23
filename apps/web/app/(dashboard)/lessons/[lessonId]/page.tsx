@@ -3,6 +3,8 @@ import Link from "next/link";
 import { ArrowLeft, Trash2 } from "lucide-react";
 import { getLesson, deleteLesson } from "@/app/actions/lessons";
 import { LessonDetailClient } from "./LessonDetailClient";
+import { verifyLesson } from "@/lib/trust";
+import { TrustBadge } from "@/components/trust/TrustBadge";
 
 export default async function LessonDetailPage({
   params,
@@ -15,6 +17,7 @@ export default async function LessonDetailPage({
   if (!lesson) notFound();
 
   const markdown = (lesson.content as { markdown?: string })?.markdown ?? "";
+  const trustReport = verifyLesson(markdown, lesson.subject, lesson.classLevel);
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
@@ -51,6 +54,7 @@ export default async function LessonDetailPage({
           <span className="text-xs font-medium px-2 py-0.5 bg-bg rounded-full text-text-2 border border-border">
             {lesson.subject}
           </span>
+          <TrustBadge report={trustReport} />
           {lesson.week && (
             <span className="text-xs text-muted">Week {lesson.week}</span>
           )}

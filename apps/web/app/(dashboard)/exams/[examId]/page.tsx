@@ -3,6 +3,8 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { getExam, deleteExam } from "@/app/actions/exams";
 import { ExamDetailClient } from "./ExamDetailClient";
+import { verifyExam } from "@/lib/trust";
+import { TrustBadge } from "@/components/trust/TrustBadge";
 
 export default async function ExamDetailPage({
   params,
@@ -16,6 +18,7 @@ export default async function ExamDetailPage({
   const sectionA = exam.questions.filter((q) => q.section === "A");
   const sectionB = exam.questions.filter((q) => q.section === "B");
   const sectionC = exam.questions.filter((q) => q.section === "C");
+  const trustReport = verifyExam(exam.questions, exam.subject);
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
@@ -53,6 +56,7 @@ export default async function ExamDetailPage({
           <span className="text-xs font-medium px-2 py-0.5 bg-bg rounded-full text-text-2 border border-border">
             {exam.examType.replace("_", " ")}
           </span>
+          <TrustBadge report={trustReport} />
           <span className="text-xs text-muted">{exam.questions.length} questions</span>
           {exam.duration && <span className="text-xs text-muted">{exam.duration} min</span>}
         </div>

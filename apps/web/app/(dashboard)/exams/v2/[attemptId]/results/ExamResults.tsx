@@ -6,6 +6,7 @@ import {
   XCircle, Clock, TrendingUp, BookOpen, ArrowLeft, Zap,
 } from "lucide-react";
 import type { PostExamAnalytics } from "@/lib/exam-v2/types";
+import { MathText } from "@/components/ui/MathText";
 
 interface ExamResultsData {
   attemptId: string;
@@ -237,7 +238,7 @@ export function ExamResults({ data }: { data: ExamResultsData }) {
                     <span className="text-xs text-text-2">{r.timeSpentSeconds}s</span>
                   )}
                 </div>
-                <p className="text-sm text-text mb-1">{r.question.stem}</p>
+                <div className="text-sm text-text mb-1"><MathText text={r.question.stem} /></div>
                 {!r.isCorrect && (
                   <div className="text-xs text-text-2 space-y-1">
                     {r.selectedOption && (

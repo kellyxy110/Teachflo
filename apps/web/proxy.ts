@@ -22,7 +22,6 @@ const PUBLIC_PATHS = [
 function isPublicPath(pathname: string): boolean {
   return PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(p + "/"))
     || pathname.startsWith("/api/webhooks/")
-    || pathname.startsWith("/api/sentry-test")
     || pathname.startsWith("/__clerk")
     || pathname.startsWith("/monitoring");  // Sentry tunnel route
 }
@@ -48,7 +47,6 @@ if (isValidKey) {
       "/sitemap.xml",
       "/icon.svg",
       "/api/webhooks/clerk",
-      "/api/sentry-test",
       "/__clerk(.*)",
       "/monitoring(.*)",  // Sentry tunnel route
     ]);

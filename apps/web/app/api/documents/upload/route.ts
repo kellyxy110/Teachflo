@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { chunkText } from "@/lib/chunker";
 import { storeDocumentChunks } from "@/lib/vector-search";
 import { PDFParse } from "pdf-parse";
+import { rateLimit } from "@/lib/rate-limit";
 
 export const maxDuration = 60;
 
@@ -16,6 +17,9 @@ export async function POST(request: Request) {
   }
   if (!userId)
     return Response.json({ error: "Unauthorized" }, { status: 401 });
+
+  const { ok } = await rateLimit(`doc-upload:${userId}`);
+  if (!ok) return Response.json({ error: "Too many requests" }, { status: 429 });
 
   const teacher = await db.teacher.findUnique({
     where: { clerkId: userId },
@@ -43,6 +47,12 @@ export async function POST(request: Request) {
       { error: "Only PDF files are supported" },
       { status: 400 }
     );
+  }
+
+  const header = new Uint8Array(await file.slice(0, 5).arrayBuffer());
+  const isPdf = header[0] === 0x25 && header[1] === 0x50 && header[2] === 0x44 && header[3] === 0x46 && header[4] === 0x2D;
+  if (!isPdf) {
+    return Response.json({ error: "Invalid PDF file" }, { status: 400 });
   }
 
   const MAX_SIZE = 10 * 1024 * 1024;
