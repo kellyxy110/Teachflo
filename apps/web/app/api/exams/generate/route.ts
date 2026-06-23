@@ -4,6 +4,8 @@ import { safeAuth } from "@/lib/auth";
 import { openRouterCompletion, EXAM_MODELS } from "@/lib/ai";
 import { rateLimit } from "@/lib/rate-limit";
 
+export const maxDuration = 120;
+
 export async function POST(request: Request) {
   let userId: string | null = null;
   try {

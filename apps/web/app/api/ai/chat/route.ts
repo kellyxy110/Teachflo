@@ -36,14 +36,14 @@ export async function POST(request: Request) {
     return Response.json({ error: "Payload too large" }, { status: 413 });
   }
 
-  let body: { message?: string; useRAG?: boolean; systemPrompt?: string };
+  let body: { message?: string; useRAG?: boolean };
   try {
     body = JSON.parse(text);
   } catch {
     return Response.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
-  const { message, useRAG, systemPrompt } = body;
+  const { message, useRAG } = body;
   if (!message) {
     return Response.json({ error: "message is required" }, { status: 400 });
   }
@@ -53,7 +53,6 @@ export async function POST(request: Request) {
       message,
       schoolId: teacher.schoolId,
       useRAG: useRAG ?? true,
-      systemPrompt,
     });
 
     const encoder = new TextEncoder();

@@ -97,7 +97,7 @@ export default function RootLayout({
   };
 
   const inner = (
-    <html lang="en" className={inter.className}>
+    <html lang="en-NG" className={inter.className}>
       <head>
         <script
           type="application/ld+json"

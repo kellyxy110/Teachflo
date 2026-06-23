@@ -3,6 +3,8 @@ import { safeAuth } from "@/lib/auth";
 import { openRouterStream, LESSON_MODELS } from "@/lib/ai";
 import { rateLimit } from "@/lib/rate-limit";
 
+export const maxDuration = 120;
+
 export async function POST(request: Request) {
   let userId: string | null = null;
   try {

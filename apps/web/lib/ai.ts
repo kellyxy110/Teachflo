@@ -100,9 +100,12 @@ interface CompletionOpts extends StreamOpts {
   json?: boolean;
 }
 
+const MODEL_TIMEOUT_MS = 8000;
+const MAX_FALLBACK_ATTEMPTS = 4;
+
 /**
- * Tries each model in order, returning the first successful stream.
- * Falls back to Groq if all OpenRouter models fail.
+ * Tries each model in order (max 4), returning the first successful stream.
+ * Each model gets 8s before timeout. Falls back to Groq as final attempt.
  */
 export async function openRouterStream(
   models: readonly string[],
@@ -110,8 +113,9 @@ export async function openRouterStream(
   opts: StreamOpts = {}
 ): Promise<AsyncIterable<OpenAI.Chat.Completions.ChatCompletionChunk> & { controller: AbortController }> {
   let lastError: Error | null = null;
+  const candidates = models.slice(0, MAX_FALLBACK_ATTEMPTS);
 
-  for (const model of models) {
+  for (const model of candidates) {
     try {
       const stream = await getOpenRouterClient(model).chat.completions.create({
         model,
@@ -119,14 +123,13 @@ export async function openRouterStream(
         stream: true,
         temperature: opts.temperature ?? 0.7,
         max_tokens: opts.max_tokens ?? 2000,
-      });
+      }, { signal: AbortSignal.timeout(MODEL_TIMEOUT_MS) });
       return stream;
     } catch (e) {
       lastError = e instanceof Error ? e : new Error(String(e));
     }
   }
 
-  // Final fallback: Groq
   if (process.env.GROQ_API_KEY) {
     try {
       const stream = await getGroqClient().chat.completions.create({
@@ -135,7 +138,7 @@ export async function openRouterStream(
         stream: true,
         temperature: opts.temperature ?? 0.7,
         max_tokens: opts.max_tokens ?? 2000,
-      });
+      }, { signal: AbortSignal.timeout(MODEL_TIMEOUT_MS) });
       return stream;
     } catch (e) {
       lastError = e instanceof Error ? e : new Error(String(e));
@@ -146,8 +149,8 @@ export async function openRouterStream(
 }
 
 /**
- * Tries each model in order, returning the first successful completion.
- * Falls back to Groq if all OpenRouter models fail.
+ * Tries each model in order (max 4), returning the first successful completion.
+ * Each model gets 8s before timeout. Falls back to Groq as final attempt.
  */
 export async function openRouterCompletion(
   models: readonly string[],
@@ -155,8 +158,9 @@ export async function openRouterCompletion(
   opts: CompletionOpts = {}
 ): Promise<{ completion: OpenAI.Chat.Completions.ChatCompletion; model: string }> {
   let lastError: Error | null = null;
+  const candidates = models.slice(0, MAX_FALLBACK_ATTEMPTS);
 
-  for (const model of models) {
+  for (const model of candidates) {
     try {
       const completion = await getOpenRouterClient(model).chat.completions.create({
         model,
@@ -164,14 +168,13 @@ export async function openRouterCompletion(
         temperature: opts.temperature ?? 0.4,
         max_tokens: opts.max_tokens ?? 6000,
         ...(opts.json ? { response_format: { type: "json_object" as const } } : {}),
-      });
+      }, { signal: AbortSignal.timeout(MODEL_TIMEOUT_MS) });
       return { completion, model };
     } catch (e) {
       lastError = e instanceof Error ? e : new Error(String(e));
     }
   }
 
-  // Final fallback: Groq (without json_object — Groq doesn't guarantee it)
   if (process.env.GROQ_API_KEY) {
     try {
       const completion = await getGroqClient().chat.completions.create({
@@ -179,7 +182,7 @@ export async function openRouterCompletion(
         messages,
         temperature: opts.temperature ?? 0.4,
         max_tokens: opts.max_tokens ?? 6000,
-      });
+      }, { signal: AbortSignal.timeout(MODEL_TIMEOUT_MS) });
       return { completion, model: GROQ_MODEL };
     } catch (e) {
       lastError = e instanceof Error ? e : new Error(String(e));

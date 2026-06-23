@@ -74,6 +74,7 @@ model Teacher {
   homework Homework[]
 
   @@unique([schoolId, email])
+  @@index([schoolId])
   @@map("teachers")
 }
 
@@ -107,6 +108,7 @@ model Class {
   homework Homework[]
 
   @@unique([schoolId, name, session])
+  @@index([schoolId])
   @@map("classes")
 }
 
@@ -149,6 +151,7 @@ model Student {
   learningPaths   LearningPath[]
 
   @@unique([schoolId, regNumber])
+  @@index([classId])
   @@map("students")
 }
 
@@ -186,6 +189,10 @@ model Score {
   updatedAt DateTime @updatedAt
 
   @@unique([studentId, subject, term, session])
+  @@index([schoolId])
+  @@index([studentId])
+  @@index([classId])
+  @@index([teacherId])
   @@map("scores")
 }
 
@@ -222,6 +229,8 @@ model Lesson {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  @@index([schoolId])
+  @@index([teacherId])
   @@map("lessons")
 }
 
@@ -268,6 +277,8 @@ model Exam {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  @@index([schoolId])
+  @@index([teacherId])
   @@map("exams")
 }
 
@@ -340,6 +351,7 @@ model Question {
   responses QuestionResponse[]
   tags      QuestionTag[]
 
+  @@index([examId])
   @@map("questions")
 }
 
@@ -378,6 +390,8 @@ model Homework {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  @@index([schoolId])
+  @@index([classId])
   @@map("homework")
 }
 
@@ -492,6 +506,8 @@ model QuestionResponse {
   createdAt DateTime @default(now())
 
   @@unique([attemptId, questionId])
+  @@index([attemptId])
+  @@index([questionId])
   @@map("question_responses")
 }
 

@@ -96,10 +96,13 @@ export async function POST(request: Request) {
     return Response.json({ error: "Select at least one document" }, { status: 400 });
   }
 
+  const safeTopK = Math.min(Math.max(1, parseInt(String(topK), 10) || 8), 50);
+
   const embedding = await generateEmbedding(message);
   const vec = `[${embedding.join(",")}]`;
 
   const placeholders = documentIds.map((_, i) => `$${i + 3}`).join(",");
+  const limitParam = `$${documentIds.length + 3}`;
 
   const chunks = await db.$queryRawUnsafe<ChunkResult[]>(
     `SELECT id, "documentId", content, metadata, "chunkIndex",
@@ -107,10 +110,11 @@ export async function POST(request: Request) {
      FROM document_chunks
      WHERE "schoolId" = $2 AND "documentId" IN (${placeholders})
      ORDER BY embedding <=> $1::vector
-     LIMIT ${topK}`,
+     LIMIT ${limitParam}`,
     vec,
     teacher.schoolId,
-    ...documentIds
+    ...documentIds,
+    safeTopK
   );
 
   if (chunks.length === 0) {

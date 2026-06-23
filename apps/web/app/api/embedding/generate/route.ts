@@ -6,6 +6,7 @@ import {
   storeDocumentChunks,
 } from "@/lib/vector-search";
 import { chunkText } from "@/lib/chunker";
+import { rateLimit } from "@/lib/rate-limit";
 
 export async function POST(request: Request) {
   let userId: string | null = null;
@@ -16,6 +17,9 @@ export async function POST(request: Request) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
   if (!userId) return Response.json({ error: "Unauthorized" }, { status: 401 });
+
+  const { ok } = rateLimit(`embedding:${userId}`);
+  if (!ok) return Response.json({ error: "Too many requests." }, { status: 429 });
 
   const teacher = await db.teacher.findUnique({
     where: { clerkId: userId },

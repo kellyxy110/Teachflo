@@ -2,11 +2,28 @@ import { NextResponse, type NextRequest } from "next/server";
 
 const CLERK_KEY = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
 
-// Only initialise Clerk middleware when the publishable key is present AND valid.
-// An invalid/malformed key causes Clerk to throw at init time and crash the app.
 const isValidKey =
   typeof CLERK_KEY === "string" &&
   (CLERK_KEY.startsWith("pk_test_") || CLERK_KEY.startsWith("pk_live_"));
+
+const PUBLIC_PATHS = [
+  "/",
+  "/sign-in",
+  "/sign-up",
+  "/setup",
+  "/terms",
+  "/privacy",
+  "/cookies",
+  "/robots.txt",
+  "/sitemap.xml",
+  "/icon.svg",
+];
+
+function isPublicPath(pathname: string): boolean {
+  return PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(p + "/"))
+    || pathname.startsWith("/api/webhooks/")
+    || pathname.startsWith("/__clerk");
+}
 
 let _clerkHandler:
   | ((req: NextRequest) => Response | Promise<Response>)
@@ -38,14 +55,18 @@ if (isValidKey) {
       }
     );
   } catch {
-    // Clerk init failed — fail open so the landing page stays up
     _clerkHandler = null;
   }
 }
 
 export const proxy = _clerkHandler
   ? _clerkHandler
-  : (_request: NextRequest) => NextResponse.next();
+  : (request: NextRequest) => {
+      if (isPublicPath(request.nextUrl.pathname)) {
+        return NextResponse.next();
+      }
+      return new NextResponse("Service Unavailable", { status: 503 });
+    };
 
 export const config = {
   matcher: [

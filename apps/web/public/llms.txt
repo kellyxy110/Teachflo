@@ -1,0 +1,49 @@
+# TeachFlow OS
+
+> AI-powered educational operating system for Nigerian secondary schools (JSS1–SS3).
+
+TeachFlow OS is a free, AI-driven platform built for Nigerian teachers and students. It generates WAEC, JAMB, and JUPEB-aligned lesson plans, builds adaptive exams with misconception detection, provides an AI Study Buddy with 5 learning modes, and tracks student skills via Bloom's Taxonomy skill graphs.
+
+## Core Features
+
+- **AI Lesson Generator**: Creates full lesson plans for any subject/topic in under 10 seconds. Supports WAEC, JAMB, JUPEB, and ELI12 (simplified) modes.
+- **Exam Builder**: AI-generated MCQ and theory exams with distractor analysis, marking schemes, and curriculum references.
+- **Adaptive Exam Engine (v2)**: Real-time difficulty adjustment based on student performance. Detects misconceptions during assessment.
+- **Study Buddy**: AI tutor with 5 modes — Explain, Test Me, Hint, Step-by-Step, Review Mistakes. Injects student skill data into every response.
+- **Knowledge Studio**: Upload PDFs, extract summaries/concepts/flashcards/exam questions. RAG-powered document chat.
+- **Code Lab**: Interactive coding practice (HTML, CSS, JavaScript, Python) with instant validation and progressive difficulty.
+- **Intelligence Core**: Mistake pattern tracking, adaptive learning paths, and curriculum planning.
+- **Manual Question Builder**: Teachers create questions with marking schemes, Bloom's taxonomy tags, and skill annotations.
+- **Scientific Calculator**: Casio-style calculator with 5 tabs (Standard, Equations, Statistics, Vectors, Graph) and SHIFT second-function key.
+- **Practice Arena**: 4 interactive games — Math Sprint, Concept Match, Fix the Answer, Quiz Battle.
+- **School Management**: Classes, students, scores, homework, analytics, and Nigerian grading scale (A-F).
+
+## AI Models Used
+
+18 free-tier AI models via Groq, Cerebras, and OpenRouter:
+- Llama 3.3 70B (tutoring), DeepSeek V4 Flash (exams), Qwen3 80B (curriculum), Gemma 4 31B (documents), Kimi K2.6 (automation), Hermes 3 405B (reasoning), GPT-OSS 120B, Nemotron Ultra 550B, MiniMax M3, and more.
+
+## Technical Stack
+
+Next.js 16, Turborepo, Prisma, Supabase PostgreSQL + pgvector, Clerk authentication, Jina embeddings (1024-dim), Tavily search.
+
+## Coverage
+
+- Class levels: JSS1, JSS2, JSS3, SS1, SS2, SS3
+- Exam boards: WAEC, JAMB, JUPEB
+- Subjects: Mathematics, English, Physics, Chemistry, Biology, Economics, Government, and all Nigerian secondary school subjects
+- Grading: Nigerian A-F scale (A: 70-100, B: 60-69, C: 50-59, D: 45-49, E: 40-44, F: 0-39)
+
+## Links
+
+- Website: https://teachflow-os.vercel.app
+- GitHub: https://github.com/kellyxy110/Teachflo
+- Documentation: See DOCS.md in the repository
+- FAQ: See FAQ.md in the repository
+
+## Creator
+
+Built by Ekeleme Kelechi David (KellyxyHub)
+- Portfolio: https://kellyxy.vercel.app
+- Email: kellyxy110@gmail.com
+- Company: SiteNexis (https://sitenexis.vercel.app)
