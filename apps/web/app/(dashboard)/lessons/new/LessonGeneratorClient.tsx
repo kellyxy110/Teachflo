@@ -78,7 +78,7 @@ export function LessonGeneratorClient() {
     } catch (err: unknown) {
       if ((err as Error).name !== "AbortError") {
         setPhase("idle");
-        alert("Generation failed. Check your OPENAI_API_KEY and try again.");
+        alert("Generation failed. Please try again — the AI service may be temporarily unavailable.");
       }
     }
   }

@@ -4,7 +4,7 @@ import { useState, useCallback, useRef } from "react";
 import {
   Upload, FileSpreadsheet, CheckCircle, XCircle, ArrowRight,
   ArrowLeft, Loader2, AlertTriangle, Users, ClipboardList,
-  Sparkles, Eye,
+  Sparkles, Eye, Camera,
 } from "lucide-react";
 
 type Step = "upload" | "mapping" | "preview" | "importing" | "done";
@@ -77,6 +77,8 @@ export function ImportClient({
   const [error, setError] = useState<string | null>(null);
   const [importResult, setImportResult] = useState<ImportResult | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const imgRef = useRef<HTMLInputElement>(null);
+  const [ocrPreview, setOcrPreview] = useState<string | null>(null);
 
   const parseFile = useCallback(async (f: File) => {
     const ext = f.name.split(".").pop()?.toLowerCase();
@@ -178,6 +180,64 @@ export function ImportClient({
     [handleUpload]
   );
 
+  const handleImageUpload = useCallback(async (f: File) => {
+    setFile(f);
+    setError(null);
+    setLoading(true);
+    setOcrPreview(URL.createObjectURL(f));
+
+    try {
+      const form = new FormData();
+      form.append("image", f);
+
+      const res = await fetch("/api/ocr/extract", { method: "POST", body: form });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: "OCR failed" }));
+        throw new Error(err.error ?? "OCR failed");
+      }
+
+      const result: AnalyzeResult & { modelUsed?: string } = await res.json();
+      if (!result.headers?.length || !result.rows?.length) {
+        throw new Error("No table data found in image. Try a clearer photo.");
+      }
+
+      setRawData(result.rows);
+
+      // Run through AI column mapper
+      const analyzeRes = await fetch("/api/import/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          headers: result.headers,
+          sampleRows: result.rows.slice(0, 5),
+          fileName: f.name,
+          totalRows: result.rows.length,
+        }),
+      });
+
+      if (!analyzeRes.ok) {
+        const err = await analyzeRes.json().catch(() => ({ error: "Analysis failed" }));
+        throw new Error(err.error ?? "Analysis failed");
+      }
+
+      const analysis: AnalyzeResult = await analyzeRes.json();
+      setAnalysis(analysis);
+      setMappings(analysis.mappings);
+      if (analysis.detectedSubject) setSubject(analysis.detectedSubject);
+      if (analysis.detectedTerm) {
+        const t = analysis.detectedTerm.toUpperCase();
+        if (t === "FIRST" || t === "SECOND" || t === "THIRD") setTerm(t as "FIRST" | "SECOND" | "THIRD");
+      }
+      if (analysis.detectedSession) setSession(analysis.detectedSession);
+      setStep("mapping");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "OCR failed");
+      setOcrPreview(null);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   const updateMapping = useCallback((sourceCol: string, newTarget: string) => {
     setMappings((prev) =>
       prev.map((m) => (m.source === sourceCol ? { ...m, target: newTarget } : m))
@@ -270,46 +330,75 @@ export function ImportClient({
 
       {/* ── Step 1: Upload ────────────────────────────────────── */}
       {step === "upload" && (
-        <div
-          onDragOver={(e) => e.preventDefault()}
-          onDrop={handleDrop}
-          className="bg-surface border-2 border-dashed border-border rounded-2xl p-12 text-center hover:border-primary/40 transition-colors cursor-pointer"
-          onClick={() => fileRef.current?.click()}
-        >
-          <input
-            ref={fileRef}
-            type="file"
-            accept=".csv,.xlsx,.xls,.tsv,.txt"
-            className="hidden"
-            onChange={(e) => {
-              const f = e.target.files?.[0];
-              if (f) handleUpload(f);
-            }}
-          />
+        <div className="space-y-4">
           {loading ? (
-            <div className="flex flex-col items-center gap-3">
-              <Loader2 size={40} className="text-primary animate-spin" />
-              <p className="text-sm text-text-2">
-                Parsing <span className="font-semibold text-text">{file?.name}</span> and detecting columns...
-              </p>
+            <div className="bg-surface border-2 border-dashed border-border rounded-2xl p-12 text-center">
+              <div className="flex flex-col items-center gap-3">
+                <Loader2 size={40} className="text-primary animate-spin" />
+                <p className="text-sm text-text-2">
+                  {ocrPreview ? "Reading mark sheet with AI vision..." : "Parsing"}{" "}
+                  {!ocrPreview && <span className="font-semibold text-text">{file?.name}</span>}
+                  {!ocrPreview && " and detecting columns..."}
+                </p>
+                {ocrPreview && (
+                  <img src={ocrPreview} alt="Mark sheet preview" className="mt-2 max-h-40 rounded-lg object-contain opacity-60" />
+                )}
+              </div>
             </div>
           ) : (
-            <div className="flex flex-col items-center gap-3">
-              <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center">
-                <Upload size={28} className="text-primary" />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Spreadsheet upload */}
+              <div
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={handleDrop}
+                onClick={() => fileRef.current?.click()}
+                className="bg-surface border-2 border-dashed border-border rounded-2xl p-8 text-center hover:border-primary/40 transition-colors cursor-pointer"
+              >
+                <input
+                  ref={fileRef}
+                  type="file"
+                  accept=".csv,.xlsx,.xls,.tsv,.txt"
+                  className="hidden"
+                  onChange={(e) => { const f = e.target.files?.[0]; if (f) handleUpload(f); }}
+                />
+                <div className="flex flex-col items-center gap-3">
+                  <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center">
+                    <FileSpreadsheet size={26} className="text-primary" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-text mb-1">Upload Spreadsheet</p>
+                    <p className="text-xs text-text-2">CSV, Excel (.xlsx, .xls), TSV</p>
+                  </div>
+                  <div className="flex items-center gap-3 text-xs text-text-2">
+                    <span>.csv</span><span>.xlsx</span><span>.xls</span>
+                  </div>
+                </div>
               </div>
-              <div>
-                <p className="text-base font-semibold text-text mb-1">
-                  Drop your file here or click to browse
-                </p>
-                <p className="text-sm text-text-2">
-                  Supports CSV, Excel (.xlsx, .xls), TSV — result sheets, broadsheets, student lists
-                </p>
-              </div>
-              <div className="flex items-center gap-4 mt-2 text-xs text-text-2">
-                <span className="flex items-center gap-1"><FileSpreadsheet size={14} /> .csv</span>
-                <span className="flex items-center gap-1"><FileSpreadsheet size={14} /> .xlsx</span>
-                <span className="flex items-center gap-1"><FileSpreadsheet size={14} /> .xls</span>
+
+              {/* Photo / OCR upload */}
+              <div
+                onClick={() => imgRef.current?.click()}
+                className="bg-surface border-2 border-dashed border-border rounded-2xl p-8 text-center hover:border-amber-500/40 transition-colors cursor-pointer"
+              >
+                <input
+                  ref={imgRef}
+                  type="file"
+                  accept="image/jpeg,image/jpg,image/png,image/webp"
+                  className="hidden"
+                  onChange={(e) => { const f = e.target.files?.[0]; if (f) handleImageUpload(f); }}
+                />
+                <div className="flex flex-col items-center gap-3">
+                  <div className="w-14 h-14 rounded-2xl bg-amber-500/10 flex items-center justify-center">
+                    <Camera size={26} className="text-amber-500" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-text mb-1">Scan Mark Sheet</p>
+                    <p className="text-xs text-text-2">Photo of handwritten or printed result sheet</p>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs text-amber-500/80 font-medium bg-amber-500/10 px-3 py-1 rounded-full">
+                    <Sparkles size={12} /> AI Vision OCR
+                  </div>
+                </div>
               </div>
             </div>
           )}
