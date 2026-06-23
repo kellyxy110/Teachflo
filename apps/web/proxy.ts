@@ -23,6 +23,7 @@ const PUBLIC_PATHS = [
   "/robots.txt",
   "/sitemap.xml",
   "/icon.svg",
+  "/api/health",
 ];
 
 function isPublicPath(pathname: string): boolean {
@@ -51,6 +52,7 @@ if (isValidKey) {
     "/robots.txt",
     "/sitemap.xml",
     "/icon.svg",
+    "/api/health",
     "/api/webhooks/(.*)",
     "/__clerk(.*)",
     "/monitoring(.*)",
