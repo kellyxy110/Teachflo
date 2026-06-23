@@ -7,6 +7,7 @@ import {
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { getCurrentTeacher } from "@/lib/auth";
+import { withCache } from "@/lib/cache";
 
 function StatCard({
   icon: Icon, label, value, sub, href,
@@ -37,24 +38,36 @@ export default async function DashboardPage() {
 
   if (!teacher) redirect("/onboarding");
 
-  const [classCount, studentCount, lessonCount, homeworkCount, recentLessons, recentExams] =
-    await Promise.all([
-      db.class.count({ where: { schoolId: teacher.schoolId } }),
-      db.student.count({ where: { schoolId: teacher.schoolId, isActive: true } }),
-      db.lesson.count({ where: { schoolId: teacher.schoolId } }),
-      db.homework.count({ where: { schoolId: teacher.schoolId, status: "ACTIVE" } }),
-      db.lesson.findMany({
-        where: { schoolId: teacher.schoolId },
-        orderBy: { createdAt: "desc" },
-        take: 5,
-      }),
-      db.exam.findMany({
-        where: { schoolId: teacher.schoolId },
-        orderBy: { createdAt: "desc" },
-        take: 3,
-        include: { _count: { select: { questions: true } } },
-      }),
-    ]);
+  const cacheKey = `dashboard-stats:${teacher.schoolId}`;
+
+  const [stats, recentLessons, recentExams] = await Promise.all([
+    withCache<{ classCount: number; studentCount: number; lessonCount: number; homeworkCount: number }>(
+      cacheKey,
+      60,
+      async () => {
+        const [classCount, studentCount, lessonCount, homeworkCount] = await Promise.all([
+          db.class.count({ where: { schoolId: teacher.schoolId } }),
+          db.student.count({ where: { schoolId: teacher.schoolId, isActive: true } }),
+          db.lesson.count({ where: { schoolId: teacher.schoolId } }),
+          db.homework.count({ where: { schoolId: teacher.schoolId, status: "ACTIVE" } }),
+        ]);
+        return { classCount, studentCount, lessonCount, homeworkCount };
+      },
+    ),
+    db.lesson.findMany({
+      where: { schoolId: teacher.schoolId },
+      orderBy: { createdAt: "desc" },
+      take: 5,
+    }),
+    db.exam.findMany({
+      where: { schoolId: teacher.schoolId },
+      orderBy: { createdAt: "desc" },
+      take: 3,
+      include: { _count: { select: { questions: true } } },
+    }),
+  ]);
+
+  const { classCount, studentCount, lessonCount, homeworkCount } = stats;
 
   const firstName = teacher.firstName ?? user?.firstName ?? "Teacher";
   const hour = new Date().getHours();

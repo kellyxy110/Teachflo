@@ -46,7 +46,7 @@ export async function POST(request: Request) {
   if (!userId)
     return Response.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { ok, remaining } = rateLimit(`study-buddy:${userId}`);
+  const { ok, remaining } = await rateLimit(`study-buddy:${userId}`);
   if (!ok) {
     return Response.json(
       { error: "Too many requests. Please wait a moment." },

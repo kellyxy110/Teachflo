@@ -18,7 +18,7 @@ export async function POST(request: Request) {
   }
   if (!userId) return Response.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { ok } = rateLimit(`embedding:${userId}`);
+  const { ok } = await rateLimit(`embedding:${userId}`);
   if (!ok) return Response.json({ error: "Too many requests." }, { status: 429 });
 
   const teacher = await db.teacher.findUnique({

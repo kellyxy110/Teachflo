@@ -15,7 +15,7 @@ export async function POST(request: Request) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { ok } = rateLimit(`lesson-gen:${userId}`);
+  const { ok } = await rateLimit(`lesson-gen:${userId}`);
   if (!ok) {
     return Response.json({ error: "Too many requests. Please wait a moment." }, { status: 429 });
   }

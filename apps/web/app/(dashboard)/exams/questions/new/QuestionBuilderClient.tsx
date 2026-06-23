@@ -140,7 +140,9 @@ export function QuestionBuilderClient({ exams }: { exams: ExamOption[] }) {
       <div className="bg-surface border border-border rounded-xl p-5 space-y-4">
         <h3 className="font-semibold text-text text-sm">Add to Exam</h3>
         <div>
+          <label htmlFor="qb-examId" className="sr-only">Add to Exam</label>
           <select
+            id="qb-examId"
             value={form.examId}
             onChange={(e) => set("examId", e.target.value)}
             className="w-full px-3 py-2 border border-border rounded-lg text-sm text-text bg-surface focus:outline-none focus:ring-2 focus:ring-primary/20"
@@ -160,36 +162,38 @@ export function QuestionBuilderClient({ exams }: { exams: ExamOption[] }) {
         <h3 className="font-semibold text-text text-sm">Question Details</h3>
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
           <div className="col-span-2 sm:col-span-1">
-            <label className="block text-xs font-medium text-text-2 mb-1">Subject *</label>
-            <select value={form.subject} onChange={(e) => set("subject", e.target.value)} className="w-full px-3 py-2 border border-border rounded-lg text-sm text-text bg-surface focus:outline-none focus:ring-2 focus:ring-primary/20">
+            <label htmlFor="qb-subject" className="block text-xs font-medium text-text-2 mb-1">Subject *</label>
+            <select id="qb-subject" aria-required="true" value={form.subject} onChange={(e) => set("subject", e.target.value)} className="w-full px-3 py-2 border border-border rounded-lg text-sm text-text bg-surface focus:outline-none focus:ring-2 focus:ring-primary/20">
               <option value="">Select...</option>
               {SUBJECTS.map((s) => <option key={s} value={s}>{s}</option>)}
             </select>
           </div>
           <div>
-            <label className="block text-xs font-medium text-text-2 mb-1">Class *</label>
-            <select value={form.classLevel} onChange={(e) => set("classLevel", e.target.value as ClassLevel)} className="w-full px-3 py-2 border border-border rounded-lg text-sm text-text bg-surface focus:outline-none focus:ring-2 focus:ring-primary/20">
+            <label htmlFor="qb-classLevel" className="block text-xs font-medium text-text-2 mb-1">Class *</label>
+            <select id="qb-classLevel" aria-required="true" value={form.classLevel} onChange={(e) => set("classLevel", e.target.value as ClassLevel)} className="w-full px-3 py-2 border border-border rounded-lg text-sm text-text bg-surface focus:outline-none focus:ring-2 focus:ring-primary/20">
               <option value="">Select...</option>
               {CLASS_LEVELS.map((l) => <option key={l} value={l}>{l}</option>)}
             </select>
           </div>
           <div>
-            <label className="block text-xs font-medium text-text-2 mb-1">Exam Type</label>
-            <select value={form.examType} onChange={(e) => set("examType", e.target.value as ExamType)} className="w-full px-3 py-2 border border-border rounded-lg text-sm text-text bg-surface focus:outline-none focus:ring-2 focus:ring-primary/20">
+            <label htmlFor="qb-examType" className="block text-xs font-medium text-text-2 mb-1">Exam Type</label>
+            <select id="qb-examType" value={form.examType} onChange={(e) => set("examType", e.target.value as ExamType)} className="w-full px-3 py-2 border border-border rounded-lg text-sm text-text bg-surface focus:outline-none focus:ring-2 focus:ring-primary/20">
               {EXAM_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
             </select>
           </div>
           <div>
-            <label className="block text-xs font-medium text-text-2 mb-1">Section</label>
-            <select value={form.section} onChange={(e) => set("section", e.target.value as Section)} className="w-full px-3 py-2 border border-border rounded-lg text-sm text-text bg-surface focus:outline-none focus:ring-2 focus:ring-primary/20">
+            <label htmlFor="qb-section" className="block text-xs font-medium text-text-2 mb-1">Section</label>
+            <select id="qb-section" value={form.section} onChange={(e) => set("section", e.target.value as Section)} className="w-full px-3 py-2 border border-border rounded-lg text-sm text-text bg-surface focus:outline-none focus:ring-2 focus:ring-primary/20">
               {SECTIONS.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
             </select>
           </div>
         </div>
 
         <div>
-          <label className="block text-xs font-medium text-text-2 mb-1">Topic *</label>
+          <label htmlFor="qb-topic" className="block text-xs font-medium text-text-2 mb-1">Topic *</label>
           <input
+            id="qb-topic"
+            aria-required="true"
             type="text"
             value={form.topic}
             onChange={(e) => set("topic", e.target.value)}
@@ -200,16 +204,16 @@ export function QuestionBuilderClient({ exams }: { exams: ExamOption[] }) {
 
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
           <div>
-            <label className="block text-xs font-medium text-text-2 mb-1">Skill Tag</label>
-            <input type="text" value={form.skillTag} onChange={(e) => set("skillTag", e.target.value)} placeholder="e.g. factoring-quadratics" className="w-full px-3 py-2 border border-border rounded-lg text-sm text-text placeholder:text-muted bg-surface focus:outline-none focus:ring-2 focus:ring-primary/20" />
+            <label htmlFor="qb-skillTag" className="block text-xs font-medium text-text-2 mb-1">Skill Tag</label>
+            <input id="qb-skillTag" type="text" value={form.skillTag} onChange={(e) => set("skillTag", e.target.value)} placeholder="e.g. factoring-quadratics" className="w-full px-3 py-2 border border-border rounded-lg text-sm text-text placeholder:text-muted bg-surface focus:outline-none focus:ring-2 focus:ring-primary/20" />
           </div>
           <div>
-            <label className="block text-xs font-medium text-text-2 mb-1">Sub-topic</label>
-            <input type="text" value={form.subTopicTag} onChange={(e) => set("subTopicTag", e.target.value)} placeholder="e.g. completing-the-square" className="w-full px-3 py-2 border border-border rounded-lg text-sm text-text placeholder:text-muted bg-surface focus:outline-none focus:ring-2 focus:ring-primary/20" />
+            <label htmlFor="qb-subTopicTag" className="block text-xs font-medium text-text-2 mb-1">Sub-topic</label>
+            <input id="qb-subTopicTag" type="text" value={form.subTopicTag} onChange={(e) => set("subTopicTag", e.target.value)} placeholder="e.g. completing-the-square" className="w-full px-3 py-2 border border-border rounded-lg text-sm text-text placeholder:text-muted bg-surface focus:outline-none focus:ring-2 focus:ring-primary/20" />
           </div>
           <div>
-            <label className="block text-xs font-medium text-text-2 mb-1">Time (seconds)</label>
-            <input type="number" value={form.estimatedTime} onChange={(e) => set("estimatedTime", parseInt(e.target.value) || 90)} min={10} max={600} className="w-full px-3 py-2 border border-border rounded-lg text-sm text-text bg-surface focus:outline-none focus:ring-2 focus:ring-primary/20" />
+            <label htmlFor="qb-estimatedTime" className="block text-xs font-medium text-text-2 mb-1">Time (seconds)</label>
+            <input id="qb-estimatedTime" type="number" value={form.estimatedTime} onChange={(e) => set("estimatedTime", parseInt(e.target.value) || 90)} min={10} max={600} className="w-full px-3 py-2 border border-border rounded-lg text-sm text-text bg-surface focus:outline-none focus:ring-2 focus:ring-primary/20" />
           </div>
         </div>
 
@@ -262,8 +266,10 @@ export function QuestionBuilderClient({ exams }: { exams: ExamOption[] }) {
 
         {/* Question stem */}
         <div>
-          <label className="block text-xs font-medium text-text-2 mb-1">Question Stem *</label>
+          <label htmlFor="qb-stem" className="block text-xs font-medium text-text-2 mb-1">Question Stem *</label>
           <textarea
+            id="qb-stem"
+            aria-required="true"
             value={form.stem}
             onChange={(e) => set("stem", e.target.value)}
             rows={3}
@@ -275,7 +281,7 @@ export function QuestionBuilderClient({ exams }: { exams: ExamOption[] }) {
         {/* MCQ options */}
         {isMCQ && (
           <div className="space-y-3">
-            <label className="block text-xs font-medium text-text-2">Options *</label>
+            <span className="block text-xs font-medium text-text-2" id="qb-options-label">Options *</span>
             {(["A", "B", "C", "D", "E"] as const).map((opt) => {
               const key = `option${opt}` as keyof typeof form;
               const isCorrect = form.correctOption === opt;
@@ -292,8 +298,11 @@ export function QuestionBuilderClient({ exams }: { exams: ExamOption[] }) {
                   >
                     {opt}
                   </button>
+                  <label htmlFor={`qb-option${opt}`} className="sr-only">Option {opt}</label>
                   <input
+                    id={`qb-option${opt}`}
                     type="text"
+                    aria-required={opt !== "E" ? "true" : undefined}
                     value={form[key] as string}
                     onChange={(e) => set(key, e.target.value)}
                     placeholder={opt === "E" ? "Option E (optional)" : `Option ${opt} *`}
@@ -310,8 +319,9 @@ export function QuestionBuilderClient({ exams }: { exams: ExamOption[] }) {
         {/* Theory/structured additional text */}
         {!isMCQ && (
           <div>
-            <label className="block text-xs font-medium text-text-2 mb-1">Extended Question Text</label>
+            <label htmlFor="qb-questionText" className="block text-xs font-medium text-text-2 mb-1">Extended Question Text</label>
             <textarea
+              id="qb-questionText"
               value={form.questionText}
               onChange={(e) => set("questionText", e.target.value)}
               rows={3}
@@ -323,8 +333,10 @@ export function QuestionBuilderClient({ exams }: { exams: ExamOption[] }) {
 
         {/* Solution */}
         <div>
-          <label className="block text-xs font-medium text-text-2 mb-1">Solution / Model Answer *</label>
+          <label htmlFor="qb-solution" className="block text-xs font-medium text-text-2 mb-1">Solution / Model Answer *</label>
           <textarea
+            id="qb-solution"
+            aria-required="true"
             value={form.solution}
             onChange={(e) => set("solution", e.target.value)}
             rows={3}
@@ -335,8 +347,10 @@ export function QuestionBuilderClient({ exams }: { exams: ExamOption[] }) {
 
         {/* Explanation */}
         <div>
-          <label className="block text-xs font-medium text-text-2 mb-1">Explanation *</label>
+          <label htmlFor="qb-explanation" className="block text-xs font-medium text-text-2 mb-1">Explanation *</label>
           <textarea
+            id="qb-explanation"
+            aria-required="true"
             value={form.explanation}
             onChange={(e) => set("explanation", e.target.value)}
             rows={2}
@@ -348,8 +362,9 @@ export function QuestionBuilderClient({ exams }: { exams: ExamOption[] }) {
         {/* Mark scheme (for theory/structured) */}
         {!isMCQ && (
           <div>
-            <label className="block text-xs font-medium text-text-2 mb-1">Mark Scheme</label>
+            <label htmlFor="qb-markScheme" className="block text-xs font-medium text-text-2 mb-1">Mark Scheme</label>
             <textarea
+              id="qb-markScheme"
               value={form.markScheme}
               onChange={(e) => set("markScheme", e.target.value)}
               rows={2}
@@ -362,12 +377,12 @@ export function QuestionBuilderClient({ exams }: { exams: ExamOption[] }) {
         {/* Common mistakes + exam tip */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="block text-xs font-medium text-text-2 mb-1">Common Mistakes</label>
-            <input type="text" value={form.commonMistakes} onChange={(e) => set("commonMistakes", e.target.value)} placeholder="e.g. Students forget to square root both sides" className="w-full px-3 py-2 border border-border rounded-lg text-sm text-text placeholder:text-muted bg-surface focus:outline-none focus:ring-2 focus:ring-primary/20" />
+            <label htmlFor="qb-commonMistakes" className="block text-xs font-medium text-text-2 mb-1">Common Mistakes</label>
+            <input id="qb-commonMistakes" type="text" value={form.commonMistakes} onChange={(e) => set("commonMistakes", e.target.value)} placeholder="e.g. Students forget to square root both sides" className="w-full px-3 py-2 border border-border rounded-lg text-sm text-text placeholder:text-muted bg-surface focus:outline-none focus:ring-2 focus:ring-primary/20" />
           </div>
           <div>
-            <label className="block text-xs font-medium text-text-2 mb-1">Exam Tip</label>
-            <input type="text" value={form.examTip} onChange={(e) => set("examTip", e.target.value)} placeholder="e.g. Always check units in WAEC Physics" className="w-full px-3 py-2 border border-border rounded-lg text-sm text-text placeholder:text-muted bg-surface focus:outline-none focus:ring-2 focus:ring-primary/20" />
+            <label htmlFor="qb-examTip" className="block text-xs font-medium text-text-2 mb-1">Exam Tip</label>
+            <input id="qb-examTip" type="text" value={form.examTip} onChange={(e) => set("examTip", e.target.value)} placeholder="e.g. Always check units in WAEC Physics" className="w-full px-3 py-2 border border-border rounded-lg text-sm text-text placeholder:text-muted bg-surface focus:outline-none focus:ring-2 focus:ring-primary/20" />
           </div>
         </div>
       </div>
@@ -375,8 +390,9 @@ export function QuestionBuilderClient({ exams }: { exams: ExamOption[] }) {
       {/* Actions */}
       <div className="bg-surface border border-border rounded-xl p-5 space-y-4">
         <div className="flex items-center gap-3">
-          <label className="flex items-center gap-2 text-sm text-text-2 cursor-pointer">
+          <label htmlFor="qb-addAnother" className="flex items-center gap-2 text-sm text-text-2 cursor-pointer">
             <input
+              id="qb-addAnother"
               type="checkbox"
               checked={addAnother}
               onChange={(e) => setAddAnother(e.target.checked)}

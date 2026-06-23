@@ -49,7 +49,7 @@ export async function POST(request: Request) {
   }
   if (!userId) return Response.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { ok } = rateLimit(`ks-gen:${userId}`);
+  const { ok } = await rateLimit(`ks-gen:${userId}`);
   if (!ok) {
     return Response.json({ error: "Too many requests. Please wait." }, { status: 429 });
   }

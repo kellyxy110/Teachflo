@@ -58,6 +58,7 @@ function SaveButton({ pending }: { pending: boolean }) {
 function Toast({ message, ok }: { message: string; ok: boolean }) {
   return (
     <div
+      role="alert"
       className={`fixed bottom-6 right-6 z-50 flex items-center gap-2.5 px-4 py-3 rounded-xl shadow-lg border text-sm font-medium animate-in fade-in slide-in-from-bottom-2 ${
         ok
           ? "bg-success/10 text-success border-success/30"
@@ -128,25 +129,29 @@ export function SettingsClient({ school, teacher }: Props) {
           <form action={handleSchool} className="p-6 space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="sm:col-span-2">
-                <label className="block text-sm font-medium text-text mb-1.5">
+                <label htmlFor="settings-school-name" className="block text-sm font-medium text-text mb-1.5">
                   School Name <span className="text-danger">*</span>
                 </label>
                 <input
+                  id="settings-school-name"
                   name="name"
                   type="text"
                   required
+                  aria-required="true"
                   defaultValue={school.name}
                   className="w-full px-3 py-2.5 border border-border rounded-lg text-sm text-text placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-bg"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-text mb-1.5">
+                <label htmlFor="settings-school-state" className="block text-sm font-medium text-text mb-1.5">
                   State <span className="text-danger">*</span>
                 </label>
                 <select
+                  id="settings-school-state"
                   name="state"
                   required
+                  aria-required="true"
                   defaultValue={school.state}
                   className="w-full px-3 py-2.5 border border-border rounded-lg text-sm text-text focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-bg"
                 >
@@ -158,10 +163,11 @@ export function SettingsClient({ school, teacher }: Props) {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-text mb-1.5">
+                <label htmlFor="settings-school-lga" className="block text-sm font-medium text-text mb-1.5">
                   LGA <span className="text-xs text-muted">(optional)</span>
                 </label>
                 <input
+                  id="settings-school-lga"
                   name="lga"
                   type="text"
                   defaultValue={school.lga ?? ""}
@@ -171,10 +177,11 @@ export function SettingsClient({ school, teacher }: Props) {
               </div>
 
               <div className="sm:col-span-2">
-                <label className="block text-sm font-medium text-text mb-1.5">
+                <label htmlFor="settings-school-address" className="block text-sm font-medium text-text mb-1.5">
                   Address <span className="text-xs text-muted">(optional)</span>
                 </label>
                 <input
+                  id="settings-school-address"
                   name="address"
                   type="text"
                   defaultValue={school.address ?? ""}
@@ -214,10 +221,11 @@ export function SettingsClient({ school, teacher }: Props) {
                 )}
               </div>
               <div className="flex-1">
-                <label className="block text-sm font-medium text-text mb-1.5">
+                <label htmlFor="settings-teacher-photoUrl" className="block text-sm font-medium text-text mb-1.5">
                   Profile Photo URL
                 </label>
                 <input
+                  id="settings-teacher-photoUrl"
                   name="photoUrl"
                   type="url"
                   defaultValue={teacher.photoUrl ?? ""}
@@ -232,23 +240,26 @@ export function SettingsClient({ school, teacher }: Props) {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-text mb-1.5">
+                <label htmlFor="settings-teacher-firstName" className="block text-sm font-medium text-text mb-1.5">
                   First Name <span className="text-danger">*</span>
                 </label>
                 <input
+                  id="settings-teacher-firstName"
                   name="firstName"
                   type="text"
                   required
+                  aria-required="true"
                   defaultValue={teacher.firstName}
                   className="w-full px-3 py-2.5 border border-border rounded-lg text-sm text-text placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-bg"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-text mb-1.5">
+                <label htmlFor="settings-teacher-lastName" className="block text-sm font-medium text-text mb-1.5">
                   Last Name
                 </label>
                 <input
+                  id="settings-teacher-lastName"
                   name="lastName"
                   type="text"
                   defaultValue={teacher.lastName}
