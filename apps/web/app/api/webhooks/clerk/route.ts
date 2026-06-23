@@ -46,6 +46,10 @@ export async function POST(request: Request) {
         where: { clerkId },
         data: { isActive: false },
       });
+      await db.student.updateMany({
+        where: { clerkId },
+        data: { isActive: false },
+      });
       break;
     }
 

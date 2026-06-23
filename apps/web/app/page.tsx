@@ -12,8 +12,12 @@ export default async function LandingPage() {
 
   try {
     const { auth } = await import("@clerk/nextjs/server");
-    const { userId } = await auth();
-    if (userId) redirect("/dashboard");
+    const { userId, sessionClaims } = await auth();
+    if (userId) {
+      const meta = (sessionClaims?.publicMetadata ?? {}) as Record<string, unknown>;
+      if (meta?.role === "student") redirect("/s/dashboard");
+      redirect("/dashboard");
+    }
   } catch {
     // Not signed in — show landing page
   }

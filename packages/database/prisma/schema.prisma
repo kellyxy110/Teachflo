@@ -133,6 +133,8 @@ enum Term {
 
 model Student {
   id        String   @id @default(cuid())
+  clerkId   String?  @unique
+  email     String?
   schoolId  String
   school    School   @relation(fields: [schoolId], references: [id])
   classId   String
@@ -152,6 +154,7 @@ model Student {
 
   @@unique([schoolId, regNumber])
   @@index([classId])
+  @@index([clerkId])
   @@map("students")
 }
 

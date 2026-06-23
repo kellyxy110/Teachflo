@@ -44,6 +44,26 @@ export async function requireSchool() {
   return { teacher, schoolId: teacher.schoolId, school: teacher.school };
 }
 
+// ─── Student auth ────────────────────────────────────────────────────────────
+
+export async function getCurrentStudent() {
+  const { userId } = await safeAuth();
+  if (!userId) redirect("/sign-in");
+
+  const student = await db.student.findUnique({
+    where: { clerkId: userId },
+    include: { school: true, class: true },
+  });
+
+  return student;
+}
+
+export async function requireStudent() {
+  const student = await getCurrentStudent();
+  if (!student) redirect("/student-onboarding");
+  return student;
+}
+
 // ─── Role-based access control ────────────────────────────────────────────────
 // Reads role from Clerk publicMetadata — no DB query needed.
 
