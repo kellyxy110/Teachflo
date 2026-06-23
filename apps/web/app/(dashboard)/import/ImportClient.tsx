@@ -196,7 +196,16 @@ export function ImportClient({
         throw new Error(err.error ?? "OCR failed");
       }
 
-      const result: AnalyzeResult & { modelUsed?: string } = await res.json();
+      const result: {
+        headers: string[];
+        rows: Record<string, string>[];
+        totalRows: number;
+        detectedSubject?: string | null;
+        detectedClass?: string | null;
+        detectedTerm?: string | null;
+        detectedSession?: string | null;
+        modelUsed?: string;
+      } = await res.json();
       if (!result.headers?.length || !result.rows?.length) {
         throw new Error("No table data found in image. Try a clearer photo.");
       }
