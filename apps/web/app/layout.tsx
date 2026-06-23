@@ -46,6 +46,10 @@ export const metadata: Metadata = {
   },
 };
 
+const CLERK_KEY = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY ?? "";
+const isValidKey =
+  CLERK_KEY.startsWith("pk_test_") || CLERK_KEY.startsWith("pk_live_");
+
 export default function RootLayout({
   children,
 }: {
@@ -107,9 +111,13 @@ export default function RootLayout({
         />
       </head>
       <body className="min-h-screen bg-bg antialiased">
-        <ClerkProvider>
+        {isValidKey ? (
+          <ClerkProvider>
+            <ThemeProvider>{children}</ThemeProvider>
+          </ClerkProvider>
+        ) : (
           <ThemeProvider>{children}</ThemeProvider>
-        </ClerkProvider>
+        )}
       </body>
     </html>
   );
