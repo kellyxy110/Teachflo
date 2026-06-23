@@ -22,7 +22,8 @@ const PUBLIC_PATHS = [
 function isPublicPath(pathname: string): boolean {
   return PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(p + "/"))
     || pathname.startsWith("/api/webhooks/")
-    || pathname.startsWith("/__clerk");
+    || pathname.startsWith("/__clerk")
+    || pathname.startsWith("/monitoring");  // Sentry tunnel route
 }
 
 let _clerkHandler:
@@ -47,6 +48,7 @@ if (isValidKey) {
       "/icon.svg",
       "/api/webhooks/clerk",
       "/__clerk(.*)",
+      "/monitoring(.*)",  // Sentry tunnel route
     ]);
 
     _clerkHandler = clerkMiddleware(

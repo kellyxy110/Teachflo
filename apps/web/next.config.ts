@@ -23,13 +23,15 @@ const nextConfig: NextConfig = {
 };
 
 export default withSentryConfig(nextConfig, {
-  org: "teachflow",
-  project: "teachflow-os",
+  org: "kellyxyhub",
+  project: "javascript-nextjs",
+  authToken: process.env.SENTRY_AUTH_TOKEN,
   silent: !process.env.CI,
   widenClientFileUpload: true,
   sourcemaps: { deleteSourcemapsAfterUpload: true },
-  webpack: {
-    treeshake: { removeDebugLogging: true },
-    automaticVercelMonitors: true,
-  },
+  // Tunnel Sentry events through our domain to bypass ad-blockers.
+  // /monitoring must be public in proxy.ts.
+  tunnelRoute: "/monitoring",
+  // Note: webpack.treeshake is NOT used here — conflicts with Turbopack.
+  automaticVercelMonitors: true,
 });
