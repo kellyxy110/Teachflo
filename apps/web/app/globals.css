@@ -3,7 +3,7 @@
 /* Class-based dark mode: `dark` class on <html> triggers dark: variants */
 @custom-variant dark (&:is(.dark *));
 
-@theme inline {
+@theme {
   /* Brand */
   --color-primary: #2563eb;
   --color-primary-50: #eff6ff;
