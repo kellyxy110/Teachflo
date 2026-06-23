@@ -397,7 +397,7 @@ export function Calculator({ open, onClose }: Props) {
         <>
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-40" style={{ background: "rgba(0,0,0,0.7)", backdropFilter: "blur(6px)" }} onClick={onClose} />
           <motion.div initial={{ opacity: 0, scale: 0.92, y: 30 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.92, y: 30 }} transition={{ type: "spring", damping: 22, stiffness: 300 }} className="fixed inset-0 z-50 flex items-center justify-center p-3 pointer-events-none">
-            <div className="w-full max-w-2xl max-h-[94vh] overflow-y-auto rounded-3xl pointer-events-auto scrollbar-thin" style={{ background: "#070d1f", border: "1px solid rgba(59,130,246,0.2)", boxShadow: "0 0 100px rgba(59,130,246,0.12), 0 40px 80px rgba(0,0,0,0.6)" }}>
+            <div className="w-full max-w-sm max-h-[94vh] overflow-y-auto rounded-3xl pointer-events-auto scrollbar-thin" style={{ background: "#070d1f", border: "1px solid rgba(59,130,246,0.2)", boxShadow: "0 0 100px rgba(59,130,246,0.12), 0 40px 80px rgba(0,0,0,0.6)" }}>
 
               {/* Header */}
               <div className="sticky top-0 z-10 flex items-center justify-between px-4 py-2.5 gap-2" style={{ background: "rgba(7,13,31,0.97)", backdropFilter: "blur(12px)", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>

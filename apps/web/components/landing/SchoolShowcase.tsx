@@ -24,8 +24,8 @@ const IMAGES = [
     label: "Digital Classrooms",
   },
   {
-    src: "https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=600&h=400&fit=crop&q=80",
-    alt: "School graduation ceremony",
+    src: "https://images.unsplash.com/photo-1580582932707-520aed937b7b?w=600&h=400&fit=crop&q=80",
+    alt: "Students celebrating academic achievement",
     label: "Academic Excellence",
   },
   {

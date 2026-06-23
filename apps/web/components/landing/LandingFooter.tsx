@@ -2,28 +2,28 @@
 import { useEffect, useRef } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { Github, Twitter, Mail, ExternalLink, BookOpen, FileText, Users, BarChart2, Brain, Zap } from "lucide-react";
+import { Github, Twitter, Mail, ExternalLink, Zap } from "lucide-react";
 
 const NAV_LINKS = {
   Product: [
     { href: "/sign-up", label: "Get Started" },
     { href: "/sign-in", label: "Sign In" },
-    { href: "/#modes", label: "Features" },
-    { href: "/#modes", label: "Practice Arena" },
+    { href: "#modes", label: "Features", scroll: true },
+    { href: "#practice", label: "Practice Arena", scroll: true },
   ],
-  Dashboard: [
-    { href: "/dashboard", label: "Dashboard", icon: BarChart2 },
-    { href: "/lessons", label: "Lessons", icon: BookOpen },
-    { href: "/exams", label: "Exams", icon: FileText },
-    { href: "/students", label: "Students", icon: Users },
-    { href: "/study-buddy", label: "Study Buddy", icon: Brain },
+  Resources: [
+    { href: "/sign-up", label: "AI Lesson Generator" },
+    { href: "/sign-up", label: "Exam Builder" },
+    { href: "/sign-up", label: "Study Buddy" },
+    { href: "/sign-up", label: "Code Lab" },
+    { href: "/sign-up", label: "Knowledge Studio" },
   ],
   Legal: [
     { href: "/terms", label: "Terms of Service" },
     { href: "/privacy", label: "Privacy Policy" },
     { href: "/cookies", label: "Cookie Policy" },
   ],
-};
+} as const;
 
 export function LandingFooter() {
   const sectionRef = useRef<HTMLElement>(null);
@@ -44,6 +44,11 @@ export function LandingFooter() {
       );
     })();
   }, []);
+
+  const handleScroll = (e: React.MouseEvent<HTMLAnchorElement>, id: string) => {
+    e.preventDefault();
+    document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
+  };
 
   return (
     <footer
@@ -88,7 +93,7 @@ export function LandingFooter() {
             </Link>
             <Link
               href="/sign-in"
-              className="px-8 py-4 rounded-2xl font-semibold text-base transition-all"
+              className="px-8 py-4 rounded-2xl font-semibold text-base transition-all hover:opacity-80"
               style={{ background: "rgba(255,255,255,0.06)", color: "#94a3b8", border: "1px solid rgba(255,255,255,0.1)" }}
             >
               Sign in
@@ -112,11 +117,13 @@ export function LandingFooter() {
               {[
                 { icon: Github, href: "https://github.com/kellyxy110/Teachflo", label: "GitHub" },
                 { icon: Twitter, href: "https://x.com/kellyxyhub", label: "Twitter" },
-                { icon: Mail, href: "mailto:judithluchi@gmail.com", label: "Email" },
+                { icon: Mail, href: "mailto:luchijudith@gmail.com", label: "Email" },
               ].map(({ icon: Icon, href, label }) => (
                 <a
                   key={label}
                   href={href}
+                  target={href.startsWith("http") ? "_blank" : undefined}
+                  rel={href.startsWith("http") ? "noopener noreferrer" : undefined}
                   aria-label={label}
                   className="p-2.5 rounded-xl transition-all hover:opacity-70"
                   style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)", color: "#64748b" }}
@@ -134,17 +141,31 @@ export function LandingFooter() {
                 {section}
               </div>
               <ul className="space-y-2.5">
-                {links.map(({ href, label }) => (
-                  <li key={label}>
-                    <Link
-                      href={href}
-                      className="text-sm transition-all hover:opacity-80 flex items-center gap-1.5"
-                      style={{ color: "#64748b" }}
-                    >
-                      {label}
-                    </Link>
-                  </li>
-                ))}
+                {links.map((link) => {
+                  const isScroll = "scroll" in link && link.scroll;
+                  return (
+                    <li key={link.label}>
+                      {isScroll ? (
+                        <a
+                          href={link.href}
+                          onClick={(e) => handleScroll(e, link.href.replace("#", ""))}
+                          className="text-sm transition-all hover:opacity-80 cursor-pointer"
+                          style={{ color: "#64748b" }}
+                        >
+                          {link.label}
+                        </a>
+                      ) : (
+                        <Link
+                          href={link.href}
+                          className="text-sm transition-all hover:opacity-80"
+                          style={{ color: "#64748b" }}
+                        >
+                          {link.label}
+                        </Link>
+                      )}
+                    </li>
+                  );
+                })}
               </ul>
             </div>
           ))}
@@ -170,7 +191,7 @@ export function LandingFooter() {
               KellyxyHub <ExternalLink size={10} />
             </a>
             {" · "}
-            <span>Powered by 7 AI models</span>
+            <span>Powered by 18 AI models</span>
           </div>
           <div className="flex items-center gap-2 text-xs" style={{ color: "#334155" }}>
             <Zap size={12} style={{ color: "#f59e0b" }} />
