@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { safeCurrentUser } from "@/lib/auth";
 import { OnboardingWizard } from "@/components/beta/OnboardingWizard";
+import { ProfileCompletionCard } from "@/components/dashboard/ProfileCompletionCard";
 import {
   GraduationCap, Users, BookOpen, PenSquare,
   TrendingUp, AlertTriangle, FileText, ArrowRight,
@@ -78,6 +79,17 @@ export default async function DashboardPage() {
   return (
     <div className="space-y-6">
       <OnboardingWizard />
+      <ProfileCompletionCard
+        firstName={teacher.firstName}
+        qualification={teacher.qualification ?? null}
+        trcnNumber={teacher.trcnNumber ?? null}
+        trcnStatus={teacher.trcnStatus ?? null}
+        yearsOfExp={teacher.yearsOfExp ?? null}
+        bio={teacher.bio ?? null}
+        subjects={teacher.subjects}
+        photoUrl={teacher.photoUrl ?? null}
+        phone={teacher.phone ?? null}
+      />
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-text">

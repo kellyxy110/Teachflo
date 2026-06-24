@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { Bell, Sun, Moon } from "lucide-react";
+import { Bell, Sun, Moon, UserCircle, Settings } from "lucide-react";
 import { UserButton } from "@clerk/nextjs";
 import { useTheme } from "./ThemeProvider";
 
@@ -22,6 +22,7 @@ const pageTitles: Record<string, string> = {
   "/intelligence": "Intelligence",
   "/code-lab": "Code Lab",
   "/import": "Smart Import",
+  "/beta": "Beta Testing Hub",
   "/onboarding": "Setup",
   "/settings": "Settings",
 };
@@ -57,7 +58,24 @@ export function Header() {
           {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
         </button>
 
-        {CLERK_KEY && <UserButton afterSignOutUrl="/sign-in" />}
+        {CLERK_KEY && (
+          <UserButton afterSignOutUrl="/sign-in">
+            <UserButton.MenuItems>
+              <UserButton.Link
+                label="My Profile"
+                labelIcon={<UserCircle size={15} />}
+                href="/settings"
+              />
+              <UserButton.Link
+                label="Settings"
+                labelIcon={<Settings size={15} />}
+                href="/settings"
+              />
+              <UserButton.Action label="manageAccount" />
+              <UserButton.Action label="signOut" />
+            </UserButton.MenuItems>
+          </UserButton>
+        )}
       </div>
     </header>
   );
