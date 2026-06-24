@@ -7,7 +7,8 @@ import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"] });
 
-const SITE_URL = "https://teachflow-os.vercel.app";
+const SITE_URL = "https://teachflow-oos.vercel.app";
+const OG_IMAGE = `${SITE_URL}/opengraph-image`;
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -30,12 +31,22 @@ export const metadata: Metadata = {
     url: SITE_URL,
     siteName: "TeachFlow OS",
     locale: "en_NG",
+    images: [
+      {
+        url: OG_IMAGE,
+        width: 1200,
+        height: 630,
+        alt: "TeachFlow OS — AI Learning for Nigerian Schools",
+        type: "image/png",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
     title: "TeachFlow OS — AI Learning for Nigerian Schools",
     description:
       "Generate WAEC lessons in 10 seconds. Free AI study tools for JSS1–SS3.",
+    images: [OG_IMAGE],
   },
   robots: {
     index: true,

@@ -16,104 +16,167 @@ export default async function OGImage() {
           flexDirection: "column",
           alignItems: "center",
           justifyContent: "center",
-          background: "linear-gradient(135deg, #04081a 0%, #0a1628 50%, #0f172a 100%)",
+          background: "#04081a",
           fontFamily: "system-ui, sans-serif",
+          position: "relative",
         }}
       >
+        {/* Background grid lines */}
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            backgroundImage:
+              "linear-gradient(rgba(59,130,246,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(59,130,246,0.06) 1px, transparent 1px)",
+            backgroundSize: "60px 60px",
+            display: "flex",
+          }}
+        />
+
+        {/* Glow blob top */}
+        <div
+          style={{
+            position: "absolute",
+            top: -100,
+            left: "50%",
+            width: 600,
+            height: 400,
+            borderRadius: "50%",
+            background: "rgba(59,130,246,0.12)",
+            filter: "blur(80px)",
+            display: "flex",
+          }}
+        />
+
+        {/* Content */}
         <div
           style={{
             display: "flex",
             flexDirection: "column",
             alignItems: "center",
             justifyContent: "center",
-            padding: "40px 60px",
+            padding: "0 80px",
+            zIndex: 1,
           }}
         >
+          {/* Curriculum badge */}
           <div
             style={{
               display: "flex",
               alignItems: "center",
-              gap: "12px",
-              marginBottom: "24px",
-              fontSize: "16px",
+              gap: 8,
+              marginBottom: 28,
+              background: "rgba(59,130,246,0.12)",
+              border: "1px solid rgba(59,130,246,0.3)",
+              borderRadius: 999,
+              padding: "8px 20px",
+              fontSize: 14,
               fontWeight: 700,
               color: "#93c5fd",
-              letterSpacing: "0.2em",
+              letterSpacing: "0.15em",
               textTransform: "uppercase" as const,
             }}
           >
-            WAEC · JAMB · JUPEB · JSS1–SS3
+            🇳🇬  WAEC · JAMB · JUPEB · JSS1 – SS3
           </div>
 
+          {/* Main title */}
           <div
             style={{
-              fontSize: "72px",
+              fontSize: 80,
               fontWeight: 900,
               color: "#f1f5f9",
-              lineHeight: 1.1,
+              lineHeight: 1.05,
               textAlign: "center" as const,
-              marginBottom: "8px",
+              marginBottom: 8,
+              letterSpacing: "-2px",
             }}
           >
-            TeachFlow
+            TeachFlow OS
           </div>
 
+          {/* Subtitle with color block */}
           <div
             style={{
-              fontSize: "72px",
-              fontWeight: 900,
-              lineHeight: 1.1,
+              fontSize: 32,
+              fontWeight: 700,
+              color: "#3b82f6",
               textAlign: "center" as const,
-              marginBottom: "32px",
-              background: "linear-gradient(135deg, #3b82f6, #8b5cf6)",
-              backgroundClip: "text",
-              color: "transparent",
+              marginBottom: 28,
             }}
           >
-            AI Learning OS
+            AI Learning OS for Nigerian Schools
           </div>
 
+          {/* Description */}
           <div
             style={{
-              fontSize: "22px",
-              color: "#94a3b8",
+              fontSize: 20,
+              color: "#64748b",
               textAlign: "center" as const,
-              maxWidth: "700px",
-              lineHeight: 1.5,
-              marginBottom: "40px",
+              maxWidth: 720,
+              lineHeight: 1.6,
+              marginBottom: 44,
             }}
           >
-            AI-powered education platform for Nigerian secondary schools. Generate lessons, build exams, track skills — powered by 18 free AI models.
+            Generate WAEC-ready lesson notes in 10 seconds, build smart exams with distractor analysis, and track every student's skill graph — powered by 7 free AI models.
           </div>
 
-          <div
-            style={{
-              display: "flex",
-              gap: "32px",
-              fontSize: "14px",
-              color: "#10b981",
-              fontWeight: 600,
-            }}
-          >
-            <span>✓ Free Forever</span>
-            <span>✓ 18 AI Models</span>
-            <span>✓ Code Lab</span>
-            <span>✓ WAEC Aligned</span>
+          {/* Feature pills */}
+          <div style={{ display: "flex", gap: 16 }}>
+            {[
+              "✓ Free Forever",
+              "✓ Lesson Generator",
+              "✓ Exam Builder",
+              "✓ Study Buddy",
+              "✓ Code Lab",
+            ].map((label) => (
+              <div
+                key={label}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  background: "rgba(16,185,129,0.1)",
+                  border: "1px solid rgba(16,185,129,0.25)",
+                  borderRadius: 8,
+                  padding: "8px 16px",
+                  fontSize: 13,
+                  fontWeight: 700,
+                  color: "#10b981",
+                }}
+              >
+                {label}
+              </div>
+            ))}
           </div>
         </div>
 
+        {/* Bottom bar */}
         <div
           style={{
             position: "absolute",
-            bottom: "24px",
+            bottom: 0,
+            left: 0,
+            right: 0,
+            height: 4,
+            background: "linear-gradient(90deg, #3b82f6, #8b5cf6, #3b82f6)",
+            display: "flex",
+          }}
+        />
+
+        {/* Footer credit */}
+        <div
+          style={{
+            position: "absolute",
+            bottom: 20,
             display: "flex",
             alignItems: "center",
-            gap: "8px",
-            fontSize: "14px",
-            color: "#475569",
+            gap: 8,
+            fontSize: 13,
+            color: "#334155",
           }}
         >
-          Built by Ekeleme Kelechi David · KellyxyHub
+          teachflow-oos.vercel.app · Built by KellyxyHub
         </div>
       </div>
     ),
