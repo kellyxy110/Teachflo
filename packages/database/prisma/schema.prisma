@@ -57,12 +57,18 @@ model Teacher {
   firstName    String
   lastName     String
   email        String
+  phone        String?
   role         TeacherRole @default(TEACHER)
   subjects     String[]
+  classLevels  String[]
   isActive     Boolean     @default(true)
   photoUrl     String?
   bio          String?
   qualification String?
+  institution  String?
+  gradYear     Int?
+  trcnNumber   String?
+  trcnStatus   String?
   department   String?
   yearsOfExp   Int?
   createdAt    DateTime    @default(now())
@@ -80,7 +86,10 @@ model Teacher {
 
 enum TeacherRole {
   TEACHER
+  FORM_TEACHER
   HOD
+  VICE_PRINCIPAL
+  PRINCIPAL
   ADMIN
   SUPER_ADMIN
 }
