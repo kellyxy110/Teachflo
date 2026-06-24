@@ -32,6 +32,7 @@ export function LessonGeneratorClient() {
     topic: "",
     week: "",
     term: "FIRST",
+    periods: "1",
   });
 
   async function generate() {
@@ -54,6 +55,7 @@ export function LessonGeneratorClient() {
           topic: form.topic,
           week: form.week ? parseInt(form.week) : null,
           term: form.term,
+          periods: form.periods ? parseInt(form.periods) : 1,
         }),
         signal: ctrl.signal,
       });
@@ -110,7 +112,7 @@ export function LessonGeneratorClient() {
       {/* Form */}
       <div className="bg-surface rounded-xl border border-border p-5">
         <h3 className="font-semibold text-text mb-4">Lesson Details</h3>
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-5">
           <div className="col-span-2 sm:col-span-1">
             <label className="block text-xs font-medium text-text-2 mb-1">Subject *</label>
             <select
@@ -157,6 +159,19 @@ export function LessonGeneratorClient() {
               value={form.week}
               onChange={(e) => setForm((f) => ({ ...f, week: e.target.value }))}
               placeholder="e.g. 3"
+              className="w-full px-3 py-2 border border-border rounded-lg text-sm text-text placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-surface"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-text-2 mb-1">Periods</label>
+            <input
+              type="number"
+              min={1}
+              max={20}
+              value={form.periods}
+              onChange={(e) => setForm((f) => ({ ...f, periods: e.target.value }))}
+              placeholder="e.g. 8"
               className="w-full px-3 py-2 border border-border rounded-lg text-sm text-text placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-surface"
             />
           </div>
@@ -260,6 +275,20 @@ export function LessonGeneratorClient() {
   );
 }
 
+function renderInline(text: string): React.ReactNode {
+  const parts = text.split(/(\*\*[^*]+\*\*)/g);
+  if (parts.length === 1) return text;
+  return (
+    <>
+      {parts.map((part, i) =>
+        part.startsWith("**") && part.endsWith("**")
+          ? <strong key={i}>{part.slice(2, -2)}</strong>
+          : part
+      )}
+    </>
+  );
+}
+
 function LessonMarkdown({ content }: { content: string }) {
   if (!content) return null;
 
@@ -277,15 +306,12 @@ function LessonMarkdown({ content }: { content: string }) {
       elements.push(<h4 key={i} className="text-sm font-semibold text-text-2 mt-4 mb-1">{line.slice(5)}</h4>);
     } else if (line.startsWith("---")) {
       elements.push(<hr key={i} className="border-border my-4" />);
-    } else if (line.match(/^\*\*(.+)\*\*/)) {
-      const bold = line.replace(/\*\*(.+?)\*\*/g, "$1");
-      elements.push(<p key={i} className="text-sm font-semibold text-text mb-1">{bold}</p>);
     } else if (line.match(/^\d+\.\s/)) {
-      elements.push(<p key={i} className="text-sm text-text mb-1 pl-4">{line}</p>);
+      elements.push(<p key={i} className="text-sm text-text mb-1 pl-4">{renderInline(line)}</p>);
     } else if (line.startsWith("- ")) {
-      elements.push(<p key={i} className="text-sm text-text mb-1 pl-4">• {line.slice(2)}</p>);
+      elements.push(<p key={i} className="text-sm text-text mb-1 pl-4">• {renderInline(line.slice(2))}</p>);
     } else if (line.trim()) {
-      elements.push(<p key={i} className="text-sm text-text mb-2">{line}</p>);
+      elements.push(<p key={i} className="text-sm text-text mb-2">{renderInline(line)}</p>);
     }
   }
 

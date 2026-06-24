@@ -1,4 +1,4 @@
-import { buildLessonPrompt } from "@teachflow/ai-prompts";
+import { buildLessonPrompt, lessonMaxTokens } from "@teachflow/ai-prompts";
 import { safeAuth } from "@/lib/auth";
 import { openRouterStream, LESSON_MODELS } from "@/lib/ai";
 import { rateLimit } from "@/lib/rate-limit";
@@ -21,20 +21,21 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json();
-  const { subject, classLevel, topic, week, term } = body;
+  const { subject, classLevel, topic, week, term, periods } = body;
 
   if (!subject || !classLevel || !topic) {
     return Response.json({ error: "subject, classLevel, and topic are required" }, { status: 400 });
   }
 
-  const prompt = buildLessonPrompt({ subject, classLevel, topic, week, term });
+  const periodCount = typeof periods === "number" && periods >= 1 ? Math.min(periods, 20) : 1;
+  const prompt = buildLessonPrompt({ subject, classLevel, topic, week, term, periods: periodCount });
 
   let stream: Awaited<ReturnType<typeof openRouterStream>>;
   try {
     stream = await openRouterStream(
       LESSON_MODELS,
       [{ role: "user", content: prompt }],
-      { max_tokens: 2000, temperature: 0.7 }
+      { max_tokens: lessonMaxTokens(periodCount), temperature: 0.7 }
     );
   } catch (e) {
     const msg = e instanceof Error ? e.message : "AI generation failed";
