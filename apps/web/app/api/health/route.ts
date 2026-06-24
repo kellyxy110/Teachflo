@@ -19,10 +19,15 @@ export async function GET() {
     detail: secKey ? `starts_with:${secKey.slice(0, 8)}` : "missing",
   };
 
+  const rawUrl = process.env.DATABASE_URL ?? "";
+  let parsedUser = "unknown";
+  try {
+    parsedUser = new URL(rawUrl).username;
+  } catch {}
   checks.database_url = {
-    ok: !!process.env.DATABASE_URL,
-    detail: process.env.DATABASE_URL
-      ? process.env.DATABASE_URL.replace(/:[^@]+@/, ":***@")
+    ok: !!rawUrl,
+    detail: rawUrl
+      ? `user=${parsedUser} host=${new URL(rawUrl).hostname}:${new URL(rawUrl).port}`
       : "missing",
   };
 
