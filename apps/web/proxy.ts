@@ -23,6 +23,8 @@ const PUBLIC_PATHS = [
   "/robots.txt",
   "/sitemap.xml",
   "/icon.svg",
+  "/opengraph-image",
+  "/twitter-image",
   "/api/health",
 ];
 
@@ -52,6 +54,8 @@ if (isValidKey) {
     "/robots.txt",
     "/sitemap.xml",
     "/icon.svg",
+    "/opengraph-image",
+    "/twitter-image",
     "/api/health",
     "/api/webhooks/(.*)",
     "/__clerk(.*)",
