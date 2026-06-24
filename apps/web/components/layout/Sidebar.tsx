@@ -19,6 +19,7 @@ import {
   FlaskConical,
   Code2,
   Upload,
+  TestTube2,
 } from "lucide-react";
 
 const navItems = [
@@ -36,6 +37,7 @@ const navItems = [
   { href: "/intelligence", label: "Intelligence", icon: Brain },
   { href: "/code-lab", label: "Code Lab", icon: Code2 },
   { href: "/import", label: "Smart Import", icon: Upload },
+  { href: "/beta", label: "Beta Hub", icon: TestTube2 },
 ];
 
 const bottomItems = [

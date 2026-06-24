@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { safeCurrentUser } from "@/lib/auth";
+import { OnboardingWizard } from "@/components/beta/OnboardingWizard";
 import {
   GraduationCap, Users, BookOpen, PenSquare,
   TrendingUp, AlertTriangle, FileText, ArrowRight,
@@ -76,6 +77,7 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-6">
+      <OnboardingWizard />
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-text">

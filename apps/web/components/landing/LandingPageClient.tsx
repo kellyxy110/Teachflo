@@ -4,6 +4,7 @@ import { HeroSection } from "./HeroSection";
 import { LearningModesSection } from "./LearningModesSection";
 import { EducationalTickers } from "./EducationalTickers";
 import { SchoolShowcase } from "./SchoolShowcase";
+import { PioneerSection } from "./PioneerSection";
 import { LandingNav } from "./LandingNav";
 import { LandingFooter } from "./LandingFooter";
 
@@ -104,7 +105,10 @@ export function LandingPageClient() {
         <SchoolShowcase />
       </div>
 
-      {/* 5 — Footer */}
+      {/* 5 — Pioneer / Beta Educator */}
+      <PioneerSection />
+
+      {/* 6 — Footer */}
       <LandingFooter />
     </div>
   );
