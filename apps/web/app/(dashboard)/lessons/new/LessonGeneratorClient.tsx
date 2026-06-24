@@ -164,14 +164,14 @@ export function LessonGeneratorClient() {
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-text-2 mb-1">Periods</label>
+            <label className="block text-xs font-medium text-text-2 mb-1">Periods <span className="text-muted font-normal">(45 min each)</span></label>
             <input
               type="number"
               min={1}
               max={20}
               value={form.periods}
               onChange={(e) => setForm((f) => ({ ...f, periods: e.target.value }))}
-              placeholder="e.g. 8"
+              placeholder="1 or 2"
               className="w-full px-3 py-2 border border-border rounded-lg text-sm text-text placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-surface"
             />
           </div>

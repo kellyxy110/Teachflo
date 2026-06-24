@@ -36,17 +36,16 @@ export interface ExamInput {
 // Returns token budget for a lesson based on period count
 export function lessonMaxTokens(periods: number | null | undefined): number {
   const p = Math.max(1, periods ?? 1);
-  // ~1 000 tokens per period, minimum 2 500, hard cap 8 000
-  return Math.min(Math.max(2500, p * 1000), 8000);
+  return Math.min(3000 + p * 2000, 8000);
 }
 
 export const buildLessonPrompt = (input: LessonInput): string => {
   const periods = Math.max(1, input.periods ?? 1);
-  const totalMinutes = periods * 40;
+  const totalMinutes = periods * 45;
   const durationLabel =
     periods === 1
-      ? "40 minutes"
-      : `${periods} periods × 40 minutes (${totalMinutes} minutes total)`;
+      ? "45 minutes"
+      : `${periods} periods × 45 minutes (${totalMinutes} minutes total)`;
 
   const header = `
 You are an experienced Nigerian secondary school educator with deep knowledge of the Nigerian national curriculum, WAEC, JAMB, and JUPEB syllabi.
@@ -69,6 +68,8 @@ RULES:
 - Ground analogies in Nigerian daily life (markets, traffic, cooking, farming, technology)
 - Include accurate content aligned with the Nigerian national curriculum and WAEC syllabus
 - Write EVERY section in full — do not truncate or summarise
+- Each period is 45 minutes long
+- The complete lesson note MUST be at least 1,200 words — expand every section with thorough explanations, detailed examples, and rich classroom content
 `.trim();
 
   if (periods === 1) {
@@ -77,7 +78,7 @@ RULES:
 OUTPUT FORMAT — Return this exact structure in full:
 
 ## Lesson Plan: ${input.topic}
-**Subject:** ${input.subject} | **Class:** ${input.classLevel} | **Duration:** 40 minutes
+**Subject:** ${input.subject} | **Class:** ${input.classLevel} | **Duration:** 45 minutes
 
 ---
 
@@ -99,7 +100,7 @@ By the end of this lesson, students should be able to:
 
 ---
 
-### Main Teaching Content (25 minutes)
+### Main Teaching Content (30 minutes)
 
 #### Sub-topic 1: [Name]
 [Clear, accurate content. Use numbered steps for processes.]
@@ -151,12 +152,12 @@ ${rules}`;
   const periodBodies = Array.from({ length: periods }, (_, i) => {
     const n = i + 1;
     return `
-### PERIOD ${n} (40 minutes)
+### PERIOD ${n} (45 minutes)
 
 #### Period ${n} Objective
 [Specific skill or sub-topic covered in this period]
 
-#### Teaching Content (25 minutes)
+#### Teaching Content (30 minutes)
 [Detailed content for this period. Numbered steps, definitions, worked calculations, diagrams described in words.]
 
 #### Worked Example
