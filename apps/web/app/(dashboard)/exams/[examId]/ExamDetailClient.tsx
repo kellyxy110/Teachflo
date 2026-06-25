@@ -1,14 +1,16 @@
 "use client";
 
 import { useState } from "react";
-import { Printer, Eye, EyeOff, ChevronDown, ChevronUp } from "lucide-react";
+import { Printer, Eye, EyeOff, ChevronDown, ChevronUp, FileSpreadsheet } from "lucide-react";
 import { MathText } from "@/components/ui/MathText";
+import { exportExamToExcel } from "@/lib/export";
 import type { Question } from "@prisma/client";
 
 export function ExamDetailClient({
   examTitle,
   subject,
   classLevel,
+  examType,
   difficulty,
   duration,
   sectionA,
@@ -18,6 +20,7 @@ export function ExamDetailClient({
   examTitle: string;
   subject: string;
   classLevel: string;
+  examType: string;
   difficulty: string;
   duration: number | null;
   sectionA: Question[];
@@ -65,6 +68,15 @@ export function ExamDetailClient({
           className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border border-border bg-surface text-text-2 hover:border-primary/40 transition-colors"
         >
           <Printer size={14} /> Print / PDF
+        </button>
+        <button
+          onClick={() => exportExamToExcel(
+            { title: examTitle, subject, classLevel, examType },
+            [...sectionA, ...sectionB, ...sectionC],
+          )}
+          className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border border-border bg-surface text-text-2 hover:border-primary/40 transition-colors"
+        >
+          <FileSpreadsheet size={14} /> Export Excel
         </button>
       </div>
 

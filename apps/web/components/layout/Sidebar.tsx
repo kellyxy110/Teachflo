@@ -22,6 +22,7 @@ import {
   TestTube2,
   ClipboardCheck,
   HeartPulse,
+  Award,
   X,
 } from "lucide-react";
 
@@ -36,6 +37,7 @@ const navItems = [
   { href: "/scores", label: "Scores", icon: ClipboardList },
   { href: "/exams", label: "Exams", icon: FileText },
   { href: "/library", label: "Library", icon: Library },
+  { href: "/report-cards", label: "Report Cards", icon: Award },
   { href: "/analytics", label: "Analytics", icon: BarChart2 },
   { href: "/study-buddy", label: "Study Buddy", icon: Sparkles },
   { href: "/knowledge-studio", label: "Knowledge Studio", icon: FlaskConical },

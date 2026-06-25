@@ -70,6 +70,7 @@ export default async function ExamDetailPage({
         examTitle={exam.title}
         subject={exam.subject}
         classLevel={exam.classLevel}
+        examType={exam.examType}
         difficulty={exam.difficulty}
         duration={exam.duration}
         sectionA={sectionA}

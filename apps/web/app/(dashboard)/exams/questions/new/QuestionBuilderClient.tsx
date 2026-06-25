@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Save, Plus, CheckCircle, AlertCircle } from "lucide-react";
+import { KaTeXPreview, LaTeXToolbar } from "@/components/exam/KaTeXPreview";
 import { saveManualQuestion } from "@/app/actions/questions";
 import type { ManualQuestionInput } from "@/app/actions/questions";
 import type { ClassLevel, ExamType, Difficulty, Section, QuestionType } from "@prisma/client";
@@ -266,16 +267,18 @@ export function QuestionBuilderClient({ exams }: { exams: ExamOption[] }) {
 
         {/* Question stem */}
         <div>
-          <label htmlFor="qb-stem" className="block text-xs font-medium text-text-2 mb-1">Question Stem *</label>
+          <label htmlFor="qb-stem" className="block text-xs font-medium text-text-2 mb-1">Question Stem * <span className="text-muted font-normal">— use $...$ for math symbols</span></label>
           <textarea
             id="qb-stem"
             aria-required="true"
             value={form.stem}
             onChange={(e) => set("stem", e.target.value)}
             rows={3}
-            placeholder="Enter the question text..."
-            className="w-full px-3 py-2 border border-border rounded-lg text-sm text-text placeholder:text-muted bg-surface focus:outline-none focus:ring-2 focus:ring-primary/20 resize-y"
+            placeholder="Enter the question text... Use $x^{2}$ for math symbols"
+            className="w-full px-3 py-2 border border-border rounded-lg text-sm text-text placeholder:text-muted bg-surface focus:outline-none focus:ring-2 focus:ring-primary/20 resize-y font-mono"
           />
+          <LaTeXToolbar onInsert={(latex) => set("stem", form.stem + " " + latex)} />
+          <KaTeXPreview text={form.stem} />
         </div>
 
         {/* MCQ options */}
@@ -286,33 +289,36 @@ export function QuestionBuilderClient({ exams }: { exams: ExamOption[] }) {
               const key = `option${opt}` as keyof typeof form;
               const isCorrect = form.correctOption === opt;
               return (
-                <div key={opt} className="flex items-center gap-2">
-                  <button
-                    onClick={() => set("correctOption", opt)}
-                    className={`shrink-0 w-8 h-8 rounded-lg text-xs font-bold border transition-all ${
-                      isCorrect
-                        ? "bg-success text-white border-success"
-                        : "bg-bg text-text-2 border-border hover:border-success/40"
-                    }`}
-                    title={isCorrect ? "Correct answer" : `Mark ${opt} as correct`}
-                  >
-                    {opt}
-                  </button>
-                  <label htmlFor={`qb-option${opt}`} className="sr-only">Option {opt}</label>
-                  <input
-                    id={`qb-option${opt}`}
-                    type="text"
-                    aria-required={opt !== "E" ? "true" : undefined}
-                    value={form[key] as string}
-                    onChange={(e) => set(key, e.target.value)}
-                    placeholder={opt === "E" ? "Option E (optional)" : `Option ${opt} *`}
-                    className="flex-1 px-3 py-2 border border-border rounded-lg text-sm text-text placeholder:text-muted bg-surface focus:outline-none focus:ring-2 focus:ring-primary/20"
-                  />
-                  {isCorrect && <CheckCircle size={16} className="text-success shrink-0" />}
+                <div key={opt}>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => set("correctOption", opt)}
+                      className={`shrink-0 w-8 h-8 rounded-lg text-xs font-bold border transition-all ${
+                        isCorrect
+                          ? "bg-success text-white border-success"
+                          : "bg-bg text-text-2 border-border hover:border-success/40"
+                      }`}
+                      title={isCorrect ? "Correct answer" : `Mark ${opt} as correct`}
+                    >
+                      {opt}
+                    </button>
+                    <label htmlFor={`qb-option${opt}`} className="sr-only">Option {opt}</label>
+                    <input
+                      id={`qb-option${opt}`}
+                      type="text"
+                      aria-required={opt !== "E" ? "true" : undefined}
+                      value={form[key] as string}
+                      onChange={(e) => set(key, e.target.value)}
+                      placeholder={opt === "E" ? "Option E (optional)" : `Option ${opt} *`}
+                      className="flex-1 px-3 py-2 border border-border rounded-lg text-sm text-text placeholder:text-muted bg-surface focus:outline-none focus:ring-2 focus:ring-primary/20"
+                    />
+                    {isCorrect && <CheckCircle size={16} className="text-success shrink-0" />}
+                  </div>
+                  <KaTeXPreview text={form[key] as string} />
                 </div>
               );
             })}
-            <p className="text-xs text-text-2">Click a letter to mark it as the correct answer.</p>
+            <p className="text-xs text-text-2">Click a letter to mark it as the correct answer. Use $...$ for math symbols in options.</p>
           </div>
         )}
 
@@ -333,7 +339,7 @@ export function QuestionBuilderClient({ exams }: { exams: ExamOption[] }) {
 
         {/* Solution */}
         <div>
-          <label htmlFor="qb-solution" className="block text-xs font-medium text-text-2 mb-1">Solution / Model Answer *</label>
+          <label htmlFor="qb-solution" className="block text-xs font-medium text-text-2 mb-1">Solution / Model Answer * <span className="text-muted font-normal">— $...$ for math</span></label>
           <textarea
             id="qb-solution"
             aria-required="true"
@@ -343,6 +349,7 @@ export function QuestionBuilderClient({ exams }: { exams: ExamOption[] }) {
             placeholder="Full solution with working..."
             className="w-full px-3 py-2 border border-border rounded-lg text-sm text-text placeholder:text-muted bg-surface focus:outline-none focus:ring-2 focus:ring-primary/20 resize-y"
           />
+          <KaTeXPreview text={form.solution} />
         </div>
 
         {/* Explanation */}
@@ -357,6 +364,7 @@ export function QuestionBuilderClient({ exams }: { exams: ExamOption[] }) {
             placeholder="Why this answer is correct — helps students understand..."
             className="w-full px-3 py-2 border border-border rounded-lg text-sm text-text placeholder:text-muted bg-surface focus:outline-none focus:ring-2 focus:ring-primary/20 resize-y"
           />
+          <KaTeXPreview text={form.explanation} />
         </div>
 
         {/* Mark scheme (for theory/structured) */}

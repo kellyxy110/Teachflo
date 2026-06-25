@@ -106,6 +106,66 @@ export async function saveManualQuestion(input: ManualQuestionInput) {
   return { questionId: question.id, examId };
 }
 
+export async function bulkImportQuestions(
+  examId: string,
+  questions: {
+    stem: string;
+    type: string;
+    optionA?: string;
+    optionB?: string;
+    optionC?: string;
+    optionD?: string;
+    optionE?: string;
+    correctOption?: string;
+    solution: string;
+    explanation: string;
+    section?: string;
+    difficulty?: string;
+  }[],
+) {
+  const { schoolId } = await requireSchool();
+
+  const exam = await db.exam.findFirst({
+    where: { id: examId, schoolId },
+  });
+  if (!exam) throw new Error("Exam not found");
+
+  const existingCount = await db.question.count({ where: { examId } });
+
+  const ops = questions.map((q, i) =>
+    db.question.create({
+      data: {
+        examId,
+        section: (q.section === "B" ? "B" : q.section === "C" ? "C" : "A") as "A" | "B" | "C",
+        number: existingCount + i + 1,
+        type: (["MCQ", "SHORT_ANSWER", "ESSAY", "STRUCTURED", "CALCULATION"].includes(q.type) ? q.type : "MCQ") as QuestionType,
+        stem: q.stem,
+        optionA: q.optionA ?? null,
+        optionB: q.optionB ?? null,
+        optionC: q.optionC ?? null,
+        optionD: q.optionD ?? null,
+        optionE: q.optionE ?? null,
+        correctOption: q.correctOption ?? null,
+        solution: q.solution,
+        explanation: q.explanation,
+        difficulty: q.difficulty?.toLowerCase() ?? "medium",
+        questionSource: "excel-import",
+      },
+    }),
+  );
+
+  await db.$transaction(ops);
+
+  await db.exam.update({
+    where: { id: examId },
+    data: { totalQuestions: existingCount + questions.length },
+  });
+
+  revalidatePath("/exams");
+  revalidatePath(`/exams/${examId}`);
+  return { imported: questions.length };
+}
+
 export async function getTeacherExams() {
   const { schoolId } = await requireSchool();
   return db.exam.findMany({

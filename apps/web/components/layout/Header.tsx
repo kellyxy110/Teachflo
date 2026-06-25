@@ -16,6 +16,7 @@ const pageTitles: Record<string, string> = {
   "/homework": "Homework",
   "/attendance": "Attendance",
   "/health": "Health Records",
+  "/report-cards": "Report Cards",
   "/scores": "Scores",
   "/exams": "Exams",
   "/library": "Library",
