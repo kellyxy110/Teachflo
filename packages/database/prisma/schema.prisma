@@ -163,6 +163,7 @@ model Student {
   mistakePatterns MistakePattern[]
   learningPaths   LearningPath[]
   attendance      Attendance[]
+  healthRecord    HealthRecord?
 
   @@unique([schoolId, regNumber])
   @@index([classId])
@@ -701,6 +702,42 @@ enum AttendanceStatus {
   ABSENT
   LATE
   EXCUSED
+}
+
+// ─────────────────────────────────────────────
+// STUDENT HEALTH RECORD
+// ─────────────────────────────────────────────
+
+model HealthRecord {
+  id          String   @id @default(cuid())
+  studentId   String   @unique
+  schoolId    String
+
+  bloodGroup  String?
+  genotype    String?
+  allergies   String[]
+  conditions  String[]
+  medications String[]
+
+  emergencyContactName  String?
+  emergencyContactPhone String?
+  emergencyContactRel   String?
+
+  parentPhone    String?
+  parentEmail    String?
+
+  immunizations  Json?
+  clinicVisits   Json?
+  healthNotes    String?
+
+  lastUpdatedBy String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@index([schoolId])
+  @@map("health_records")
 }
 
 // ─────────────────────────────────────────────

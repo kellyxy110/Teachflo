@@ -21,6 +21,7 @@ import {
   Upload,
   TestTube2,
   ClipboardCheck,
+  HeartPulse,
   X,
 } from "lucide-react";
 
@@ -31,6 +32,7 @@ const navItems = [
   { href: "/lessons", label: "Lessons", icon: BookOpen },
   { href: "/homework", label: "Homework", icon: PenSquare },
   { href: "/attendance", label: "Attendance", icon: ClipboardCheck },
+  { href: "/health", label: "Health Records", icon: HeartPulse },
   { href: "/scores", label: "Scores", icon: ClipboardList },
   { href: "/exams", label: "Exams", icon: FileText },
   { href: "/library", label: "Library", icon: Library },
