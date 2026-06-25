@@ -40,6 +40,11 @@ export async function saveManualQuestion(input: ManualQuestionInput) {
 
   let examId = input.examId;
 
+  if (examId) {
+    const existing = await db.exam.findFirst({ where: { id: examId, schoolId } });
+    if (!existing) throw new Error("Exam not found");
+  }
+
   if (!examId) {
     const exam = await db.exam.create({
       data: {
@@ -124,6 +129,10 @@ export async function bulkImportQuestions(
   }[],
 ) {
   const { schoolId } = await requireSchool();
+
+  if (!questions.length || questions.length > 200) {
+    throw new Error("Import between 1 and 200 questions at a time");
+  }
 
   const exam = await db.exam.findFirst({
     where: { id: examId, schoolId },

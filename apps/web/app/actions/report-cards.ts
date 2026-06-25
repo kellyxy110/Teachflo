@@ -11,6 +11,10 @@ export async function getReportCardData(
 ) {
   const { schoolId } = await requireSchool();
 
+  const validTerms = new Set(["FIRST", "SECOND", "THIRD"]);
+  if (!validTerms.has(term)) throw new Error("Invalid term");
+  if (!session || session.length > 20) throw new Error("Invalid session");
+
   const students = await db.student.findMany({
     where: { classId, schoolId, isActive: true },
     orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
@@ -35,10 +39,11 @@ export async function getReportCardData(
     },
   });
 
-  const classInfo = await db.class.findUnique({
-    where: { id: classId },
+  const classInfo = await db.class.findFirst({
+    where: { id: classId, schoolId },
     select: { name: true, level: true },
   });
+  if (!classInfo) throw new Error("Class not found");
 
   const allTotals = students
     .map((s) => {

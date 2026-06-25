@@ -101,6 +101,8 @@ export async function addClinicVisit(studentId: string, formData: FormData) {
 
   const existing = (record?.clinicVisits as unknown[] ?? []) as Record<string, string>[];
   existing.unshift(visit);
+  // Cap at 200 visits to prevent unbounded growth
+  if (existing.length > 200) existing.length = 200;
 
   await db.healthRecord.upsert({
     where: { studentId },

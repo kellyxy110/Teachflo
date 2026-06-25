@@ -5,6 +5,9 @@ import { db } from "@/lib/db";
 import { requireSchool } from "@/lib/auth";
 import type { AttendanceStatus } from "@prisma/client";
 
+const VALID_STATUSES = new Set(["PRESENT", "ABSENT", "LATE", "EXCUSED"]);
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
 export async function getClassesForAttendance() {
   const { schoolId } = await requireSchool();
 
@@ -29,6 +32,8 @@ export async function getStudentsForClass(classId: string) {
 
 export async function getAttendanceForDate(classId: string, date: string) {
   const { schoolId } = await requireSchool();
+
+  if (!DATE_RE.test(date)) throw new Error("Invalid date format");
 
   const records = await db.attendance.findMany({
     where: {
@@ -58,6 +63,32 @@ export async function saveAttendance(
 ) {
   const { schoolId, teacher } = await requireSchool();
 
+  if (!DATE_RE.test(date)) throw new Error("Invalid date format");
+  if (!records.length || records.length > 500) throw new Error("Invalid record count");
+
+  // Validate classId belongs to this school
+  const classExists = await db.class.findFirst({
+    where: { id: classId, schoolId },
+    select: { id: true },
+  });
+  if (!classExists) throw new Error("Class not found");
+
+  // Validate all studentIds belong to this school
+  const studentIds = records.map((r) => r.studentId);
+  const validStudents = await db.student.findMany({
+    where: { id: { in: studentIds }, schoolId },
+    select: { id: true },
+  });
+  const validIds = new Set(validStudents.map((s) => s.id));
+  if (validIds.size !== new Set(studentIds).size) {
+    throw new Error("Invalid student IDs");
+  }
+
+  // Validate all statuses
+  for (const r of records) {
+    if (!VALID_STATUSES.has(r.status)) throw new Error("Invalid attendance status");
+  }
+
   const dateObj = new Date(date);
 
   const operations = records.map((r) =>
@@ -72,11 +103,11 @@ export async function saveAttendance(
         teacherId: teacher.id,
         date: dateObj,
         status: r.status,
-        note: r.note ?? null,
+        note: r.note?.slice(0, 500) ?? null,
       },
       update: {
         status: r.status,
-        note: r.note ?? null,
+        note: r.note?.slice(0, 500) ?? null,
         teacherId: teacher.id,
       },
     }),
@@ -88,6 +119,8 @@ export async function saveAttendance(
 
 export async function getAttendanceStats(classId: string, month?: string) {
   const { schoolId } = await requireSchool();
+
+  if (month && !/^\d{4}-\d{2}$/.test(month)) throw new Error("Invalid month format");
 
   const now = month ? new Date(month + "-01") : new Date();
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -145,11 +178,12 @@ export async function getAttendanceStats(classId: string, month?: string) {
 
 export async function getStudentAttendanceHistory(studentId: string, limit = 30) {
   const { schoolId } = await requireSchool();
+  const cappedLimit = Math.min(Math.max(1, limit), 100);
 
   return db.attendance.findMany({
     where: { studentId, schoolId },
     orderBy: { date: "desc" },
-    take: limit,
+    take: cappedLimit,
     select: { date: true, status: true, note: true },
   });
 }

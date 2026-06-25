@@ -24,17 +24,38 @@ const LATEX_SHORTCUTS = [
   { label: "°C", insert: "^{\\circ}C" },
 ];
 
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 function renderMixed(text: string): string {
   if (!text) return "";
-  return text.replace(/\$\$([\s\S]+?)\$\$|\$([\s\S]+?)\$/g, (_, block, inline) => {
-    const latex = block ?? inline;
-    const displayMode = !!block;
-    try {
-      return katex.renderToString(latex, { displayMode, throwOnError: false });
-    } catch {
-      return `<span class="text-danger text-xs">[LaTeX error]</span>`;
+  const parts: string[] = [];
+  let lastIndex = 0;
+  const regex = /\$\$([\s\S]+?)\$\$|\$([\s\S]+?)\$/g;
+  let match;
+  while ((match = regex.exec(text)) !== null) {
+    if (match.index > lastIndex) {
+      parts.push(escapeHtml(text.slice(lastIndex, match.index)));
     }
-  });
+    const latex = match[1] ?? match[2];
+    const displayMode = !!match[1];
+    try {
+      parts.push(katex.renderToString(latex, { displayMode, throwOnError: false }));
+    } catch {
+      parts.push(`<span class="text-danger text-xs">[LaTeX error]</span>`);
+    }
+    lastIndex = match.index + match[0].length;
+  }
+  if (lastIndex < text.length) {
+    parts.push(escapeHtml(text.slice(lastIndex)));
+  }
+  return parts.join("");
 }
 
 export function KaTeXPreview({ text }: { text: string }) {
