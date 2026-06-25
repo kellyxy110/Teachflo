@@ -75,49 +75,46 @@ export function ProfileCompletionCard(props: Props) {
   const checks: CheckItem[] = [
     { label: "Profile photo", done: !!props.photoUrl },
     { label: "Phone number", done: !!props.phone },
-    { label: "Highest qualification", done: !!props.qualification },
-    { label: "TRCN registration number", done: !!props.trcnNumber },
-    { label: "Subjects taught (2+)", done: props.subjects.length >= 2 },
-    { label: "Professional bio", done: !!(props.bio && props.bio.length > 20) },
+    { label: "Qualification", done: !!props.qualification },
+    { label: "TRCN number", done: !!props.trcnNumber },
+    { label: "2+ subjects", done: props.subjects.length >= 2 },
+    { label: "Bio", done: !!(props.bio && props.bio.length > 20) },
   ];
 
   const doneCount = checks.filter((c) => c.done).length;
   const pct = Math.round((doneCount / checks.length) * 100);
 
   return (
-    <div className="bg-gradient-to-r from-amber-500/5 to-orange-500/5 border border-amber-500/25 rounded-2xl p-5 relative">
+    <div className="bg-gradient-to-r from-amber-500/5 to-orange-500/5 border border-amber-500/25 rounded-xl md:rounded-2xl p-4 md:p-5 relative">
       <button
         onClick={dismiss}
-        className="absolute top-3 right-3 p-1.5 rounded-lg text-muted hover:text-text hover:bg-border/30 transition-colors"
+        className="absolute top-2.5 right-2.5 md:top-3 md:right-3 p-1.5 rounded-lg text-muted hover:text-text hover:bg-border/30 transition-colors"
         aria-label="Dismiss"
       >
         <X size={14} />
       </button>
 
-      <div className="flex items-start gap-4">
-        <div className="w-12 h-12 rounded-full bg-amber-500/10 border-2 border-amber-500/30 flex items-center justify-center text-amber-600 font-bold text-lg shrink-0">
+      <div className="flex flex-col sm:flex-row items-start gap-3 md:gap-4">
+        <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-amber-500/10 border-2 border-amber-500/30 flex items-center justify-center text-amber-600 font-bold text-base md:text-lg shrink-0">
           {props.firstName[0]}
         </div>
 
-        <div className="flex-1 min-w-0 pr-6">
+        <div className="flex-1 min-w-0 pr-6 w-full">
           <div className="flex items-center gap-2 flex-wrap">
-            <p className="text-sm font-bold text-text">Complete your teacher profile</p>
+            <p className="text-sm font-bold text-text">Complete your profile</p>
             <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/25">
-              {doneCount}/{checks.length} done
+              {doneCount}/{checks.length}
             </span>
           </div>
-          <p className="text-xs text-text-2 mt-0.5 mb-3">
-            A complete profile boosts your credential star rating and builds trust with your school administration.
-          </p>
 
-          <div className="h-1.5 bg-border rounded-full overflow-hidden mb-3">
+          <div className="h-1.5 bg-border rounded-full overflow-hidden mt-2.5 mb-3">
             <div
               className="h-full bg-amber-500 rounded-full transition-all duration-500"
               style={{ width: `${pct}%` }}
             />
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 mb-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 mb-3 md:mb-4">
             {checks.map(({ label, done }) => (
               <div
                 key={label}
@@ -133,18 +130,18 @@ export function ProfileCompletionCard(props: Props) {
             ))}
           </div>
 
-          <div className="flex items-center gap-4 flex-wrap">
+          <div className="flex items-center gap-3 flex-wrap">
             <div className="flex items-center gap-2">
               <StarRow rating={rating} />
               <span className="text-xs font-semibold text-amber-600 dark:text-amber-400">
-                {rating.toFixed(1)}/5.0
+                {rating.toFixed(1)}
               </span>
             </div>
             <Link
               href="/settings"
-              className="flex items-center gap-1.5 bg-amber-500 hover:bg-amber-400 text-white text-xs font-bold px-4 py-2 rounded-lg transition-colors ml-auto"
+              className="flex items-center gap-1.5 bg-amber-500 hover:bg-amber-400 text-white text-xs font-bold px-3 md:px-4 py-2 rounded-lg transition-colors ml-auto"
             >
-              Complete Profile
+              Complete
               <ChevronRight size={13} />
             </Link>
           </div>

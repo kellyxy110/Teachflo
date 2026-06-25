@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
 import { ThemeProvider } from "@/components/layout/ThemeProvider";
@@ -9,6 +9,12 @@ const inter = Inter({ subsets: ["latin"] });
 
 const SITE_URL = "https://teachflow-oos.vercel.app";
 const OG_IMAGE = `${SITE_URL}/opengraph-image`;
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+};
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),

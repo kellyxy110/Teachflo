@@ -135,6 +135,11 @@ body {
   .reveal.visible { transition: none !important; }
 }
 
+/* Bottom nav safe area for notched phones */
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
 /* Game card */
 .game-btn {
   transition: all 0.15s ease;

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useMobileNav } from "./MobileNavContext";
 import {
   LayoutDashboard,
   GraduationCap,
@@ -11,7 +12,6 @@ import {
   BarChart2,
   FileText,
   Library,
-  TrendingUp,
   Settings,
   PenSquare,
   Sparkles,
@@ -20,6 +20,7 @@ import {
   Code2,
   Upload,
   TestTube2,
+  X,
 } from "lucide-react";
 
 const navItems = [
@@ -46,64 +47,92 @@ const bottomItems = [
 
 export function Sidebar() {
   const pathname = usePathname();
+  const { isOpen, close } = useMobileNav();
 
   return (
-    <aside className="fixed left-0 top-0 h-full w-56 bg-surface border-r border-border flex flex-col z-40 transition-colors duration-200">
-      {/* Logo */}
-      <div className="px-4 py-5 border-b border-border">
-        <h1 className="font-bold text-text text-lg leading-tight">TeachFlow OS</h1>
-        <p className="text-xs text-muted mt-0.5">School Management</p>
-      </div>
+    <>
+      {/* Backdrop — mobile only */}
+      {isOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm md:hidden"
+          onClick={close}
+        />
+      )}
 
-      {/* Main nav */}
-      <nav className="flex-1 px-2 py-4 space-y-0.5 overflow-y-auto">
-        {navItems.map(({ href, label, icon: Icon }) => {
-          const active = pathname === href || pathname.startsWith(href + "/");
-          return (
-            <Link
-              key={href}
-              href={href}
-              className={`
-                flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium
-                transition-colors duration-150
-                ${
-                  active
-                    ? "bg-primary-50 text-primary border-l-2 border-primary -ml-[2px] pl-[14px]"
-                    : "text-text-2 hover:bg-border/20 hover:text-text"
-                }
-              `}
-            >
-              <Icon size={16} className="shrink-0" />
-              {label}
-            </Link>
-          );
-        })}
-      </nav>
+      {/* Sidebar */}
+      <aside
+        className={`
+          fixed left-0 top-0 h-full w-64 bg-surface border-r border-border
+          flex flex-col z-50 transition-transform duration-300 ease-out
+          md:w-56 md:translate-x-0 md:transition-none
+          ${isOpen ? "translate-x-0" : "-translate-x-full"}
+        `}
+      >
+        {/* Logo + close */}
+        <div className="px-4 py-5 border-b border-border flex items-center justify-between">
+          <div>
+            <h1 className="font-bold text-text text-lg leading-tight">TeachFlow OS</h1>
+            <p className="text-xs text-muted mt-0.5">School Management</p>
+          </div>
+          <button
+            onClick={close}
+            className="p-1.5 rounded-lg text-muted hover:text-text hover:bg-border/20 transition-colors md:hidden"
+            aria-label="Close menu"
+          >
+            <X size={18} />
+          </button>
+        </div>
 
-      {/* Bottom nav */}
-      <div className="px-2 py-3 border-t border-border space-y-0.5">
-        {bottomItems.map(({ href, label, icon: Icon }) => {
-          const active = pathname === href;
-          return (
-            <Link
-              key={href}
-              href={href}
-              className={`
-                flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium
-                transition-colors duration-150
-                ${
-                  active
-                    ? "bg-primary-50 text-primary"
-                    : "text-text-2 hover:bg-border/20 hover:text-text"
-                }
-              `}
-            >
-              <Icon size={16} className="shrink-0" />
-              {label}
-            </Link>
-          );
-        })}
-      </div>
-    </aside>
+        {/* Main nav */}
+        <nav className="flex-1 px-2 py-4 space-y-0.5 overflow-y-auto">
+          {navItems.map(({ href, label, icon: Icon }) => {
+            const active = pathname === href || pathname.startsWith(href + "/");
+            return (
+              <Link
+                key={href}
+                href={href}
+                className={`
+                  flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium
+                  transition-colors duration-150
+                  ${
+                    active
+                      ? "bg-primary-50 text-primary border-l-2 border-primary -ml-[2px] pl-[14px]"
+                      : "text-text-2 hover:bg-border/20 hover:text-text"
+                  }
+                `}
+              >
+                <Icon size={16} className="shrink-0" />
+                {label}
+              </Link>
+            );
+          })}
+        </nav>
+
+        {/* Bottom nav */}
+        <div className="px-2 py-3 border-t border-border space-y-0.5">
+          {bottomItems.map(({ href, label, icon: Icon }) => {
+            const active = pathname === href;
+            return (
+              <Link
+                key={href}
+                href={href}
+                className={`
+                  flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium
+                  transition-colors duration-150
+                  ${
+                    active
+                      ? "bg-primary-50 text-primary"
+                      : "text-text-2 hover:bg-border/20 hover:text-text"
+                  }
+                `}
+              >
+                <Icon size={16} className="shrink-0" />
+                {label}
+              </Link>
+            );
+          })}
+        </div>
+      </aside>
+    </>
   );
 }
