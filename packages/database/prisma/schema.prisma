@@ -74,10 +74,11 @@ model Teacher {
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
 
-  lessons  Lesson[]
-  exams    Exam[]
-  scores   Score[]
-  homework Homework[]
+  lessons    Lesson[]
+  exams      Exam[]
+  scores     Score[]
+  homework   Homework[]
+  attendance Attendance[]
 
   @@unique([schoolId, email])
   @@index([schoolId])
@@ -110,11 +111,12 @@ model Class {
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
 
-  students Student[]
-  scores   Score[]
-  lessons  Lesson[]
-  exams    Exam[]
-  homework Homework[]
+  students   Student[]
+  scores     Score[]
+  lessons    Lesson[]
+  exams      Exam[]
+  homework   Homework[]
+  attendance Attendance[]
 
   @@unique([schoolId, name, session])
   @@index([schoolId])
@@ -160,6 +162,7 @@ model Student {
   examAttempts    ExamAttempt[]
   mistakePatterns MistakePattern[]
   learningPaths   LearningPath[]
+  attendance      Attendance[]
 
   @@unique([schoolId, regNumber])
   @@index([classId])
@@ -663,6 +666,41 @@ model CurriculumPlan {
   @@index([schoolId])
   @@index([teacherId])
   @@map("curriculum_plans")
+}
+
+// ─────────────────────────────────────────────
+// ATTENDANCE
+// ─────────────────────────────────────────────
+
+model Attendance {
+  id        String           @id @default(cuid())
+  schoolId  String
+  classId   String
+  studentId String
+  teacherId String
+  date      DateTime         @db.Date
+  status    AttendanceStatus @default(PRESENT)
+  note      String?
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  class   Class   @relation(fields: [classId], references: [id], onDelete: Cascade)
+  teacher Teacher @relation(fields: [teacherId], references: [id])
+
+  @@unique([studentId, date])
+  @@index([schoolId])
+  @@index([classId, date])
+  @@index([studentId])
+  @@index([teacherId])
+  @@map("attendance")
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  LATE
+  EXCUSED
 }
 
 // ─────────────────────────────────────────────

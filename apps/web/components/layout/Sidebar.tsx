@@ -20,6 +20,7 @@ import {
   Code2,
   Upload,
   TestTube2,
+  ClipboardCheck,
   X,
 } from "lucide-react";
 
@@ -29,6 +30,7 @@ const navItems = [
   { href: "/students", label: "Students", icon: Users },
   { href: "/lessons", label: "Lessons", icon: BookOpen },
   { href: "/homework", label: "Homework", icon: PenSquare },
+  { href: "/attendance", label: "Attendance", icon: ClipboardCheck },
   { href: "/scores", label: "Scores", icon: ClipboardList },
   { href: "/exams", label: "Exams", icon: FileText },
   { href: "/library", label: "Library", icon: Library },
