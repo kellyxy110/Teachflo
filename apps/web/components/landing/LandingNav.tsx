@@ -34,16 +34,18 @@ export function LandingNav() {
               className="font-black text-lg tracking-tight"
               style={{ color: "#f1f5f9" }}
             >
-              TeachFlow
-              <span className="gradient-text"> OS</span>
+              Teach<span className="gradient-text">Nexis</span>
             </span>
           </Link>
 
           {/* Desktop nav */}
           <div className="hidden md:flex items-center gap-1">
             {[
-              { href: "#modes", label: "Features" },
-              { href: "#practice", label: "Practice" },
+              { href: "#why", label: "Why Us" },
+              { href: "#features", label: "Features" },
+              { href: "#curriculum", label: "Curriculum" },
+              { href: "#pricing", label: "Pricing" },
+              { href: "#faq", label: "FAQ" },
               { href: "/dashboard", label: "Dashboard", external: true },
             ].map(({ href, label, external }) =>
               external ? (
@@ -123,6 +125,27 @@ export function LandingNav() {
             style={{ background: "rgba(4,8,26,0.95)", borderBottom: "1px solid rgba(255,255,255,0.06)", backdropFilter: "blur(20px)" }}
           >
             <div className="px-6 py-4 space-y-3">
+              {[
+                { href: "#why", label: "Why TeachNexis" },
+                { href: "#features", label: "Features" },
+                { href: "#curriculum", label: "Curriculum" },
+                { href: "#pricing", label: "Pricing" },
+                { href: "#faq", label: "FAQ" },
+              ].map(({ href, label }) => (
+                <a
+                  key={label}
+                  href={href}
+                  className="block text-sm"
+                  style={{ color: "#94a3b8" }}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setMobileOpen(false);
+                    document.querySelector(href)?.scrollIntoView({ behavior: "smooth" });
+                  }}
+                >
+                  {label}
+                </a>
+              ))}
               <Link href="/sign-in" className="block text-sm" style={{ color: "#94a3b8" }}>Sign in</Link>
               <Link href="/sign-up" className="block text-sm font-bold" style={{ color: "#60a5fa" }}>Get started free →</Link>
               <button onClick={() => { setCalcOpen(true); setMobileOpen(false); }} className="block text-sm" style={{ color: "#94a3b8" }}>

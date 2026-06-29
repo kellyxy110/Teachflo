@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { requireSchool } from "@/lib/auth";
+import { emit } from "@/lib/events";
 import type { AttendanceStatus } from "@prisma/client";
 
 const VALID_STATUSES = new Set(["PRESENT", "ABSENT", "LATE", "EXCUSED"]);
@@ -115,6 +116,14 @@ export async function saveAttendance(
 
   await db.$transaction(operations);
   revalidatePath("/attendance");
+
+  emit("attendance.saved", {
+    schoolId,
+    classId,
+    date,
+    recordCount: records.length,
+    teacherId: teacher.id,
+  });
 }
 
 export async function getAttendanceStats(classId: string, month?: string) {

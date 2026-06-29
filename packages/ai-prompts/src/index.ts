@@ -347,6 +347,112 @@ ADDITIONAL RULES:
 `.trim();
 
 // ─────────────────────────────────────────────
+// PROMPT 3b: CIG-ANCHORED EXAM GENERATOR
+// ─────────────────────────────────────────────
+
+export interface CIGExamInput {
+  subject: string;
+  classLevel: string;
+  topic: string;
+  difficulty: Difficulty;
+  mcqCount: number;
+  cigContext: CIGContext;
+}
+
+export function buildCIGExamPrompt(input: CIGExamInput): string {
+  const { subject, classLevel, topic, difficulty, mcqCount, cigContext: cig } = input;
+
+  const bloomLine = cig.bloomLevels.length > 0
+    ? cig.bloomLevels.join(", ")
+    : "REMEMBER, UNDERSTAND, APPLY";
+
+  const standardsLine = cig.examStandards.length > 0
+    ? cig.examStandards.join("/")
+    : "WAEC/NECO";
+
+  const keywordsLine = cig.keywords.slice(0, 10).join(", ");
+
+  const misconceptionsBlock = cig.misconceptions.length > 0
+    ? cig.misconceptions
+        .slice(0, 5)
+        .map((m, i) => `  ${i + 1}. ${m}`)
+        .join("\n")
+    : "  (none recorded)";
+
+  const formulaeBlock =
+    cig.formulae && Object.keys(cig.formulae).length > 0
+      ? Object.entries(cig.formulae)
+          .map(([formula, label]) => `  – ${label}: ${formula}`)
+          .join("\n")
+      : "  (none recorded)";
+
+  const prerequisitesLine = cig.prerequisites.length > 0
+    ? cig.prerequisites.slice(0, 4).join(", ")
+    : "General secondary school knowledge";
+
+  const crossSubjectLine = cig.crossSubjectConnections.length > 0
+    ? cig.crossSubjectConnections
+        .map((c) => `${c.topic} (${c.subject})`)
+        .join(", ")
+    : "";
+
+  const difficultyGuide: Record<Difficulty, string> = {
+    BASIC: "recall-level (Bloom's Remember/Understand), options clearly distinguishable, no multi-step problems",
+    APPLICATION: "mix of recall (40%) and application (60%), 1–2 step problems, distractors represent common errors",
+    WAEC: "authentic WAEC difficulty and phrasing (\"Which of the following...\"), curriculum-plausible distractors, realistic calculation values",
+    JAMB: "high difficulty JAMB CBT style, sophisticated distractors designed to catch partial understanding, speed-optimised questions",
+    JUPEB: "pre-degree / A-Level standard, deep conceptual understanding, derivations and proofs where applicable",
+  };
+
+  return `You are a senior ${standardsLine} examiner setting a ${difficulty}-level question bank for ${subject}, ${classLevel}.
+
+TOPIC: ${topic}
+${cig.description ? `TOPIC DESCRIPTION: ${cig.description}` : ""}
+
+CURRICULUM INTELLIGENCE DATA (use this to anchor every question):
+• Bloom's taxonomy levels to distribute across: ${bloomLine}
+• Exam alignment: ${standardsLine}
+• Key terms to test: ${keywordsLine}
+• Difficulty calibration: ${difficultyGuide[difficulty]}
+• Known student misconceptions — use as wrong-answer distractors:
+${misconceptionsBlock}
+• Key formulae to test:
+${formulaeBlock}
+• Entry behaviour (what students should already know): ${prerequisitesLine}
+${crossSubjectLine ? `• Cross-subject connections: ${crossSubjectLine}` : ""}
+
+TASK: Generate ${mcqCount} MCQ questions.
+
+RULES:
+1. Each question tests a specific concept, term, or formula from the curriculum data above
+2. At least one wrong option in each question is based on a known student misconception
+3. Distribute questions across Bloom's levels: ${bloomLine}
+4. Match ${standardsLine} question phrasing and style
+5. Every option must be curriculum-plausible — no obviously wrong distractors
+6. Solutions must show step-by-step working for calculation questions
+7. Do NOT use placeholder text like "[insert question]"
+8. Do NOT start with generic phrases like "Certainly!" or "Here are your questions!"
+
+OUTPUT: Return ONLY a valid JSON array — no preamble, no markdown backticks, no extra text.
+
+[
+  {
+    "stem": "The full question text",
+    "optionA": "First option",
+    "optionB": "Second option",
+    "optionC": "Third option",
+    "optionD": "Fourth option",
+    "correctOption": "B",
+    "solution": "Step-by-step working or full explanation of why B is correct",
+    "explanation": "Concise reason why the correct option is right",
+    "commonMistakes": "The most common error students make on this type of question",
+    "examTip": "${standardsLine} exam tip for this concept",
+    "bloomLevel": "APPLY"
+  }
+]`.trim();
+}
+
+// ─────────────────────────────────────────────
 // PROMPT 3: EXAM GENERATOR
 // ─────────────────────────────────────────────
 

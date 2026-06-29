@@ -5,18 +5,22 @@ import { motion } from "framer-motion";
 import { Github, Twitter, Mail, ExternalLink, Zap } from "lucide-react";
 
 const NAV_LINKS = {
-  Product: [
-    { href: "/sign-up", label: "Get Started" },
+  Platform: [
+    { href: "/sign-up", label: "Get Started Free" },
     { href: "/sign-in", label: "Sign In" },
-    { href: "#modes", label: "Features", scroll: true },
-    { href: "#practice", label: "Practice Arena", scroll: true },
+    { href: "#why", label: "Why TeachNexis", scroll: true },
+    { href: "#features", label: "Features", scroll: true },
+    { href: "#curriculum", label: "Curriculum Graph", scroll: true },
+    { href: "#pricing", label: "Pricing", scroll: true },
+    { href: "#faq", label: "FAQ", scroll: true },
   ],
-  Resources: [
+  Tools: [
     { href: "/sign-up", label: "AI Lesson Generator" },
-    { href: "/sign-up", label: "Exam Builder" },
-    { href: "/sign-up", label: "Study Buddy" },
-    { href: "/sign-up", label: "Code Lab" },
-    { href: "/sign-up", label: "Knowledge Studio" },
+    { href: "/sign-up", label: "CIG Exam Builder" },
+    { href: "/sign-up", label: "AI Study Buddy" },
+    { href: "/sign-up", label: "Coding Lab" },
+    { href: "/sign-up", label: "Curriculum Browser" },
+    { href: "/sign-up", label: "Report Cards" },
   ],
   Legal: [
     { href: "/terms", label: "Terms of Service" },
@@ -78,10 +82,10 @@ export function LandingFooter() {
         >
           <div className="text-4xl mb-3">🚀</div>
           <h2 className="text-3xl font-black mb-3" style={{ color: "#f1f5f9" }}>
-            Ready to transform how you learn?
+            Ready to teach smarter?
           </h2>
           <p className="mb-8 max-w-md mx-auto" style={{ color: "#64748b" }}>
-            Join Nigerian students and teachers using TeachFlow OS to prepare for WAEC, JAMB, and JUPEB.
+            Join Nigerian teachers and students using TeachNexis to generate lessons, build exams, and prepare for WAEC, JAMB, and JUPEB — free forever.
           </p>
           <div className="flex items-center justify-center gap-4 flex-wrap">
             <Link
@@ -108,7 +112,7 @@ export function LandingFooter() {
           {/* Brand */}
           <div className="col-span-2 md:col-span-2">
             <div className="font-black text-2xl mb-3" style={{ color: "#f1f5f9" }}>
-              TeachFlow <span className="gradient-text">OS</span>
+              Teach<span className="gradient-text">Nexis</span>
             </div>
             <p className="text-sm leading-relaxed mb-6 max-w-xs" style={{ color: "#475569" }}>
               AI-powered learning operating system for Nigerian secondary schools. JSS1 to SS3. WAEC, JAMB, JUPEB aligned.
@@ -177,7 +181,7 @@ export function LandingFooter() {
           style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}
         >
           <div className="text-xs" style={{ color: "#334155" }}>
-            © {new Date().getFullYear()} TeachFlow OS. All rights reserved.
+            © {new Date().getFullYear()} TeachNexis. All rights reserved.
           </div>
           <div className="flex items-center gap-1 text-xs" style={{ color: "#334155" }}>
             Built by{" "}

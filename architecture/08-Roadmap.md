@@ -54,101 +54,103 @@
 
 ---
 
-## Phase 3 — Architectural Operating System (IN PROGRESS)
+## Phase 3 — Architectural Operating System (SHIPPED)
 
 **Goal:** Establish the governance layer before building intelligence features.
 
 | Task | Status | Notes |
 |---|---|---|
-| AOS folder structure (`/architecture/`) | IN PROGRESS | — |
+| AOS folder structure (`/architecture/`) | SHIPPED | — |
 | 00-Vision.md | SHIPPED | — |
 | 01-Principles.md | SHIPPED | — |
-| 02-Decisions.md | SHIPPED | Decisions #001–#008 recorded |
+| 02-Decisions.md | SHIPPED | Decisions #001–#010 recorded |
 | 03-Domains.md | SHIPPED | — |
 | 04-Standards.md | SHIPPED | — |
 | 05-Workflows.md | SHIPPED | — |
 | 06-AI-Models.md | SHIPPED | — |
 | 07-Loops.md | SHIPPED | — |
-| 08-Roadmap.md | IN PROGRESS | This file |
-| 09-Contracts.md | IN PROGRESS | — |
-| Architecture & Capability Audit | PLANNED | Audit existing 6 capabilities |
-| TeachNexis rebrand in UI | PLANNED | Update page titles, logos, metadata |
+| 08-Roadmap.md | SHIPPED | This file |
+| 09-Contracts.md | SHIPPED | All 8 domain contracts SHIPPED |
+| Architecture & Capability Audit | SHIPPED | 10-Audit.md — all 6 capabilities rated |
+| Event bus + domain event stubs | SHIPPED | `lib/events.ts`; attendance + health emit |
+| TeachNexis rebrand in UI | PLANNED | Page title/metadata update pending |
 
 ---
 
-## Phase 4 — Curriculum Intelligence Engine (PLANNED)
+## Phase 4 — Curriculum Intelligence Engine (SHIPPED)
 
 **Goal:** Build the educational heart of TeachNexis.
 
-| Feature | Status | Priority |
+| Feature | Status | Notes |
 |---|---|---|
-| Curriculum hierarchy schema (Subject → Class → Term → Week → Topic) | PLANNED | P1 |
-| Curriculum data seed (all Nigerian secondary subjects) | PLANNED | P1 |
-| Scheme of work structure per term | PLANNED | P1 |
-| Learning objectives per topic | PLANNED | P1 |
-| Bloom's Taxonomy mapping | PLANNED | P1 |
-| WAEC/NECO/JAMB alignment metadata | PLANNED | P2 |
-| Topic Knowledge Package generation | PLANNED | P1 |
-| Lecture Notes (Teacher + Student versions) | PLANNED | P1 |
-| Summary generation | PLANNED | P1 |
-| Flashcard engine | PLANNED | P2 |
-| Infographic key point extraction | PLANNED | P2 |
-| Assignment and worksheet generation | PLANNED | P2 |
-| Topic relationship graph | PLANNED | P3 |
+| CIG schema (`curriculum_nodes` + `curriculum_edges`) | SHIPPED | `migration-cig-001.sql` |
+| Curriculum data seed — ~330 topics, SS1–SS3 | SHIPPED | `seed-cig.sql` |
+| Curriculum data seed — 288 topics, JS1–JS3 | SHIPPED | `seed-cig-jss.sql` |
+| Bloom's Taxonomy + exam standards per node | SHIPPED | Part of schema |
+| WAEC/NECO/JAMB alignment metadata | SHIPPED | `examStandards[]` on each node |
+| Topic Knowledge Package (misconceptions, formulae, keywords) | SHIPPED | Node fields + context API |
+| Curriculum Browser UI | SHIPPED | `/curriculum` — 618 TOPIC nodes browseable |
+| CIG graph API routes | SHIPPED | `GET /api/curriculum/*` |
+| Lesson Generator (streaming, CIG-anchored) | SHIPPED | `POST /api/cig/lesson` |
+| Quiz + Flashcard generation from CIG | SHIPPED | `type=quiz/flashcards` in same route |
+| Educational integrity validation | SHIPPED | `validate-cig-sprint5.sql` — all checks PASS |
+| Topic relationship graph | SHIPPED | 473 TEACHES_BEFORE + 51 CROSS_SUBJECT edges |
 
 ---
 
-## Phase 5 — AI Infrastructure & Orchestration (PLANNED)
+## Phase 5 — AI Infrastructure & Orchestration (SHIPPED)
 
 **Goal:** Build the routing, memory, and orchestration layer that powers all AI features.
 
-| Feature | Status | Priority |
+| Feature | Status | Notes |
 |---|---|---|
-| Model router (content-type-based routing) | PLANNED | P1 |
-| Fallback chains | PLANNED | P1 |
-| Prompt library management | PLANNED | P1 |
-| AI output quality validation | PLANNED | P1 |
-| Content caching (curriculum + assessment) | PLANNED | P2 |
-| Context management and memory | PLANNED | P2 |
-| Cost optimisation layer | PLANNED | P2 |
-| Event loop foundation | PLANNED | P3 |
-| Full agent orchestration | FUTURE | — |
+| Model router (content-type intent-based) | SHIPPED | `lib/ai/router.ts` — classifyIntent + routeToModel |
+| Fallback chains | SHIPPED | LESSON_MODELS, EXAM_MODELS, DOCUMENT_MODELS in `lib/ai.ts` |
+| Prompt library package | SHIPPED | `@teachflow/ai-prompts` — lesson, rewrite, exam, CIG exam |
+| AI output quality validation | SHIPPED | `lib/ai-validator.ts` — MCQ, lesson, flashcard |
+| Content caching (Upstash Redis, 7-day TTL) | SHIPPED | `lib/ai-cache.ts` — wired into generate-cig route |
+| Event loop foundation | SHIPPED | `lib/events.ts` — fire-and-forget bus |
+| Rate limiting (in-memory + Upstash) | SHIPPED | `lib/rate-limit.ts` |
+| Groq / Cerebras / OpenRouter providers | SHIPPED | `lib/ai/providers/` |
+| Coding Lab AI router | SHIPPED | `lib/ai/coding-router.ts` |
+| Context management and memory | PLANNED | Session-level conversation history |
+| Full agent orchestration | FUTURE | Multi-step agentic loops |
 
 ---
 
-## Phase 6 — Assessment Intelligence Upgrade (PLANNED)
+## Phase 6 — Assessment Intelligence Upgrade (IN PROGRESS)
 
 **Goal:** Extend the existing assessment system with intelligence and completeness.
 
-| Feature | Status | Priority |
+| Feature | Status | Notes |
 |---|---|---|
-| AI question generation from curriculum topics | PLANNED | P1 |
-| Extended symbol palette (1,500–2,000+ symbols) | PLANNED | P1 |
-| Question deduplication (semantic similarity) | PLANNED | P2 |
-| CBT export: CSV, JSON, Moodle XML, QTI | PLANNED | P1 |
-| Spaced repetition flashcard engine | PLANNED | P2 |
-| Bloom's Taxonomy distribution in question banks | PLANNED | P2 |
-| AI-powered marking for essay questions | PLANNED | P3 |
-| Learning analytics dashboard | PLANNED | P2 |
+| Extended symbol palette (850+ symbols, search, favorites) | SHIPPED | `LatexSymbolPalette.tsx` — Sprint 6a |
+| CBT export: Excel CBT, CSV, JSON, Moodle XML, QTI 2.1 | SHIPPED | `lib/export.ts` — Sprint 6b |
+| AI question generation from CIG topics | SHIPPED | `POST /api/exams/generate-cig` + wizard — Sprint 6c |
+| Question deduplication (semantic similarity) | PLANNED | Sprint 6d |
+| Spaced repetition flashcard engine | PLANNED | Sprint 6e |
+| Bloom's Taxonomy distribution in question banks | PLANNED | Sprint 6f |
+| AI-powered marking for essay questions | PLANNED | Sprint 6g |
+| Learning analytics dashboard | PLANNED | Sprint 6h |
 
 ---
 
-## Phase 7 — AI Lesson Editor (PLANNED)
+## Phase 7 — AI Lesson Editor (IN PROGRESS)
 
 **Goal:** Replace the basic text input with a professional document editor.
 
-| Feature | Status | Priority |
+| Feature | Status | Notes |
 |---|---|---|
-| Rich text editing (headings, bold, lists, tables) | PLANNED | P1 |
-| Equation editor integration | PLANNED | P1 |
-| Image upload and embedding | PLANNED | P1 |
-| Autosave | PLANNED | P1 |
-| AI Rewrite / Expand / Condense | PLANNED | P2 |
-| Version history | PLANNED | P2 |
-| Voice typing | PLANNED | P3 |
-| Translation support | PLANNED | P3 |
-| Citation support | PLANNED | P3 |
-| Comments and annotations | PLANNED | P3 |
+| Split-pane markdown editor with formatting toolbar | SHIPPED | `LessonEditorClient.tsx` |
+| Equation editor integration (LaTeX symbol palette) | SHIPPED | Reuses `LatexSymbolPalette` from Phase 6a |
+| Autosave (debounced, 1.5s) | SHIPPED | PATCH `/api/lessons/[lessonId]` |
+| Version history (localStorage, last 10 saves) | SHIPPED | `tf_lesson_hist_[id]` in localStorage |
+| AI Expand / Condense in-editor actions | SHIPPED | `POST /api/lessons/edit-ai` streaming |
+| Image upload and embedding | PLANNED | Requires Vercel Blob or S3 |
+| Voice typing | PLANNED | — |
+| Translation support | PLANNED | — |
+| Citation support | PLANNED | — |
+| Comments and annotations | PLANNED | — |
 
 ---
 

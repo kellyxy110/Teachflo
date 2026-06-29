@@ -1,9 +1,14 @@
 "use client";
 import { useEffect } from "react";
 import { HeroSection } from "./HeroSection";
+import { WhyTeachNexisSection } from "./WhyTeachNexisSection";
+import { FeatureGridSection } from "./FeatureGridSection";
+import { CurriculumSection } from "./CurriculumSection";
 import { LearningModesSection } from "./LearningModesSection";
-import { EducationalTickers } from "./EducationalTickers";
 import { SchoolShowcase } from "./SchoolShowcase";
+import { PricingSection } from "./PricingSection";
+import { FAQSection } from "./FAQSection";
+import { EducationalTickers } from "./EducationalTickers";
 import { PioneerSection } from "./PioneerSection";
 import { LandingNav } from "./LandingNav";
 import { LandingFooter } from "./LandingFooter";
@@ -90,25 +95,40 @@ export function LandingPageClient() {
         <HeroSection />
       </div>
 
-      {/* 2 — Educational ticker */}
+      {/* 2 — Why TeachNexis */}
+      <WhyTeachNexisSection />
+
+      {/* 3 — Educational tickers */}
       <div className="landing-section">
         <EducationalTickers />
       </div>
 
-      {/* 3 — Learning Modes */}
+      {/* 4 — Feature grid */}
+      <FeatureGridSection />
+
+      {/* 5 — Curriculum Intelligence */}
+      <CurriculumSection />
+
+      {/* 6 — Learning Modes (existing interactive demo) */}
       <div className="landing-section" id="modes">
         <LearningModesSection />
       </div>
 
-      {/* 4 — School Showcase */}
+      {/* 7 — School Showcase */}
       <div className="landing-section">
         <SchoolShowcase />
       </div>
 
-      {/* 5 — Pioneer / Beta Educator */}
+      {/* 8 — Pricing */}
+      <PricingSection />
+
+      {/* 9 — FAQ */}
+      <FAQSection />
+
+      {/* 10 — Pioneer / Early Access */}
       <PioneerSection />
 
-      {/* 6 — Footer */}
+      {/* 11 — Footer */}
       <LandingFooter />
     </div>
   );

@@ -19,37 +19,37 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: "TeachFlow OS — AI Learning for Nigerian Schools",
-    template: "%s | TeachFlow OS",
+    default: "TeachNexis — AI Learning for Nigerian Schools",
+    template: "%s | TeachNexis",
   },
   description:
     "AI-powered learning OS for Nigerian secondary schools (JSS1–SS3). Generate WAEC-ready lesson plans, build exam questions with distractor analysis, track student skills, and practise with AI Study Buddy. Powered by 7 free AI models.",
   keywords: [
     "WAEC", "JAMB", "JUPEB", "Nigerian schools", "AI education",
     "lesson planner", "JSS1", "SS3", "secondary school", "study buddy",
-    "TeachFlow", "AI tutor Nigeria", "exam generator", "adaptive learning",
+    "TeachNexis", "AI tutor Nigeria", "exam generator", "adaptive learning",
   ],
   openGraph: {
-    title: "TeachFlow OS — AI Learning for Nigerian Schools",
+    title: "TeachNexis — AI Learning for Nigerian Schools",
     description:
       "Generate WAEC lessons in 10 seconds, build exams with distractor analysis, track every student's skill graph. Free forever plan.",
     type: "website",
     url: SITE_URL,
-    siteName: "TeachFlow OS",
+    siteName: "TeachNexis",
     locale: "en_NG",
     images: [
       {
         url: OG_IMAGE,
         width: 1200,
         height: 630,
-        alt: "TeachFlow OS — AI Learning for Nigerian Schools",
+        alt: "TeachNexis — AI Learning for Nigerian Schools",
         type: "image/png",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "TeachFlow OS — AI Learning for Nigerian Schools",
+    title: "TeachNexis — AI Learning for Nigerian Schools",
     description:
       "Generate WAEC lessons in 10 seconds. Free AI study tools for JSS1–SS3.",
     images: [OG_IMAGE],
@@ -75,7 +75,7 @@ export default function RootLayout({
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "SoftwareApplication",
-    name: "TeachFlow OS",
+    name: "TeachNexis",
     url: SITE_URL,
     applicationCategory: "EducationalApplication",
     operatingSystem: "Web",

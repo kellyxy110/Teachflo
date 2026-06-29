@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Trash2 } from "lucide-react";
+import { ArrowLeft, Trash2, PenLine } from "lucide-react";
 import { getLesson, deleteLesson } from "@/app/actions/lessons";
 import { LessonDetailClient } from "./LessonDetailClient";
 import { verifyLesson } from "@/lib/trust";
@@ -30,20 +30,29 @@ export default async function LessonDetailPage({
           Back to Lessons
         </Link>
 
-        <form
-          action={async () => {
-            "use server";
-            await deleteLesson(lessonId);
-          }}
-        >
-          <button
-            type="submit"
-            className="flex items-center gap-1.5 text-xs text-danger hover:text-danger/80 transition-colors px-3 py-1.5 rounded-lg hover:bg-danger/5"
+        <div className="flex items-center gap-2">
+          <Link
+            href={`/lessons/${lessonId}/edit`}
+            className="flex items-center gap-1.5 text-xs text-text-2 hover:text-text transition-colors px-3 py-1.5 rounded-lg border border-border hover:bg-bg"
           >
-            <Trash2 size={13} />
-            Delete
-          </button>
-        </form>
+            <PenLine size={13} />
+            Edit
+          </Link>
+          <form
+            action={async () => {
+              "use server";
+              await deleteLesson(lessonId);
+            }}
+          >
+            <button
+              type="submit"
+              className="flex items-center gap-1.5 text-xs text-danger hover:text-danger/80 transition-colors px-3 py-1.5 rounded-lg hover:bg-danger/5"
+            >
+              <Trash2 size={13} />
+              Delete
+            </button>
+          </form>
+        </div>
       </div>
 
       <div>

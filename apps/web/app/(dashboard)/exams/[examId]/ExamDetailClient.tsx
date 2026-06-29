@@ -1,9 +1,19 @@
 "use client";
 
-import { useState } from "react";
-import { Printer, Eye, EyeOff, ChevronDown, ChevronUp, FileSpreadsheet } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
+import {
+  Printer, Eye, EyeOff, ChevronDown, ChevronUp,
+  FileSpreadsheet, Download, FileJson, FileCode2, BookOpen,
+} from "lucide-react";
 import { MathText } from "@/components/ui/MathText";
-import { exportExamToExcel } from "@/lib/export";
+import {
+  exportExamToExcel,
+  exportCBTExcel,
+  exportCSV,
+  exportJSON,
+  exportMoodleXML,
+  exportQTI,
+} from "@/lib/export";
 import type { Question } from "@prisma/client";
 
 export function ExamDetailClient({
@@ -29,6 +39,8 @@ export function ExamDetailClient({
 }) {
   const [showAnswers, setShowAnswers] = useState(false);
   const [openSection, setOpenSection] = useState<string>("A");
+  const [exportOpen, setExportOpen] = useState(false);
+  const exportRef = useRef<HTMLDivElement>(null);
 
   const sections = [
     { key: "A", label: "Section A — Multiple Choice", questions: sectionA },
@@ -36,9 +48,58 @@ export function ExamDetailClient({
     { key: "C", label: "Section C — Advanced", questions: sectionC },
   ].filter((s) => s.questions.length > 0);
 
-  function handlePrint() {
-    window.print();
-  }
+  const allQuestions = [...sectionA, ...sectionB, ...sectionC];
+  const examMeta = { title: examTitle, subject, classLevel, examType };
+
+  useEffect(() => {
+    if (!exportOpen) return;
+    function handleOutside(e: MouseEvent) {
+      if (exportRef.current && !exportRef.current.contains(e.target as Node)) {
+        setExportOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleOutside);
+    return () => document.removeEventListener("mousedown", handleOutside);
+  }, [exportOpen]);
+
+  const EXPORT_OPTIONS = [
+    {
+      icon: <FileSpreadsheet size={14} className="text-green-600" />,
+      label: "Full Export (.xlsx)",
+      desc: "All questions + answers + solutions",
+      action: () => exportExamToExcel(examMeta, allQuestions),
+    },
+    {
+      icon: <BookOpen size={14} className="text-blue-600" />,
+      label: "CBT Format (.xlsx)",
+      desc: "Question, A–E, CorrectAnswer columns only",
+      action: () => exportCBTExcel(examMeta, allQuestions),
+    },
+    {
+      icon: <FileSpreadsheet size={14} className="text-orange-500" />,
+      label: "CSV Export",
+      desc: "Comma-separated — opens in any spreadsheet",
+      action: () => exportCSV(examMeta, allQuestions),
+    },
+    {
+      icon: <FileJson size={14} className="text-purple-600" />,
+      label: "JSON Export",
+      desc: "Structured data for API integration",
+      action: () => exportJSON(examMeta, allQuestions),
+    },
+    {
+      icon: <FileCode2 size={14} className="text-red-500" />,
+      label: "Moodle XML",
+      desc: "Import directly into Moodle LMS",
+      action: () => exportMoodleXML(examMeta, allQuestions),
+    },
+    {
+      icon: <FileCode2 size={14} className="text-indigo-500" />,
+      label: "IMS QTI 2.1",
+      desc: "For Canvas, Blackboard, and other LMS",
+      action: () => exportQTI(examMeta, allQuestions),
+    },
+  ];
 
   return (
     <>
@@ -52,7 +113,7 @@ export function ExamDetailClient({
       `}</style>
 
       {/* Toolbar */}
-      <div className="flex items-center gap-3 no-print">
+      <div className="flex items-center gap-3 no-print flex-wrap">
         <button
           onClick={() => setShowAnswers((v) => !v)}
           className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border transition-colors ${
@@ -63,21 +124,54 @@ export function ExamDetailClient({
         >
           {showAnswers ? <><EyeOff size={14} /> Hide Answer Key</> : <><Eye size={14} /> Show Answer Key</>}
         </button>
+
         <button
-          onClick={handlePrint}
+          onClick={() => window.print()}
           className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border border-border bg-surface text-text-2 hover:border-primary/40 transition-colors"
         >
           <Printer size={14} /> Print / PDF
         </button>
-        <button
-          onClick={() => exportExamToExcel(
-            { title: examTitle, subject, classLevel, examType },
-            [...sectionA, ...sectionB, ...sectionC],
+
+        {/* Export dropdown */}
+        <div ref={exportRef} className="relative">
+          <button
+            onClick={() => setExportOpen((v) => !v)}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border transition-colors ${
+              exportOpen
+                ? "bg-primary/10 text-primary border-primary/30"
+                : "bg-surface text-text-2 border-border hover:border-primary/40"
+            }`}
+          >
+            <Download size={14} />
+            Export
+            <ChevronDown size={12} className={`transition-transform ${exportOpen ? "rotate-180" : ""}`} />
+          </button>
+
+          {exportOpen && (
+            <div className="absolute right-0 top-full mt-1.5 w-72 bg-surface border border-border rounded-xl shadow-xl z-50 overflow-hidden">
+              <div className="px-3 pt-2.5 pb-1">
+                <p className="text-[10px] font-bold text-muted uppercase tracking-wider">
+                  Export {allQuestions.length} questions
+                </p>
+              </div>
+              <div className="py-1">
+                {EXPORT_OPTIONS.map(({ icon, label, desc, action }) => (
+                  <button
+                    key={label}
+                    onClick={() => { action(); setExportOpen(false); }}
+                    className="w-full flex items-start gap-3 px-3 py-2.5 hover:bg-bg transition-colors text-left"
+                  >
+                    <span className="mt-0.5 shrink-0">{icon}</span>
+                    <div>
+                      <p className="text-sm font-medium text-text leading-tight">{label}</p>
+                      <p className="text-[11px] text-muted leading-tight mt-0.5">{desc}</p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
           )}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border border-border bg-surface text-text-2 hover:border-primary/40 transition-colors"
-        >
-          <FileSpreadsheet size={14} /> Export Excel
-        </button>
+        </div>
       </div>
 
       {/* Exam paper */}
@@ -115,7 +209,7 @@ export function ExamDetailClient({
                   {isOpen ? <ChevronUp size={15} className="text-muted" /> : <ChevronDown size={15} className="text-muted" />}
                 </button>
 
-                {(isOpen || typeof window !== "undefined" && false) && (
+                {isOpen && (
                   <div className="px-6 pb-8 space-y-6 pt-2">
                     {questions.map((q) => (
                       <QuestionBlock key={q.id} q={q} showAnswers={showAnswers} />
@@ -154,12 +248,8 @@ function QuestionBlock({ q, showAnswers }: { q: Question; showAnswers: boolean }
 
       {isMCQ && (
         <div className="ml-9 grid grid-cols-2 gap-x-6 gap-y-1">
-          {[
-            { key: "A", val: q.optionA },
-            { key: "B", val: q.optionB },
-            { key: "C", val: q.optionC },
-            { key: "D", val: q.optionD },
-          ]
+          {(["A", "B", "C", "D"] as const)
+            .map((k) => ({ key: k, val: q[`option${k}` as keyof Question] as string | null }))
             .filter((o) => o.val)
             .map(({ key, val }) => (
               <div

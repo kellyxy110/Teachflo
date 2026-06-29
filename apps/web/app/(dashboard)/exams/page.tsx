@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Plus, Brain, PenTool } from "lucide-react";
+import { Plus, Brain, PenTool, Sparkles } from "lucide-react";
 import { getExams } from "@/app/actions/exams";
 import { ExamsListClient } from "./ExamsListClient";
 
@@ -16,6 +16,13 @@ export default async function ExamsPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <Link
+            href="/exams/generate-ai"
+            className="flex items-center gap-2 bg-gradient-to-r from-primary to-purple-600 text-white px-4 py-2.5 rounded-lg text-sm font-semibold hover:opacity-90 transition-opacity"
+          >
+            <Sparkles size={16} />
+            AI Generate
+          </Link>
           <Link
             href="/exams/questions/new"
             className="flex items-center gap-2 bg-purple-600 text-white px-4 py-2.5 rounded-lg text-sm font-semibold hover:bg-purple-700 transition-colors"

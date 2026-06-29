@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { requireSchool } from "@/lib/auth";
+import { emit } from "@/lib/events";
 
 export async function getStudentsWithHealth(classId?: string) {
   const { schoolId } = await requireSchool();
@@ -75,6 +76,8 @@ export async function saveHealthRecord(studentId: string, formData: FormData) {
 
   revalidatePath("/health");
   revalidatePath(`/health/${studentId}`);
+
+  emit("health.record.updated", { schoolId, studentId, updatedBy: teacher.id });
 }
 
 export async function addClinicVisit(studentId: string, formData: FormData) {

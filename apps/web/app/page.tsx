@@ -26,9 +26,9 @@ export default async function LandingPage() {
     <>
       {/* Server-rendered SEO content — visible to crawlers that don't run JS */}
       <div className="sr-only" aria-hidden="false">
-        <h1>TeachFlow OS — AI Learning Operating System for Nigerian Schools</h1>
+        <h1>TeachNexis — AI Learning Operating System for Nigerian Schools</h1>
         <p>
-          TeachFlow OS is a free AI-powered learning platform for Nigerian secondary schools,
+          TeachNexis is a free AI-powered learning platform for Nigerian secondary schools,
           covering JSS1 to SS3. It is aligned with WAEC, JAMB, and JUPEB curricula and powered
           by 7 free AI models.
         </p>

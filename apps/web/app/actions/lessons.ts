@@ -41,6 +41,27 @@ export async function saveLesson(data: {
   return lesson.id;
 }
 
+export async function updateLesson(lessonId: string, markdown: string) {
+  const { schoolId } = await requireSchool();
+
+  if (typeof markdown !== "string" || !markdown.trim()) {
+    throw new Error("Lesson content cannot be empty");
+  }
+
+  const lesson = await db.lesson.findFirst({
+    where: { id: lessonId, schoolId },
+    select: { id: true },
+  });
+  if (!lesson) throw new Error("Lesson not found");
+
+  await db.lesson.update({
+    where: { id: lessonId },
+    data: { content: { markdown: markdown.slice(0, 200000) } },
+  });
+
+  revalidatePath(`/lessons/${lessonId}`);
+}
+
 export async function deleteLesson(lessonId: string) {
   const { schoolId } = await requireSchool();
   await db.lesson.deleteMany({ where: { id: lessonId, schoolId } });

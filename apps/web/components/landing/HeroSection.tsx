@@ -84,7 +84,7 @@ export function HeroSection() {
           className="text-5xl sm:text-6xl md:text-7xl font-black leading-[1.05] mb-6 tracking-tight"
           style={{ color: "#f1f5f9" }}
         >
-          TeachFlow
+          TeachNexis
           <br />
           <span className="gradient-text">AI Learning OS</span>
         </motion.h1>
@@ -98,7 +98,7 @@ export function HeroSection() {
           style={{ color: "#94a3b8" }}
         >
           The AI-powered operating system for Nigerian secondary schools.
-          Generate lesson plans, build exams, track skills, and master every subject — faster.
+          Lesson plans, intelligent exams, and curriculum-grounded AI — built for WAEC, JAMB &amp; JUPEB.
         </motion.p>
 
         {/* CTAs — primary + secondary only */}

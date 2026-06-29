@@ -220,12 +220,12 @@ All formalised contracts are listed here for cross-domain navigation.
 
 | Contract | Domain | File | Status |
 |---|---|---|---|
-| Authentication & Authorisation | Platform | `09-Contracts.md` | Defined |
-| Data Isolation | Platform | `09-Contracts.md` | Defined |
-| Input Validation | Platform | `09-Contracts.md` | Defined |
-| Curriculum & Content Intelligence | Foundation | `domains/curriculum-intelligence/Contract.md` | Pending |
-| Assessment & Learning Intelligence | Foundation | `domains/assessment-learning/Contract.md` | Pending |
-| AI Infrastructure & Orchestration | Foundation | `domains/ai-infrastructure/Contract.md` | Pending |
-| Classroom Management | Application | `domains/classroom-management/Contract.md` | Pending |
+| Authentication & Authorisation | Platform | `09-Contracts.md` | SHIPPED |
+| Data Isolation | Platform | `09-Contracts.md` | SHIPPED |
+| Input Validation | Platform | `09-Contracts.md` | SHIPPED |
+| Curriculum & Content Intelligence | Foundation | `domains/curriculum-intelligence/Contract.md` | SHIPPED |
+| Assessment & Learning Intelligence | Foundation | `domains/assessment-learning/Contract.md` | SHIPPED |
+| AI Infrastructure & Orchestration | Foundation | `domains/ai-infrastructure/Contract.md` | SHIPPED |
+| Classroom Management | Application | `domains/classroom-management/Contract.md` | SHIPPED |
+| School Administration | Application | `domains/school-administration/Contract.md` | SHIPPED |
 | Learning Studios | Application | `domains/learning-studios/Contract.md` | Future |
-| School Administration | Application | `domains/school-administration/Contract.md` | Pending |

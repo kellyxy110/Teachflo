@@ -1,14 +1,16 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState, useRef, useEffect } from "react";
 import katex from "katex";
+import { Grid3X3 } from "lucide-react";
+import { LatexSymbolPalette } from "./LatexSymbolPalette";
 
-const LATEX_SHORTCUTS = [
+const QUICK_SYMBOLS = [
   { label: "x²", insert: "x^{2}" },
   { label: "√", insert: "\\sqrt{}" },
-  { label: "∑", insert: "\\sum_{i=1}^{n}" },
   { label: "∫", insert: "\\int_{a}^{b}" },
-  { label: "frac", insert: "\\frac{a}{b}" },
+  { label: "∑", insert: "\\sum_{i=1}^{n}" },
+  { label: "a/b", insert: "\\frac{a}{b}" },
   { label: "±", insert: "\\pm" },
   { label: "≤", insert: "\\leq" },
   { label: "≥", insert: "\\geq" },
@@ -19,9 +21,7 @@ const LATEX_SHORTCUTS = [
   { label: "α", insert: "\\alpha" },
   { label: "β", insert: "\\beta" },
   { label: "→", insert: "\\rightarrow" },
-  { label: "H₂O", insert: "H_2O" },
-  { label: "CO₂", insert: "CO_2" },
-  { label: "°C", insert: "^{\\circ}C" },
+  { label: "Δ", insert: "\\Delta" },
 ];
 
 function escapeHtml(str: string): string {
@@ -61,11 +61,7 @@ function renderMixed(text: string): string {
 export function KaTeXPreview({ text }: { text: string }) {
   const html = useMemo(() => renderMixed(text), [text]);
 
-  if (!text) return null;
-
-  const hasLatex = text.includes("$");
-
-  if (!hasLatex) return null;
+  if (!text || !text.includes("$")) return null;
 
   return (
     <div className="bg-bg border border-border rounded-lg px-3 py-2 mt-1.5">
@@ -78,21 +74,69 @@ export function KaTeXPreview({ text }: { text: string }) {
   );
 }
 
-export function LaTeXToolbar({ onInsert }: { onInsert: (latex: string) => void }) {
+interface LaTeXToolbarProps {
+  onInsert: (latex: string) => void;
+}
+
+export function LaTeXToolbar({ onInsert }: LaTeXToolbarProps) {
+  const [showPalette, setShowPalette] = useState(false);
+  const paletteRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!showPalette) return;
+    function handleClickOutside(e: MouseEvent) {
+      if (paletteRef.current && !paletteRef.current.contains(e.target as Node)) {
+        setShowPalette(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [showPalette]);
+
   return (
-    <div className="flex flex-wrap gap-1 mt-1">
-      <span className="text-[10px] font-bold text-muted mr-1 self-center">LaTeX:</span>
-      {LATEX_SHORTCUTS.map(({ label, insert }) => (
+    <div className="mt-1.5 space-y-1.5">
+      {/* Quick symbols row */}
+      <div className="flex items-center gap-1 flex-wrap">
+        <span className="text-[10px] font-bold text-muted mr-0.5 self-center shrink-0">Quick:</span>
+        {QUICK_SYMBOLS.map(({ label, insert }) => (
+          <button
+            key={insert}
+            type="button"
+            onClick={() => onInsert(`$${insert}$`)}
+            title={`Insert $${insert}$`}
+            className="px-1.5 py-0.5 text-[11px] font-mono bg-bg border border-border rounded hover:bg-border/30 hover:border-primary/30 text-text-2 transition-colors"
+          >
+            {label}
+          </button>
+        ))}
         <button
-          key={insert}
           type="button"
-          onClick={() => onInsert(`$${insert}$`)}
-          title={`Insert ${insert}`}
-          className="px-1.5 py-0.5 text-[11px] font-mono bg-bg border border-border rounded hover:bg-border/30 hover:border-primary/30 text-text-2 transition-colors"
+          onClick={() => setShowPalette((v) => !v)}
+          className={`flex items-center gap-1 px-2 py-0.5 text-[11px] font-medium rounded border transition-colors ml-1 ${
+            showPalette
+              ? "bg-primary text-white border-primary"
+              : "bg-bg border-border text-text-2 hover:border-primary/30"
+          }`}
         >
-          {label}
+          <Grid3X3 size={11} />
+          All Symbols
         </button>
-      ))}
+      </div>
+
+      {/* Full palette panel */}
+      {showPalette && (
+        <div
+          ref={paletteRef}
+          className="relative z-50 bg-surface border border-border rounded-xl shadow-xl overflow-hidden"
+        >
+          <LatexSymbolPalette
+            onInsert={(latex) => {
+              onInsert(latex);
+            }}
+            onClose={() => setShowPalette(false)}
+          />
+        </div>
+      )}
     </div>
   );
 }

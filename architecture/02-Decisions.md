@@ -179,3 +179,31 @@ Education is not hierarchical. A topic like Vectors appears in Mathematics, Phys
 - Seeding the initial Nigerian secondary curriculum as graph data requires more upfront effort than creating folders. This is the correct investment — every downstream capability benefits permanently.
 
 ---
+
+## Decision #010 — Fire-and-Forget Event Bus for Cross-Domain Communication
+
+**Date:** 2026-06-29
+**Status:** Accepted
+
+**Decision:**
+TeachNexis server actions emit typed domain events after successful data writes using a fire-and-forget event bus (`lib/events.ts`). Events are dispatched asynchronously without blocking the calling request. Handlers are registered at module load time and run in background microtasks.
+
+**Rationale:**
+Tightly coupling server actions to downstream side effects (analytics ingestion, notification dispatch, cache invalidation, audit logging) creates fragile dependencies and increases response latency. A fire-and-forget event bus allows any number of handlers to react to a business event without the originating action knowing or caring about them. This pattern is the prerequisite for agent-observable workflows: an AI orchestration layer can subscribe to events like `attendance.saved` and trigger adaptive interventions without modifying classroom management code.
+
+**Impact:**
+- `lib/events.ts` provides `emit(event, payload)` and `on(event, handler)` with full error isolation
+- Server actions for attendance, health, exams, and report cards emit typed events after successful writes
+- Contract definitions now include `Events Produced` and `Events Consumed` sections
+- Event names follow `domain.entity.action-past-tense` convention (e.g., `attendance.saved`, `health.record.updated`)
+- No handler failure can propagate back to the calling server action — errors are caught and logged
+
+**Alternatives Considered:**
+- Synchronous callback chains — rejected: adds latency and couples domains tightly
+- Upstash QStash webhook queue — deferred: adds infrastructure complexity; in-process bus is sufficient at current scale; can migrate to durable queue when agent workloads require it
+- Next.js `after()` hook — deferred: correct abstraction but not yet stable in production; revisit when GA
+
+**Trade-offs Accepted:**
+- In-process bus is non-durable: events are lost on cold start. Acceptable for current use cases (analytics, soft notifications). Durable queue will be added when any handler requires at-least-once delivery.
+
+---
