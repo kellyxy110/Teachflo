@@ -200,17 +200,9 @@ export function routeToModel(intent: Intent): RouteResult {
 
 // ── Fallback Chain ─────────────────────────────────────────────────────────
 
-function tutoringFallbackChain(): Intent[] {
-  if (process.env.CEREBRAS_API_KEY) {
-    return ["tutoring", "general", "complex"];
-  }
-  return ["tutoring", "general", "complex"];
-}
-
 const FALLBACK_CHAIN: Intent[] = ["general", "complex"];
 
 function getFallbackChain(primary: Intent): Intent[] {
-  if (primary === "tutoring") return tutoringFallbackChain();
   return [primary, ...FALLBACK_CHAIN.filter((i) => i !== primary)];
 }
 

@@ -1,93 +1,59 @@
-import OpenAI from "openai";
+import type OpenAI from "openai";
+import { getGroqClient, GROQ_MODELS } from "@/lib/ai/providers/groq";
+import { getOpenRouterClient, OPENROUTER_MODELS } from "@/lib/ai/providers/openrouter";
 
-// ── Groq (lesson rewriting, fast fallback) ───────────────────────────────
-export const GROQ_MODEL = "llama-3.3-70b-versatile";
+// Re-export client factories so existing imports keep working
+export { getGroqClient, getOpenRouterClient };
 
-export function getGroqClient(): OpenAI {
-  if (!process.env.GROQ_API_KEY) {
-    throw new Error("GROQ_API_KEY is not set");
-  }
-  return new OpenAI({
-    apiKey: process.env.GROQ_API_KEY,
-    baseURL: "https://api.groq.com/openai/v1",
-  });
-}
+// Backward-compat aliases
+export const GROQ_MODEL = GROQ_MODELS.TEACHING;
+export const OPENROUTER_EXAM_MODEL   = OPENROUTER_MODELS.EXAM;
+export const OPENROUTER_LESSON_MODEL = OPENROUTER_MODELS.REASONING;
 
-// ── OpenRouter client ────────────────────────────────────────────────────
-export const OPENROUTER_EXAM_MODEL   = "deepseek/deepseek-v4-flash:free";
-export const OPENROUTER_LESSON_MODEL = "qwen/qwen3-next-80b-a3b-instruct:free";
-
-const MODEL_KEY_MAP: Record<string, string> = {
-  "deepseek/deepseek-v4-flash:free":            "OPENROUTER_KEY_DEEPSEEK",
-  "qwen/qwen3-next-80b-a3b-instruct:free":      "OPENROUTER_KEY_QWEN",
-  "meta-llama/llama-3.3-70b-instruct:free":     "OPENROUTER_KEY_LLAMA",
-  "google/gemma-4-31b-it:free":                 "OPENROUTER_KEY_GEMMA",
-  "moonshotai/kimi-k2.6:free":                  "OPENROUTER_KEY_KIMI",
-  "nousresearch/hermes-3-llama-3.1-405b:free":  "OPENROUTER_KEY_HERMES",
-};
-
-export function getOpenRouterClient(model?: string): OpenAI {
-  let apiKey: string | undefined;
-  if (model) {
-    const envVar = MODEL_KEY_MAP[model];
-    if (envVar) apiKey = process.env[envVar];
-  }
-  if (!apiKey) apiKey = process.env.OPENROUTER_API_KEY;
-  if (!apiKey) throw new Error("No OpenRouter API key available");
-
-  return new OpenAI({
-    apiKey,
-    baseURL: "https://openrouter.ai/api/v1",
-    defaultHeaders: {
-      "HTTP-Referer": "https://teachflow-os.vercel.app",
-      "X-Title": "TeachFlow OS",
-    },
-  });
-}
-
-// ── Model fallback lists ─────────────────────────────────────────────────
+// ── Model fallback lists ──────────────────────────────────────────────────
 // Ordered by preference. All free-tier via OpenRouter.
-// If the primary model is unavailable/rate-limited, the next is tried.
+// Primary is tried first; remaining are fallbacks if rate-limited or unavailable.
 
 export const LESSON_MODELS = [
-  "qwen/qwen3-next-80b-a3b-instruct:free",
-  "minimax/minimax-m3:free",
-  "anthropic/claude-sonnet-4.5:free",
-  "openai/gpt-oss-120b:free",
-  "nvidia/nemotron-3-ultra-550b-a55b:free",
-  "nousresearch/hermes-3-llama-3.1-405b:free",
-  "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free",
-  "google/gemma-4-31b-it:free",
-  "google/gemma-4-26b-a4b-it:free",
-  "meta-llama/llama-3.3-70b-instruct:free",
-  "nvidia/nemotron-3-nano-30b-a3b:free",
+  OPENROUTER_MODELS.REASONING,       // Qwen3 80B — primary lesson model
+  OPENROUTER_MODELS.MINIMAX_M3,
+  OPENROUTER_MODELS.SONNET_4_5,
+  OPENROUTER_MODELS.GPT_OSS,
+  OPENROUTER_MODELS.NEMOTRON_ULTRA,
+  OPENROUTER_MODELS.FRONTIER,
+  OPENROUTER_MODELS.NEMOTRON_REASON,
+  OPENROUTER_MODELS.MULTIMODAL,
+  OPENROUTER_MODELS.GEMMA_26B,
+  OPENROUTER_MODELS.GENERAL,
+  OPENROUTER_MODELS.NEMOTRON_30B,
 ] as const;
 
 export const EXAM_MODELS = [
-  "deepseek/deepseek-v4-flash:free",
-  "minimax/minimax-m3:free",
-  "anthropic/claude-sonnet-4.5:free",
-  "openai/gpt-oss-120b:free",
-  "nvidia/nemotron-3-ultra-550b-a55b:free",
-  "qwen/qwen3-next-80b-a3b-instruct:free",
-  "nousresearch/hermes-3-llama-3.1-405b:free",
-  "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free",
-  "meta-llama/llama-3.3-70b-instruct:free",
+  OPENROUTER_MODELS.EXAM,            // DeepSeek V4 Flash — primary exam model
+  OPENROUTER_MODELS.MINIMAX_M3,
+  OPENROUTER_MODELS.SONNET_4_5,
+  OPENROUTER_MODELS.GPT_OSS,
+  OPENROUTER_MODELS.NEMOTRON_ULTRA,
+  OPENROUTER_MODELS.REASONING,
+  OPENROUTER_MODELS.FRONTIER,
+  OPENROUTER_MODELS.NEMOTRON_REASON,
+  OPENROUTER_MODELS.GENERAL,
 ] as const;
 
 export const DOCUMENT_MODELS = [
-  "google/gemma-4-31b-it:free",
-  "minimax/minimax-m3:free",
-  "anthropic/claude-sonnet-4.5:free",
-  "openai/gpt-oss-120b:free",
-  "nvidia/nemotron-nano-12b-v2-vl:free",
-  "google/gemma-4-26b-a4b-it:free",
-  "nvidia/nemotron-3-ultra-550b-a55b:free",
-  "nousresearch/hermes-3-llama-3.1-405b:free",
-  "qwen/qwen3-next-80b-a3b-instruct:free",
+  OPENROUTER_MODELS.MULTIMODAL,      // Gemma 4 31B — primary document model
+  OPENROUTER_MODELS.MINIMAX_M3,
+  OPENROUTER_MODELS.SONNET_4_5,
+  OPENROUTER_MODELS.GPT_OSS,
+  OPENROUTER_MODELS.NEMOTRON_12B,
+  OPENROUTER_MODELS.GEMMA_26B,
+  OPENROUTER_MODELS.NEMOTRON_ULTRA,
+  OPENROUTER_MODELS.FRONTIER,
+  OPENROUTER_MODELS.REASONING,
 ] as const;
 
-// ── Fallback helpers ─────────────────────────────────────────────────────
+// ── Streaming / completion utilities ─────────────────────────────────────
+// Both functions try models in order, fall back to Groq as last resort.
 
 type Messages = OpenAI.Chat.Completions.ChatCompletionMessageParam[];
 
@@ -103,10 +69,6 @@ interface CompletionOpts extends StreamOpts {
 const MODEL_TIMEOUT_MS = 8000;
 const MAX_FALLBACK_ATTEMPTS = 4;
 
-/**
- * Tries each model in order (max 4), returning the first successful stream.
- * Each model gets 8s before timeout. Falls back to Groq as final attempt.
- */
 export async function openRouterStream(
   models: readonly string[],
   messages: Messages,
@@ -117,13 +79,16 @@ export async function openRouterStream(
 
   for (const model of candidates) {
     try {
-      const stream = await getOpenRouterClient(model).chat.completions.create({
-        model,
-        messages,
-        stream: true,
-        temperature: opts.temperature ?? 0.7,
-        max_tokens: opts.max_tokens ?? 2000,
-      }, { signal: AbortSignal.timeout(MODEL_TIMEOUT_MS) });
+      const stream = await getOpenRouterClient(model).chat.completions.create(
+        {
+          model,
+          messages,
+          stream: true,
+          temperature: opts.temperature ?? 0.7,
+          max_tokens: opts.max_tokens ?? 2000,
+        },
+        { signal: AbortSignal.timeout(MODEL_TIMEOUT_MS) }
+      );
       return stream;
     } catch (e) {
       lastError = e instanceof Error ? e : new Error(String(e));
@@ -132,13 +97,16 @@ export async function openRouterStream(
 
   if (process.env.GROQ_API_KEY) {
     try {
-      const stream = await getGroqClient().chat.completions.create({
-        model: GROQ_MODEL,
-        messages,
-        stream: true,
-        temperature: opts.temperature ?? 0.7,
-        max_tokens: opts.max_tokens ?? 2000,
-      }, { signal: AbortSignal.timeout(MODEL_TIMEOUT_MS) });
+      const stream = await getGroqClient().chat.completions.create(
+        {
+          model: GROQ_MODELS.TEACHING,
+          messages,
+          stream: true,
+          temperature: opts.temperature ?? 0.7,
+          max_tokens: opts.max_tokens ?? 2000,
+        },
+        { signal: AbortSignal.timeout(MODEL_TIMEOUT_MS) }
+      );
       return stream;
     } catch (e) {
       lastError = e instanceof Error ? e : new Error(String(e));
@@ -148,10 +116,6 @@ export async function openRouterStream(
   throw lastError ?? new Error("All AI models failed");
 }
 
-/**
- * Tries each model in order (max 4), returning the first successful completion.
- * Each model gets 8s before timeout. Falls back to Groq as final attempt.
- */
 export async function openRouterCompletion(
   models: readonly string[],
   messages: Messages,
@@ -162,13 +126,16 @@ export async function openRouterCompletion(
 
   for (const model of candidates) {
     try {
-      const completion = await getOpenRouterClient(model).chat.completions.create({
-        model,
-        messages,
-        temperature: opts.temperature ?? 0.4,
-        max_tokens: opts.max_tokens ?? 6000,
-        ...(opts.json ? { response_format: { type: "json_object" as const } } : {}),
-      }, { signal: AbortSignal.timeout(MODEL_TIMEOUT_MS) });
+      const completion = await getOpenRouterClient(model).chat.completions.create(
+        {
+          model,
+          messages,
+          temperature: opts.temperature ?? 0.4,
+          max_tokens: opts.max_tokens ?? 6000,
+          ...(opts.json ? { response_format: { type: "json_object" as const } } : {}),
+        },
+        { signal: AbortSignal.timeout(MODEL_TIMEOUT_MS) }
+      );
       return { completion, model };
     } catch (e) {
       lastError = e instanceof Error ? e : new Error(String(e));
@@ -177,13 +144,16 @@ export async function openRouterCompletion(
 
   if (process.env.GROQ_API_KEY) {
     try {
-      const completion = await getGroqClient().chat.completions.create({
-        model: GROQ_MODEL,
-        messages,
-        temperature: opts.temperature ?? 0.4,
-        max_tokens: opts.max_tokens ?? 6000,
-      }, { signal: AbortSignal.timeout(MODEL_TIMEOUT_MS) });
-      return { completion, model: GROQ_MODEL };
+      const completion = await getGroqClient().chat.completions.create(
+        {
+          model: GROQ_MODELS.TEACHING,
+          messages,
+          temperature: opts.temperature ?? 0.4,
+          max_tokens: opts.max_tokens ?? 6000,
+        },
+        { signal: AbortSignal.timeout(MODEL_TIMEOUT_MS) }
+      );
+      return { completion, model: GROQ_MODELS.TEACHING };
     } catch (e) {
       lastError = e instanceof Error ? e : new Error(String(e));
     }

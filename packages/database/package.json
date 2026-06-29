@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "db:generate": "prisma generate",
+    "db:generate": "prisma generate && node -e \"const{cpSync}=require('fs');cpSync('../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/.prisma/client','../../apps/web/node_modules/.prisma/client',{recursive:true,force:true});console.log('Copied .prisma/client to apps/web');\"",
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate dev",
     "db:studio": "prisma studio"

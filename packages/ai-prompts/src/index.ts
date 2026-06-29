@@ -2,6 +2,19 @@ export type LessonMode = "STANDARD" | "ELI12" | "WAEC" | "JAMB" | "JUPEB";
 export type Difficulty = "BASIC" | "APPLICATION" | "WAEC" | "JAMB" | "JUPEB";
 export type ExamType = "SCHOOL_TEST" | "SCHOOL_EXAM" | "WAEC_MOCK" | "JAMB_PREP" | "JUPEB_PREP";
 
+// Curriculum Intelligence Graph context injected into lesson prompts
+export interface CIGContext {
+  description: string;
+  bloomLevels: string[];
+  examStandards: string[];
+  keywords: string[];
+  misconceptions: string[];
+  formulae: Record<string, string> | null;
+  prerequisites: string[];
+  crossSubjectConnections: { topic: string; subject: string }[];
+  difficulty: string;
+}
+
 export interface LessonInput {
   subject: string;
   classLevel: string;
@@ -9,6 +22,7 @@ export interface LessonInput {
   week?: number | null;
   term?: string | null;
   periods?: number | null;
+  cigContext?: CIGContext;
 }
 
 export interface RewriteInput {
@@ -39,6 +53,41 @@ export function lessonMaxTokens(periods: number | null | undefined): number {
   return Math.min(3000 + p * 2000, 8000);
 }
 
+function buildCIGBlock(cig: CIGContext): string {
+  const lines: string[] = [
+    "",
+    "CURRICULUM INTELLIGENCE CONTEXT — use this data to anchor every section of the lesson:",
+    `• Topic description: ${cig.description}`,
+    `• Bloom's taxonomy levels to address: ${cig.bloomLevels.join(", ")}`,
+    `• Examination alignment: ${cig.examStandards.join(", ")}`,
+    `• Key terms to define and use: ${cig.keywords.join(", ")}`,
+    `• Difficulty level: ${cig.difficulty}`,
+  ];
+
+  if (cig.misconceptions.length > 0) {
+    lines.push("• Common student misconceptions — address EACH of these explicitly in Teaching Content:");
+    cig.misconceptions.forEach((m, i) => lines.push(`  ${i + 1}. ${m}`));
+  }
+
+  if (cig.formulae && Object.keys(cig.formulae).length > 0) {
+    lines.push("• Key formulae to include in Worked Examples:");
+    Object.entries(cig.formulae).forEach(([formula, label]) =>
+      lines.push(`  – ${label}: ${formula}`)
+    );
+  }
+
+  if (cig.prerequisites.length > 0) {
+    lines.push(`• Entry Behaviour — students should already know: ${cig.prerequisites.join(", ")}`);
+  }
+
+  if (cig.crossSubjectConnections.length > 0) {
+    const links = cig.crossSubjectConnections.map((c) => `${c.topic} (${c.subject})`).join(", ");
+    lines.push(`• Cross-subject connections to mention: ${links}`);
+  }
+
+  return lines.join("\n");
+}
+
 export const buildLessonPrompt = (input: LessonInput): string => {
   const periods = Math.max(1, input.periods ?? 1);
   const totalMinutes = periods * 45;
@@ -46,6 +95,8 @@ export const buildLessonPrompt = (input: LessonInput): string => {
     periods === 1
       ? "45 minutes"
       : `${periods} periods × 45 minutes (${totalMinutes} minutes total)`;
+
+  const cigBlock = input.cigContext ? buildCIGBlock(input.cigContext) : "";
 
   const header = `
 You are an experienced Nigerian secondary school educator with deep knowledge of the Nigerian national curriculum, WAEC, JAMB, and JUPEB syllabi.
@@ -59,6 +110,7 @@ Number of Periods: ${periods}
 Total Duration: ${durationLabel}
 Week: ${input.week ?? "Not specified"}
 Term: ${input.term ?? "First Term"}
+${cigBlock}
 `.trim();
 
   const rules = `

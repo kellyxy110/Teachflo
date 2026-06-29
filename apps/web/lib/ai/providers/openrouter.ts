@@ -11,6 +11,7 @@ export const OPENROUTER_MODELS = {
   // Extended free-tier models
   GPT_OSS:         "openai/gpt-oss-120b:free",
   NEMOTRON_ULTRA:  "nvidia/nemotron-3-ultra-550b-a55b:free",
+  NEMOTRON_SUPER:  "nvidia/nemotron-3-super-120b-a12b:free",
   NEMOTRON_REASON: "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free",
   NEMOTRON_30B:    "nvidia/nemotron-3-nano-30b-a3b:free",
   NEMOTRON_12B:    "nvidia/nemotron-nano-12b-v2-vl:free",
@@ -18,6 +19,12 @@ export const OPENROUTER_MODELS = {
   GEMMA_26B:       "google/gemma-4-26b-a4b-it:free",
   QWEN_CODER:      "qwen/qwen3-coder:free",
   LLAMA_3B:        "meta-llama/llama-3.2-3b-instruct:free",
+  // Coding-specialist models (sourced from OmniRoute free-tier catalog)
+  LAGUNA_M:        "poolside/laguna-m.1:free",
+  LAGUNA_XS:       "poolside/laguna-xs.2:free",
+  ARCEE_TRINITY:   "arcee-ai/trinity-large-preview:free",
+  STEP_FLASH:      "stepfun/step-3.7-flash:free",
+  NEX_N2:          "nex-agi/nex-n2-pro:free",
   // Premium models (free while available — fallback skips if unavailable)
   MINIMAX_M3:      "minimax/minimax-m3:free",
   SONNET_4_5:      "anthropic/claude-sonnet-4.5:free",

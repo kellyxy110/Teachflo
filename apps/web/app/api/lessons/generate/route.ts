@@ -1,7 +1,9 @@
-import { buildLessonPrompt, lessonMaxTokens } from "@teachflow/ai-prompts";
+import { buildLessonPrompt, lessonMaxTokens, type CIGContext } from "@teachflow/ai-prompts";
 import { safeAuth } from "@/lib/auth";
 import { openRouterStream, LESSON_MODELS } from "@/lib/ai";
 import { rateLimit } from "@/lib/rate-limit";
+import { getTopicByLabel, getTopicContext } from "@/lib/curriculum-graph";
+import type { ClassLevel, Term } from "@prisma/client";
 
 export const maxDuration = 120;
 
@@ -27,8 +29,33 @@ export async function POST(request: Request) {
     return Response.json({ error: "subject, classLevel, and topic are required" }, { status: 400 });
   }
 
+  // Enrich with CIG context — non-fatal if lookup fails or node not found
+  let cigContext: CIGContext | undefined;
+  try {
+    const node = await getTopicByLabel(topic, subject, classLevel as ClassLevel, term as Term | undefined);
+    if (node) {
+      const ctx = await getTopicContext(node.id);
+      cigContext = {
+        description: node.description ?? "",
+        bloomLevels: ctx.bloomLevels,
+        examStandards: ctx.examStandards,
+        keywords: node.keywords,
+        misconceptions: ctx.misconceptions,
+        formulae: ctx.formulae,
+        prerequisites: ctx.prerequisites.map((p) => p.label),
+        crossSubjectConnections: ctx.crossSubjectConnections.map((c) => ({
+          topic: c.node.label,
+          subject: c.subject,
+        })),
+        difficulty: node.difficulty ?? "MEDIUM",
+      };
+    }
+  } catch {
+    // CIG lookup is best-effort — lesson generation continues without it
+  }
+
   const periodCount = typeof periods === "number" && periods >= 1 ? Math.min(periods, 20) : 1;
-  const prompt = buildLessonPrompt({ subject, classLevel, topic, week, term, periods: periodCount });
+  const prompt = buildLessonPrompt({ subject, classLevel, topic, week, term, periods: periodCount, cigContext });
 
   let stream: Awaited<ReturnType<typeof openRouterStream>>;
   try {

@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import {
   Code2, Play, CheckCircle, XCircle, ChevronRight,
   Globe, Palette, Zap, Terminal, Lock,
+  Sparkles, Send, X, Loader2,
 } from "lucide-react";
 
 // ── Types ────────────────────────────────────────────────────────
@@ -932,6 +933,14 @@ export function CodeLabClient() {
   const [showSolution, setShowSolution] = useState(false);
   const [completed, setCompleted] = useState<Set<string>>(new Set());
 
+  // AI assistant state
+  const [aiOpen, setAiOpen] = useState(false);
+  const [aiQuestion, setAiQuestion] = useState("");
+  const [aiResponse, setAiResponse] = useState("");
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
+  const aiAbortRef = useRef<AbortController | null>(null);
+
   const lessons = CURRICULUM[lang];
   const lesson = lessons[lessonIdx];
   const progress = lessons.filter((l) => completed.has(l.id)).length;
@@ -958,6 +967,51 @@ export function CodeLabClient() {
       selectLesson(lang, lessonIdx + 1);
     }
   }, [lessonIdx, lessons.length, lang, selectLesson]);
+
+  const askAI = useCallback(async (question: string) => {
+    if (aiLoading) { aiAbortRef.current?.abort(); setAiLoading(false); return; }
+    if (!question.trim()) return;
+    setAiLoading(true);
+    setAiResponse("");
+    setAiError(null);
+    aiAbortRef.current = new AbortController();
+
+    try {
+      const res = await fetch("/api/coding-lab/assist", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          code,
+          language: lang,
+          question,
+          lessonTitle: lesson.title,
+          lessonInstruction: lesson.instruction,
+        }),
+        signal: aiAbortRef.current.signal,
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: "AI assistant unavailable" }));
+        setAiError(err.error ?? "AI assistant unavailable");
+        return;
+      }
+
+      const reader = res.body?.getReader();
+      if (!reader) { setAiError("No response from AI"); return; }
+      const decoder = new TextDecoder();
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        setAiResponse((prev) => prev + decoder.decode(value, { stream: true }));
+      }
+    } catch (e) {
+      if ((e as Error).name !== "AbortError") {
+        setAiError((e as Error).message ?? "AI assistant failed");
+      }
+    } finally {
+      setAiLoading(false);
+    }
+  }, [aiLoading, code, lang, lesson]);
 
 
   return (
@@ -1152,8 +1206,85 @@ export function CodeLabClient() {
                 Next Lesson <ChevronRight size={14} />
               </button>
             )}
+
+            <button
+              onClick={() => { setAiOpen((o) => !o); setAiResponse(""); setAiError(null); }}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors ml-auto"
+              style={aiOpen
+                ? { borderColor: "var(--color-primary)", color: "var(--color-primary)", background: "var(--color-primary-bg, rgba(59,130,246,0.08))" }
+                : { borderColor: "var(--color-border)", color: "var(--color-text-2)" }
+              }
+            >
+              <Sparkles size={12} />
+              AI Help
+            </button>
           </div>
         </div>
+
+        {/* AI Assistant Panel */}
+        {aiOpen && (
+          <div className="bg-surface border border-border rounded-xl overflow-hidden">
+            <div className="flex items-center justify-between px-4 py-2.5 border-b border-border bg-bg">
+              <div className="flex items-center gap-2">
+                <Sparkles size={14} className="text-primary" />
+                <span className="text-xs font-bold text-text-2 uppercase tracking-wide">AI Coding Assistant</span>
+              </div>
+              <button onClick={() => setAiOpen(false)} className="p-1 rounded hover:bg-border/60 text-muted transition-colors">
+                <X size={14} />
+              </button>
+            </div>
+
+            {/* Quick actions */}
+            <div className="flex flex-wrap gap-2 px-4 py-3 border-b border-border bg-bg/50">
+              {["Explain my code", "Debug this", "Give me a hint", "Review my code"].map((q) => (
+                <button
+                  key={q}
+                  onClick={() => { setAiQuestion(q); askAI(q); }}
+                  disabled={aiLoading}
+                  className="text-xs px-3 py-1.5 rounded-full border border-border text-text-2 hover:border-primary/50 hover:text-primary transition-colors disabled:opacity-40"
+                >
+                  {q}
+                </button>
+              ))}
+            </div>
+
+            {/* Response */}
+            {(aiResponse || aiLoading || aiError) && (
+              <div className="px-4 py-4 max-h-[300px] overflow-y-auto">
+                {aiError ? (
+                  <p className="text-sm text-danger">{aiError}</p>
+                ) : aiLoading && !aiResponse ? (
+                  <div className="flex items-center gap-2 text-sm text-muted">
+                    <Loader2 size={14} className="animate-spin" />
+                    Thinking…
+                  </div>
+                ) : (
+                  <pre className="text-sm text-text whitespace-pre-wrap font-mono leading-relaxed">{aiResponse}</pre>
+                )}
+              </div>
+            )}
+
+            {/* Custom question input */}
+            <div className="flex items-center gap-2 px-4 py-3 border-t border-border bg-bg">
+              <input
+                type="text"
+                value={aiQuestion}
+                onChange={(e) => setAiQuestion(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); askAI(aiQuestion); } }}
+                placeholder="Ask anything about your code…"
+                disabled={aiLoading}
+                className="flex-1 text-sm px-3 py-2 rounded-lg border border-border bg-bg text-text placeholder:text-muted focus:outline-none focus:border-primary/60 disabled:opacity-40"
+              />
+              <button
+                onClick={() => askAI(aiQuestion)}
+                disabled={aiLoading || !aiQuestion.trim()}
+                className="p-2 rounded-lg bg-primary text-white hover:bg-primary/90 transition-colors disabled:opacity-40"
+              >
+                {aiLoading ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Preview (HTML/CSS only) */}
         {(lang === "html" || lang === "css") && (

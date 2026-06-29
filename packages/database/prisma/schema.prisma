@@ -741,6 +741,91 @@ model HealthRecord {
 }
 
 // ─────────────────────────────────────────────
+// CURRICULUM INTELLIGENCE GRAPH (CIG) — CUR-001
+// ─────────────────────────────────────────────
+
+enum NodeType {
+  SUBJECT
+  TOPIC
+  CONCEPT
+  SKILL
+  LEARNING_OBJECTIVE
+  EXAM_STANDARD
+}
+
+enum EdgeRelation {
+  REQUIRES
+  EXTENDS
+  PART_OF
+  RELATED_TO
+  ASSESSED_BY
+  VISUALIZED_BY
+  PRACTICED_BY
+  APPEARS_IN
+  TEACHES_BEFORE
+  TEACHES_AFTER
+  CROSS_SUBJECT
+}
+
+enum CurriculumDifficulty {
+  EASY
+  MEDIUM
+  HARD
+}
+
+model CurriculumNode {
+  id               String                @id @default(cuid())
+  schoolId         String?
+  type             NodeType
+  label            String
+  description      String?
+  subject          String?
+  classLevel       ClassLevel?
+  term             Term?
+  week             Int?
+  difficulty       CurriculumDifficulty?
+  estimatedMinutes Int?
+  bloomLevels      String[]
+  examStandards    String[]
+  keywords         String[]
+  misconceptions   String[]
+  formulae         Json?
+  metadata         Json?
+  version          Int                   @default(1)
+  createdBy        String?
+  isActive         Boolean               @default(true)
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @updatedAt
+
+  outgoing CurriculumEdge[] @relation("EdgeSource")
+  incoming CurriculumEdge[] @relation("EdgeTarget")
+
+  @@index([type])
+  @@index([subject, classLevel, term])
+  @@index([schoolId])
+  @@map("curriculum_nodes")
+}
+
+model CurriculumEdge {
+  id           String       @id @default(cuid())
+  sourceId     String
+  targetId     String
+  relationship EdgeRelation
+  weight       Float?       @default(1.0)
+  metadata     Json?
+  createdAt    DateTime     @default(now())
+
+  source CurriculumNode @relation("EdgeSource", fields: [sourceId], references: [id], onDelete: Cascade)
+  target CurriculumNode @relation("EdgeTarget", fields: [targetId], references: [id], onDelete: Cascade)
+
+  @@unique([sourceId, targetId, relationship])
+  @@index([sourceId])
+  @@index([targetId])
+  @@index([relationship])
+  @@map("curriculum_edges")
+}
+
+// ─────────────────────────────────────────────
 // VECTOR TABLES (pgvector — managed via raw SQL)
 // ─────────────────────────────────────────────
 
