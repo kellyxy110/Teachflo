@@ -64,6 +64,19 @@ body {
   --foreground: #f1f5f9;
 }
 
+/* ── Teacher dashboard theme ─────────────────────────────────── */
+/* Gives teachers a distinct blue-indigo canvas vs the neutral student bg */
+.teacher-dash {
+  --color-bg: #eef2ff;
+  --color-surface: #ffffff;
+  --background: #eef2ff;
+}
+.dark .teacher-dash {
+  --color-bg: #080d1c;
+  --color-surface: #0d1530;
+  --background: #080d1c;
+}
+
 /* ── Landing page dark theme ─────────────────────────────────── */
 .landing {
   --l-bg: #04081a;

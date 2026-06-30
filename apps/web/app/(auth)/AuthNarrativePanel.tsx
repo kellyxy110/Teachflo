@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Image from "next/image";
+import { Logo } from "@/components/brand/Logo";
 
 const QUOTES = [
   { text: "Teaching is not delivery; it is awakening.", author: "Kellyxy" },
@@ -92,11 +92,7 @@ export function AuthNarrativePanel() {
       {/* Content */}
       <div className="relative z-10 max-w-lg space-y-10">
         {/* Logo + brand */}
-        <div className="flex items-center gap-3">
-          <div style={{ background: "white", borderRadius: "8px", padding: "3px 8px", lineHeight: 0 }}>
-            <Image src="/logo.png" alt="TeachNexis" width={90} height={36} style={{ objectFit: "contain", height: 36, width: "auto" }} />
-          </div>
-        </div>
+        <Logo variant="light" size="md" />
 
         {/* Purpose card */}
         <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6">

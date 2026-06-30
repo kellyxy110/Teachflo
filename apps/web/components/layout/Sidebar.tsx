@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useMobileNav } from "./MobileNavContext";
+import { Logo } from "@/components/brand/Logo";
 import {
   LayoutDashboard,
   GraduationCap,
@@ -82,10 +83,9 @@ export function Sidebar() {
       >
         {/* Logo + close */}
         <div className="px-4 py-5 border-b border-border flex items-center justify-between">
-          <div>
-            <h1 className="font-bold text-text text-lg leading-tight">TeachFlow OS</h1>
-            <p className="text-xs text-muted mt-0.5">School Management</p>
-          </div>
+          <Link href="/dashboard">
+            <Logo variant="dark" size="sm" />
+          </Link>
           <button
             onClick={close}
             className="p-1.5 rounded-lg text-muted hover:text-text hover:bg-border/20 transition-colors md:hidden"

@@ -28,7 +28,7 @@ export default async function DashboardLayout({
 
   return (
     <MobileNavProvider>
-      <div className="flex h-screen bg-bg transition-colors duration-200">
+      <div className="teacher-dash flex h-screen bg-bg transition-colors duration-200">
         <Sidebar />
         <div className="flex-1 flex flex-col ml-0 md:ml-56 overflow-hidden">
           <Header />
