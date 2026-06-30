@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Image from "next/image";
 
 const QUOTES = [
   { text: "Teaching is not delivery; it is awakening.", author: "Kellyxy" },
@@ -91,22 +92,19 @@ export function AuthNarrativePanel() {
       {/* Content */}
       <div className="relative z-10 max-w-lg space-y-10">
         {/* Logo + brand */}
-        <div>
-          <h1 className="text-3xl lg:text-4xl font-black text-white tracking-tight">
-            TeachFlow <span className="text-blue-400">OS</span>
-          </h1>
-          <p className="text-blue-300/60 text-sm font-medium mt-1.5">
-            AI Learning Operating System
-          </p>
+        <div className="flex items-center gap-3">
+          <div style={{ background: "white", borderRadius: "8px", padding: "3px 8px", lineHeight: 0 }}>
+            <Image src="/logo.png" alt="TeachNexis" width={90} height={36} style={{ objectFit: "contain", height: 36, width: "auto" }} />
+          </div>
         </div>
 
         {/* Purpose card */}
         <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6">
           <p className="text-sm font-medium text-blue-300/80 uppercase tracking-wider mb-2">
-            What is TeachFlow?
+            The Intelligent Teaching Platform
           </p>
           <p className="text-base text-slate-200 leading-relaxed">
-            TeachFlow helps educators teach, assess, and understand learners
+            TeachNexis helps educators teach, assess, and understand learners
             with AI-assisted clarity — aligned to WAEC, JAMB, and JUPEB standards.
           </p>
         </div>
@@ -149,7 +147,7 @@ export function AuthNarrativePanel() {
 
         {/* Bottom features */}
         <div className="flex flex-wrap gap-2">
-          {["Free Forever", "WAEC Ready", "7 AI Models", "JSS1–SS3"].map((tag) => (
+          {["Free Forever", "WAEC Ready", "18 AI Models", "JSS1–SS3"].map((tag) => (
             <span
               key={tag}
               className="text-[10px] font-bold uppercase tracking-wider text-emerald-400/70 bg-emerald-500/8 border border-emerald-500/15 rounded-full px-3 py-1"
@@ -163,7 +161,7 @@ export function AuthNarrativePanel() {
       {/* Bottom credit */}
       <div className="absolute bottom-6 left-0 right-0 text-center">
         <p className="text-[11px] text-slate-600">
-          Built by KellyxyHub
+          Built by KellyxyHub · <a href="https://teachnexis.vercel.app" className="hover:text-slate-400 transition-colors">teachnexis.vercel.app</a>
         </p>
       </div>
 
