@@ -1,9 +1,9 @@
 import { safeAuth } from "@/lib/auth";
-import { openRouterStream } from "@/lib/ai";
 import { rateLimit } from "@/lib/rate-limit";
 import {
-  CODING_MODELS,
   buildCodingAssistPrompt,
+  classifyCodingTask,
+  codingStream,
   type CodingAssistInput,
 } from "@/lib/ai/coding-router";
 
@@ -54,11 +54,13 @@ export async function POST(request: Request) {
     lessonInstruction,
   });
 
-  let stream: Awaited<ReturnType<typeof openRouterStream>>;
+  const task = classifyCodingTask(question);
+
+  let result: Awaited<ReturnType<typeof codingStream>>;
   try {
-    stream = await openRouterStream(
-      CODING_MODELS,
+    result = await codingStream(
       [{ role: "user", content: prompt }],
+      task,
       { max_tokens: 800, temperature: 0.5 },
     );
   } catch (e) {
@@ -69,14 +71,14 @@ export async function POST(request: Request) {
   const encoder = new TextEncoder();
   const readable = new ReadableStream({
     async start(controller) {
-      for await (const chunk of stream) {
+      for await (const chunk of result.stream) {
         const text = chunk.choices[0]?.delta?.content ?? "";
         if (text) controller.enqueue(encoder.encode(text));
       }
       controller.close();
     },
     cancel() {
-      stream.controller.abort();
+      result.stream.controller.abort();
     },
   });
 
@@ -84,6 +86,8 @@ export async function POST(request: Request) {
     headers: {
       "Content-Type": "text/plain; charset=utf-8",
       "X-Accel-Buffering": "no",
+      "X-Coding-Task": task,
+      "X-Model-Provider": result.providerUsed,
     },
   });
 }
