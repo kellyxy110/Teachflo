@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next";
 
-const BASE = "https://teachflow-os.vercel.app";
+const BASE = "https://teachnexis.vercel.app";
 
 export default function sitemap(): MetadataRoute.Sitemap {
   return [

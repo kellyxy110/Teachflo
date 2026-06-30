@@ -7,7 +7,7 @@ import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"] });
 
-const SITE_URL = "https://teachflow-oos.vercel.app";
+const SITE_URL = "https://teachnexis.vercel.app";
 const OG_IMAGE = `${SITE_URL}/opengraph-image`;
 
 export const viewport: Viewport = {

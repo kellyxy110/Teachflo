@@ -25,7 +25,7 @@ TeachFlow OS is a free, AI-driven platform built for Nigerian teachers and stude
 
 ## Technical Stack
 
-Next.js 16, Turborepo, Prisma, Supabase PostgreSQL + pgvector, Clerk authentication, Jina embeddings (1024-dim), Tavily search.
+Next.js 15 (App Router), Turborepo, Prisma, Supabase PostgreSQL + pgvector, Clerk authentication, Jina embeddings (1024-dim), Tavily search.
 
 ## Coverage
 
@@ -36,7 +36,7 @@ Next.js 16, Turborepo, Prisma, Supabase PostgreSQL + pgvector, Clerk authenticat
 
 ## Links
 
-- Website: https://teachflow-os.vercel.app
+- Website: https://teachnexis.vercel.app
 - GitHub: https://github.com/kellyxy110/Teachflo
 - Documentation: See DOCS.md in the repository
 - FAQ: See FAQ.md in the repository

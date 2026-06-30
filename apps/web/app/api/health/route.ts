@@ -1,34 +1,35 @@
 import { db } from "@/lib/db";
+import { safeAuth } from "@/lib/auth";
 import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
+  // Require authentication — this endpoint reveals internal config state
+  try {
+    const { userId } = await safeAuth();
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+  } catch {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const checks: Record<string, { ok: boolean; detail?: string }> = {};
 
-  // Check env vars
+  // Check env vars — never expose key values or DB credentials
   const pubKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY ?? "";
   checks.clerk_key = {
     ok: pubKey.startsWith("pk_test_") || pubKey.startsWith("pk_live_"),
-    detail: pubKey ? `starts_with:${pubKey.slice(0, 8)}` : "missing",
   };
 
   const secKey = process.env.CLERK_SECRET_KEY ?? "";
   checks.clerk_secret = {
     ok: secKey.startsWith("sk_test_") || secKey.startsWith("sk_live_"),
-    detail: secKey ? `starts_with:${secKey.slice(0, 8)}` : "missing",
   };
 
-  const rawUrl = process.env.DATABASE_URL ?? "";
-  let parsedUser = "unknown";
-  try {
-    parsedUser = new URL(rawUrl).username;
-  } catch {}
   checks.database_url = {
-    ok: !!rawUrl,
-    detail: rawUrl
-      ? `user=${parsedUser} host=${new URL(rawUrl).hostname}:${new URL(rawUrl).port}`
-      : "missing",
+    ok: !!(process.env.DATABASE_URL),
   };
 
   // Check DB connectivity
@@ -39,7 +40,7 @@ export async function GET() {
     const msg = err instanceof Error ? err.message : String(err);
     checks.database = {
       ok: false,
-      detail: msg.slice(0, 200),
+      detail: msg.slice(0, 100),
     };
   }
 
