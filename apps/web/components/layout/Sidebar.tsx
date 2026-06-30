@@ -23,6 +23,9 @@ import {
   ClipboardCheck,
   HeartPulse,
   Award,
+  Calculator,
+  Activity,
+  Atom,
   X,
 } from "lucide-react";
 
@@ -43,6 +46,9 @@ const navItems = [
   { href: "/knowledge-studio", label: "Knowledge Studio", icon: FlaskConical },
   { href: "/intelligence", label: "Intelligence", icon: Brain },
   { href: "/code-lab", label: "Code Lab", icon: Code2 },
+  { href: "/math-workspace", label: "Math Workspace", icon: Calculator },
+  { href: "/physics-lab", label: "Physics Lab", icon: Activity },
+  { href: "/chem-lab", label: "Chemistry Lab", icon: Atom },
   { href: "/import", label: "Smart Import", icon: Upload },
   { href: "/beta", label: "Beta Hub", icon: TestTube2 },
 ];

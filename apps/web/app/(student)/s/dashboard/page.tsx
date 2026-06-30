@@ -3,7 +3,7 @@ import { db } from "@/lib/db";
 import Link from "next/link";
 import {
   FileText, Sparkles, Code2, Gamepad2,
-  TrendingUp, Target, Award,
+  TrendingUp, Target, Award, Calculator, Activity, Atom,
 } from "lucide-react";
 
 export default async function StudentDashboardPage() {
@@ -53,6 +53,9 @@ export default async function StudentDashboardPage() {
           { href: "/s/study-buddy", label: "Study Buddy", icon: Sparkles, color: "text-amber-500", bg: "bg-amber-500/10" },
           { href: "/s/code-lab", label: "Code Lab", icon: Code2, color: "text-green-500", bg: "bg-green-500/10" },
           { href: "/s/practice-arena", label: "Practice Arena", icon: Gamepad2, color: "text-purple-500", bg: "bg-purple-500/10" },
+          { href: "/s/math-workspace", label: "Math Workspace", icon: Calculator, color: "text-blue-500", bg: "bg-blue-500/10" },
+          { href: "/s/physics-lab", label: "Physics Lab", icon: Activity, color: "text-orange-500", bg: "bg-orange-500/10" },
+          { href: "/s/chem-lab", label: "Chemistry Lab", icon: Atom, color: "text-teal-500", bg: "bg-teal-500/10" },
         ].map(({ href, label, icon: Icon, color, bg }) => (
           <Link
             key={href}
