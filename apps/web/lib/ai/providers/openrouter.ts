@@ -42,8 +42,8 @@ const MODEL_KEY_MAP: Record<string, string> = {
 };
 
 const DEFAULT_HEADERS = {
-  "HTTP-Referer": "https://teachflow-os.vercel.app",
-  "X-Title": "TeachFlow OS",
+  "HTTP-Referer": "https://teachnexis.vercel.app",
+  "X-Title": "TeachNexis",
 };
 
 function resolveKey(model?: string): string {
