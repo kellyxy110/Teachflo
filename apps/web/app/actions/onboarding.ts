@@ -44,7 +44,7 @@ export async function setupSchool(formData: FormData) {
       schoolId: school.id,
       firstName: user.firstName ?? "Teacher",
       lastName: user.lastName ?? "",
-      email: user.emailAddresses[0]?.emailAddress ?? "",
+      email: user.email ?? "",
       role: "ADMIN",
     },
   });
