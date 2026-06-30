@@ -150,6 +150,24 @@ export function HeroSection() {
           {" · "}
           <span style={{ color: "#10b981" }}>✓</span> Set up in 2 minutes
         </motion.p>
+
+        {/* Student entry point */}
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.6, delay: 0.65 }}
+          className="mt-3 text-sm"
+          style={{ color: "#334155" }}
+        >
+          Are you a student?{" "}
+          <Link
+            href="/sign-in"
+            className="font-semibold transition-opacity hover:opacity-80"
+            style={{ color: "#10b981" }}
+          >
+            Sign in to your student portal →
+          </Link>
+        </motion.p>
       </div>
 
       {/* Scroll indicator */}

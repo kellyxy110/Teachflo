@@ -108,6 +108,13 @@ export function LandingNav() {
               Sign in
             </Link>
             <Link
+              href="/student-onboarding"
+              className="hidden md:inline-block px-4 py-2 rounded-xl text-sm font-semibold transition-all"
+              style={{ color: "#10b981" }}
+            >
+              Student
+            </Link>
+            <Link
               href="/sign-up"
               className="px-5 py-2.5 rounded-xl text-sm font-bold transition-all hover:scale-105"
               style={{
