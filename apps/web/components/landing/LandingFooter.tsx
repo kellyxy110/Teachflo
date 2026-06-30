@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useRef } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { motion } from "framer-motion";
 import { Github, Twitter, Mail, ExternalLink, Zap } from "lucide-react";
 
@@ -80,7 +81,6 @@ export function LandingFooter() {
           viewport={{ once: true }}
           className="relative z-10"
         >
-          <div className="text-4xl mb-3">🚀</div>
           <h2 className="text-3xl font-black mb-3" style={{ color: "#f1f5f9" }}>
             Ready to teach smarter?
           </h2>
@@ -111,8 +111,25 @@ export function LandingFooter() {
         <div className="grid grid-cols-2 md:grid-cols-5 gap-10 mb-12">
           {/* Brand */}
           <div className="col-span-2 md:col-span-2">
-            <div className="font-black text-2xl mb-3" style={{ color: "#f1f5f9" }}>
-              Teach<span className="gradient-text">Nexis</span>
+            <div className="mb-3">
+              <div
+                style={{
+                  background: "white",
+                  borderRadius: "8px",
+                  padding: "4px 10px",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  lineHeight: 0,
+                }}
+              >
+                <Image
+                  src="/logo.png"
+                  alt="TeachNexis"
+                  width={110}
+                  height={44}
+                  style={{ objectFit: "contain", height: 44, width: "auto" }}
+                />
+              </div>
             </div>
             <p className="text-sm leading-relaxed mb-6 max-w-xs" style={{ color: "#475569" }}>
               AI-powered learning operating system for Nigerian secondary schools. JSS1 to SS3. WAEC, JAMB, JUPEB aligned.

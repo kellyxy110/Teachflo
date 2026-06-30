@@ -54,6 +54,14 @@ export const metadata: Metadata = {
       "Generate WAEC lessons in 10 seconds. Free AI study tools for JSS1–SS3.",
     images: [OG_IMAGE],
   },
+  icons: {
+    icon: [
+      { url: "/logo.png", type: "image/png", sizes: "512x512" },
+      { url: "/favicon.ico", sizes: "any" },
+    ],
+    apple: { url: "/logo.png", sizes: "180x180", type: "image/png" },
+    shortcut: "/favicon.ico",
+  },
   robots: {
     index: true,
     follow: true,

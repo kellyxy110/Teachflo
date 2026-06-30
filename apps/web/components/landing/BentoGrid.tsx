@@ -239,7 +239,7 @@ function DailyChallenge() {
             <Flame size={18} style={{ color: "#f59e0b" }} />
           </div>
           <span className="text-sm font-bold" style={{ color: "#e2e8f0" }}>Daily Challenge</span>
-          <span className="ml-auto text-xs font-bold" style={{ color: "#f59e0b" }}>🔥 New daily</span>
+          <span className="ml-auto text-xs font-bold" style={{ color: "#f59e0b" }}>New daily</span>
         </div>
         <div className="flex-1 rounded-xl p-4 mb-4"
           style={{ background: "rgba(245,158,11,0.06)", border: "1px solid rgba(245,158,11,0.15)" }}>

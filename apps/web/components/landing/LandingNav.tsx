@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { Calculator as CalcIcon, Menu, X } from "lucide-react";
 import { Calculator } from "./Calculator";
@@ -29,13 +30,26 @@ export function LandingNav() {
         />
         <div className="relative max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2">
-            <span
-              className="font-black text-lg tracking-tight"
-              style={{ color: "#f1f5f9" }}
+          <Link href="/" className="flex items-center">
+            <div
+              style={{
+                background: "white",
+                borderRadius: "8px",
+                padding: "3px 8px",
+                lineHeight: 0,
+                display: "inline-flex",
+                alignItems: "center",
+              }}
             >
-              Teach<span className="gradient-text">Nexis</span>
-            </span>
+              <Image
+                src="/logo.png"
+                alt="TeachNexis"
+                width={96}
+                height={38}
+                style={{ objectFit: "contain", height: 38, width: "auto" }}
+                priority
+              />
+            </div>
           </Link>
 
           {/* Desktop nav */}
