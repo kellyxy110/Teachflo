@@ -17,10 +17,11 @@ const securityHeaders = [
     value: [
       "default-src 'self'",
       "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://clerk.teachnexis.vercel.app https://*.clerk.accounts.dev https://js.stripe.com",
+      "worker-src blob: 'self'",
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "font-src 'self' https://fonts.gstatic.com",
       "img-src 'self' data: blob: https://img.clerk.com https://images.unsplash.com",
-      "connect-src 'self' https://*.clerk.accounts.dev https://api.clerk.dev wss://*.clerk.accounts.dev https://openrouter.ai https://api.groq.com https://api.cerebras.ai https://ingest.sentry.io",
+      "connect-src 'self' blob: https://*.clerk.accounts.dev https://api.clerk.dev wss://*.clerk.accounts.dev https://openrouter.ai https://api.groq.com https://api.cerebras.ai https://ingest.sentry.io",
       "frame-ancestors 'none'",
     ].join("; "),
   },
