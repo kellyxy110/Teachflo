@@ -1,22 +1,22 @@
 import { redirect } from "next/navigation";
 import { db } from "./db";
 import { getRoleFromMetadata, type UserRole, type Permission, can } from "./roles";
+import { authService } from "./auth/service";
 
 const CLERK_KEY = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
 
-// ─── Safe Clerk wrappers ──────────────────────────────────────────────────────
-// Redirect to /setup when env vars are not configured instead of crashing.
+// ─── Auth service wrappers ────────────────────────────────────────────────────
+// All auth goes through authService — never import @clerk/nextjs directly
+// outside lib/auth/adapters/clerk.ts.
 
 export async function safeAuth() {
   if (!CLERK_KEY) redirect("/setup");
-  const { auth } = await import("@clerk/nextjs/server");
-  return auth();
+  return authService.getSession();
 }
 
 export async function safeCurrentUser() {
   if (!CLERK_KEY) return null;
-  const { currentUser } = await import("@clerk/nextjs/server");
-  return currentUser();
+  return authService.getCurrentUser();
 }
 
 // ─── Teacher auth ─────────────────────────────────────────────────────────────

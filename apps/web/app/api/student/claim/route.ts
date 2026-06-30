@@ -1,4 +1,5 @@
-import { safeAuth } from "@/lib/auth";
+import { safeAuth, safeCurrentUser } from "@/lib/auth";
+import { authService } from "@/lib/auth/service";
 import { db } from "@/lib/db";
 import { rateLimit } from "@/lib/rate-limit";
 
@@ -50,22 +51,18 @@ export async function POST(request: Request) {
     return Response.json({ error: "This student record is already linked to another account" }, { status: 409 });
   }
 
-  const { clerkClient } = await import("@clerk/nextjs/server");
-  const client = await clerkClient();
-  const clerkUser = await client.users.getUser(userId);
-  const email = clerkUser.emailAddresses[0]?.emailAddress ?? null;
+  const currentUser = await safeCurrentUser();
+  const email = currentUser?.email ?? null;
 
   await db.student.update({
     where: { id: student.id },
     data: { clerkId: userId, email },
   });
 
-  await client.users.updateUserMetadata(userId, {
-    publicMetadata: {
-      role: "student",
-      schoolId: school.id,
-      studentId: student.id,
-    },
+  await authService.setUserMetadata(userId, {
+    role: "student",
+    schoolId: school.id,
+    studentId: student.id,
   });
 
   return Response.json({ success: true, studentId: student.id });

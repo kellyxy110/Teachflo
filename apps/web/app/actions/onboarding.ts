@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import { safeAuth, safeCurrentUser } from "@/lib/auth";
+import { authService } from "@/lib/auth/service";
 
 export async function setupSchool(formData: FormData) {
   const { userId } = await safeAuth();
@@ -48,14 +49,10 @@ export async function setupSchool(formData: FormData) {
     },
   });
 
-  // Stamp role + schoolId onto the Clerk user so middleware can read it
+  // Stamp role + schoolId onto the user so middleware can read it
   // from the JWT without a DB round-trip on every request.
   try {
-    const { clerkClient } = await import("@clerk/nextjs/server");
-    const client = await clerkClient();
-    await client.users.updateUserMetadata(userId, {
-      publicMetadata: { role: "school_admin", schoolId: school.id },
-    });
+    await authService.setUserMetadata(userId, { role: "school_admin", schoolId: school.id });
   } catch {
     // Non-fatal — app works without metadata, just no RBAC in middleware
   }

@@ -4,8 +4,10 @@ import { buildBlueprint } from "@/lib/exam-v2/blueprint";
 import type { ExamModeType } from "@/lib/exam-v2/types";
 
 export async function POST(request: Request) {
+  let userId: string | null = null;
   try {
-    const { userId } = await safeAuth();
+    const session = await safeAuth();
+    userId = session.userId ?? null;
     if (!userId) return Response.json({ error: "Unauthorized" }, { status: 401 });
   } catch {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
@@ -18,7 +20,7 @@ export async function POST(request: Request) {
     return Response.json({ error: "Missing required fields" }, { status: 400 });
   }
 
-  const teacher = await db.teacher.findUnique({ where: { clerkId: (await (await import("@clerk/nextjs/server")).auth()).userId! } });
+  const teacher = await db.teacher.findUnique({ where: { clerkId: userId } });
   if (!teacher) return Response.json({ error: "Teacher not found" }, { status: 403 });
 
   const skills = await db.$queryRawUnsafe<
