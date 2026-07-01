@@ -10,5 +10,6 @@ dist
 .vercel
 .env.sentry-build-plugin
 .env.verify
+.env.vercel
 
 .vercel
