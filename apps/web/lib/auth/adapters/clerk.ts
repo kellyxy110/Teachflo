@@ -9,11 +9,11 @@ import type { IAuthService, AuthSession, AuthUser } from "../types";
 export class ClerkAdapter implements IAuthService {
   async getSession(): Promise<AuthSession> {
     const { auth } = await import("@clerk/nextjs/server");
-    const session = auth();
+    const session = await auth();
     return {
-      userId: (session as { userId?: string | null }).userId ?? null,
-      sessionId: (session as { sessionId?: string | null }).sessionId ?? null,
-      sessionClaims: (session as { sessionClaims?: Record<string, unknown> }).sessionClaims ?? {},
+      userId: session.userId ?? null,
+      sessionId: session.sessionId ?? null,
+      sessionClaims: (session.sessionClaims as Record<string, unknown>) ?? {},
     };
   }
 
