@@ -2,7 +2,7 @@ import { safeAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { chunkText } from "@/lib/chunker";
 import { storeDocumentChunks } from "@/lib/vector-search";
-import { PDFParse } from "pdf-parse";
+import pdfParse from "pdf-parse";
 import { rateLimit } from "@/lib/rate-limit";
 
 export const maxDuration = 60;
@@ -37,39 +37,36 @@ export async function POST(request: Request) {
   if (!file)
     return Response.json({ error: "No file provided" }, { status: 400 });
   if (!title || !subject)
-    return Response.json(
-      { error: "title and subject are required" },
-      { status: 400 }
-    );
+    return Response.json({ error: "title and subject are required" }, { status: 400 });
 
   if (file.type !== "application/pdf") {
-    return Response.json(
-      { error: "Only PDF files are supported" },
-      { status: 400 }
-    );
+    return Response.json({ error: "Only PDF files are supported" }, { status: 400 });
   }
 
+  // Verify PDF magic bytes
   const header = new Uint8Array(await file.slice(0, 5).arrayBuffer());
-  const isPdf = header[0] === 0x25 && header[1] === 0x50 && header[2] === 0x44 && header[3] === 0x46 && header[4] === 0x2D;
+  const isPdf =
+    header[0] === 0x25 && header[1] === 0x50 &&
+    header[2] === 0x44 && header[3] === 0x46 && header[4] === 0x2d;
   if (!isPdf) {
     return Response.json({ error: "Invalid PDF file" }, { status: 400 });
   }
 
   const MAX_SIZE = 10 * 1024 * 1024;
   if (file.size > MAX_SIZE) {
-    return Response.json(
-      { error: "File must be under 10MB" },
-      { status: 400 }
-    );
+    return Response.json({ error: "File must be under 10 MB" }, { status: 400 });
   }
 
+  const validLevels = ["JS1", "JS2", "JS3", "SS1", "SS2", "SS3"];
   const doc = await db.document.create({
     data: {
       schoolId: teacher.schoolId,
       teacherId: teacher.id,
       title,
       subject,
-      classLevel: (["JS1","JS2","JS3","SS1","SS2","SS3"].includes(classLevel ?? "") ? classLevel as "JS1"|"JS2"|"JS3"|"SS1"|"SS2"|"SS3" : null),
+      classLevel: validLevels.includes(classLevel ?? "")
+        ? (classLevel as "JS1" | "JS2" | "JS3" | "SS1" | "SS2" | "SS3")
+        : null,
       fileName: file.name,
       mimeType: file.type,
       fileSize: file.size,
@@ -79,24 +76,17 @@ export async function POST(request: Request) {
 
   try {
     const arrayBuffer = await file.arrayBuffer();
-    const parser = new PDFParse({ data: new Uint8Array(arrayBuffer) });
-    const textResult = await parser.getText();
-    await parser.destroy();
+    const buffer = Buffer.from(arrayBuffer);
+    const parsed = await pdfParse(buffer);
 
-    const text = textResult.text.trim();
+    const text = parsed.text?.trim() ?? "";
     if (!text) {
       await db.document.update({
         where: { id: doc.id },
-        data: {
-          status: "FAILED",
-          error: "No extractable text found in PDF",
-        },
+        data: { status: "FAILED", error: "No extractable text found in PDF" },
       });
       return Response.json(
-        {
-          error:
-            "PDF contains no extractable text (might be scanned/image-based)",
-        },
+        { error: "PDF contains no extractable text (scanned/image-based PDFs are not supported)" },
         { status: 422 }
       );
     }
@@ -105,12 +95,9 @@ export async function POST(request: Request) {
     if (chunks.length === 0) {
       await db.document.update({
         where: { id: doc.id },
-        data: {
-          status: "FAILED",
-          error: "Text extraction produced no usable chunks",
-        },
+        data: { status: "FAILED", error: "Text extraction produced no usable chunks" },
       });
-      return Response.json({ error: "No usable content" }, { status: 422 });
+      return Response.json({ error: "No usable content extracted" }, { status: 422 });
     }
 
     await storeDocumentChunks(
@@ -133,7 +120,7 @@ export async function POST(request: Request) {
       where: { id: doc.id },
       data: {
         status: "READY",
-        pageCount: textResult.total,
+        pageCount: parsed.numpages,
         chunkCount: chunks.length,
       },
     });
@@ -141,7 +128,7 @@ export async function POST(request: Request) {
     return Response.json({
       id: doc.id,
       status: "READY",
-      pages: textResult.total,
+      pages: parsed.numpages,
       chunks: chunks.length,
       characters: text.length,
     });

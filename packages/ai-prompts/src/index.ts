@@ -23,6 +23,8 @@ export interface LessonInput {
   term?: string | null;
   periods?: number | null;
   cigContext?: CIGContext;
+  /** Relevant excerpts retrieved from the school's uploaded subject PDFs */
+  textbookContext?: string;
 }
 
 export interface RewriteInput {
@@ -50,7 +52,7 @@ export interface ExamInput {
 // Returns token budget for a lesson based on period count
 export function lessonMaxTokens(periods: number | null | undefined): number {
   const p = Math.max(1, periods ?? 1);
-  return Math.min(3000 + p * 2000, 8000);
+  return Math.min(5000 + p * 3500, 16000);
 }
 
 function buildCIGBlock(cig: CIGContext): string {
@@ -98,11 +100,14 @@ export const buildLessonPrompt = (input: LessonInput): string => {
 
   const cigBlock = input.cigContext ? buildCIGBlock(input.cigContext) : "";
 
+  const textbookBlock = input.textbookContext
+    ? `\n\nTEXTBOOK CONTEXT — excerpts from this school's uploaded subject PDFs. Use this content to align examples, definitions, and notation with what students have already seen in class:\n---\n${input.textbookContext}\n---`
+    : "";
+
   const header = `
-You are an experienced Nigerian secondary school educator with deep knowledge of the Nigerian national curriculum, WAEC, JAMB, and JUPEB syllabi.
+You are a senior Nigerian secondary school teacher writing a classroom-ready lesson note. You have 20+ years of experience with WAEC, NECO, and JAMB marking schemes.
 
-Generate a detailed, classroom-ready lesson plan for the following:
-
+LESSON DETAILS:
 Subject: ${input.subject}
 Class: ${input.classLevel}
 Topic: ${input.topic}
@@ -110,90 +115,202 @@ Number of Periods: ${periods}
 Total Duration: ${durationLabel}
 Week: ${input.week ?? "Not specified"}
 Term: ${input.term ?? "First Term"}
-${cigBlock}
+${cigBlock}${textbookBlock}
 `.trim();
 
   const rules = `
-RULES:
-- Use classroom-friendly language appropriate for ${input.classLevel} students
-- Do NOT use phrases like "delve into", "explore", "let's dive", "certainly!", "absolutely!"
-- Ground analogies in Nigerian daily life (markets, traffic, cooking, farming, technology)
-- Include accurate content aligned with the Nigerian national curriculum and WAEC syllabus
-- Write EVERY section in full — do not truncate or summarise
-- Each period is 45 minutes long
-- The complete lesson note MUST be at least 1,200 words — expand every section with thorough explanations, detailed examples, and rich classroom content
+STRICT RULES — violating any of these means the lesson note is rejected:
+1. Language must suit ${input.classLevel} students — clear, direct, no waffle
+2. BANNED phrases: "delve into", "explore", "let us dive", "certainly!", "absolutely!", "In conclusion, this lesson has..."
+3. Nigerian-context analogies REQUIRED in teaching content (markets, keke, NEPA, farming, dangote, etc.)
+4. Every formula MUST appear in a labelled box like this:
+   ┌──────────────────────────────────┐
+   │ Formula Name: formula expression │
+   └──────────────────────────────────┘
+5. Every diagram (Venn, number line, graph, circuit, table) MUST be drawn using ASCII art — never say "draw a diagram here"
+6. Worked examples MUST be exactly 5, graduated Level 1 → Level 5 — do not combine or skip any level
+7. Class Exercise questions MUST be different from worked examples — never copy-paste
+8. Homework MUST be different from class exercises, and at least one question must be harder than any class exercise question
+9. The WAEC/JAMB Past Questions section MUST contain real questions with year and paper cited — not generic advice paragraphs
+10. Entry Behaviour MUST name specific prior topics from the Nigerian curriculum — never write "basic understanding of mathematics"
+11. Write every section in FULL — never truncate, summarise, or say "continue pattern..."
+12. Minimum total length: 2,000 words. More is better.
 `.trim();
+
+  // Reusable period body template
+  const periodBody = (n: number) => `
+### PERIOD ${n} (45 minutes)
+
+#### Period ${n} Objective
+[One sentence: the specific skill students master by the end of this period]
+
+#### ${n}.1 Teaching Content (20 minutes)
+[Full explanations with definitions, correct notation, and real Nigerian analogies. Number each concept.]
+
+[For every formula, use this exact box format:]
+┌──────────────────────────────────┐
+│ [Formula Name]: [expression]     │
+└──────────────────────────────────┘
+
+[For any diagram (Venn, number line, graph, circuit, etc.), draw it in ASCII. Example Venn:]
+        ┌────────────────────────────────┐
+        │ Universal Set (U)              │
+        │   ┌───────┐   ┌───────┐       │
+        │   │   A   │∩AB│   B   │       │
+        │   │  only │   │  only │       │
+        │   └───────┘   └───────┘       │
+        └────────────────────────────────┘
+
+#### ${n}.2 Worked Examples — 5 Levels (15 minutes)
+
+> These 5 examples MUST be present. Do not reduce to fewer. Each must be harder than the previous.
+
+**Example 1 — Level 1 (Definition / Identification):**
+**Q:** [Simple question testing a basic definition or notation]
+**Solution:**
+[Full step-by-step answer — show every line of reasoning]
+
+**Example 2 — Level 2 (Single Operation):**
+**Q:** [Applies one rule, formula, or operation]
+**Solution:**
+[Full step-by-step answer]
+
+**Example 3 — Level 3 (Combined Operations):**
+**Q:** [Requires two concepts or steps combined]
+**Solution:**
+[Full step-by-step answer]
+
+**Example 4 — Level 4 (WAEC-Style Word Problem):**
+**Q:** [Realistic scenario question in WAEC phrasing — "In a class of 40 students..." / "Given that..." etc.]
+**Solution:**
+[Full WAEC mark-scheme style answer, showing each awarded step]
+
+**Example 5 — Level 5 (Challenge):**
+**Q:** [Hardest variant — three-set problem / proof / extended multi-step / JUPEB-level]
+**Solution:**
+[Full step-by-step answer]
+
+#### ${n}.3 Class Exercise (7 minutes)
+*Students work individually. These questions must be different from the worked examples above.*
+
+1. [Question at difficulty Level 1–2]
+2. [Question at difficulty Level 2–3]
+3. [Question at difficulty Level 3–4]
+4. [WAEC-style question — different topic angle from Example 4]
+
+#### ${n}.4 Board Summary
+*Teacher writes these on the board. Students copy into notes.*
+
+• [Key definition 1]
+• [Key definition 2]
+• [Key formula or rule]
+• [Common notation / symbol meaning]
+• [Most common mistake students make — and how to avoid it]
+• [One exam tip]
+(Write 5–8 bullets — all specific, nothing vague)
+
+---`.trim();
 
   if (periods === 1) {
     return `${header}
 
-OUTPUT FORMAT — Return this exact structure in full:
+You are writing a SINGLE-PERIOD (45-minute) lesson note. Follow the exact 8-section structure below. Do not skip any section.
 
-## Lesson Plan: ${input.topic}
-**Subject:** ${input.subject} | **Class:** ${input.classLevel} | **Duration:** 45 minutes
+OUTPUT — copy this structure exactly and fill every placeholder:
+
+## Lesson Note: ${input.topic}
+**Subject:** ${input.subject} | **Class:** ${input.classLevel} | **Duration:** 45 minutes | **Term:** ${input.term ?? "First Term"} | **Week:** ${input.week ?? "—"}
 
 ---
 
-### Learning Objectives
+### 1. Learning Objectives
 By the end of this lesson, students should be able to:
-1. [Objective 1 — Knowledge/Recall level]
-2. [Objective 2 — Comprehension/Application level]
-3. [Objective 3 — Higher-order thinking/Analysis]
+1. [Objective — Knowledge/Recall, NERDC/WAEC syllabus keyword]
+2. [Objective — Comprehension/Application]
+3. [Objective — Analysis/Higher-order]
+(Write 3–5 objectives)
 
 ---
 
-### Entry Behaviour
-[What prior knowledge students need. One short paragraph.]
+### 2. Entry Behaviour
+*Name the exact prior topics from the Nigerian curriculum the students must know. Do NOT write "basic understanding of..."*
+[e.g., "Students must have covered: Number Systems (SS1), Basic Algebraic Expressions (JSS3), and Introduction to Logic (SS1 Term 1)."]
 
 ---
 
-### Introduction (5 minutes)
-[Hook activity or question to engage students. Real-world Nigerian context preferred.]
+### 3. Teaching Content (20 minutes)
+[Full content — definitions, notation, analogies, formula boxes, ASCII diagrams. Follow RULES 4 and 5.]
 
 ---
 
-### Main Teaching Content (30 minutes)
+### 4. Worked Examples — 5 Levels (15 minutes)
 
-#### Sub-topic 1: [Name]
-[Clear, accurate content. Use numbered steps for processes.]
+**Example 1 — Level 1 (Definition / Identification):**
+**Q:** [Question]
+**Solution:** [Full step-by-step]
 
-#### Sub-topic 2: [Name]
-[Continue...]
+**Example 2 — Level 2 (Single Operation):**
+**Q:** [Question]
+**Solution:** [Full step-by-step]
 
----
+**Example 3 — Level 3 (Combined Operations):**
+**Q:** [Question]
+**Solution:** [Full step-by-step]
 
-### Worked Examples
-Example 1:
-[Question + full step-by-step solution]
+**Example 4 — Level 4 (WAEC-Style Word Problem):**
+**Q:** [Question]
+**Solution:** [Full WAEC mark-scheme style]
 
-Example 2:
-[Question + full step-by-step solution]
-
----
-
-### Class Activities (7 minutes)
-**Individual Practice:**
-[2–3 short tasks students complete alone]
-
-**Group Discussion:**
-[1 discussion question or problem-solving activity]
+**Example 5 — Level 5 (Challenge):**
+**Q:** [Question]
+**Solution:** [Full step-by-step]
 
 ---
 
-### Evaluation Questions (3 minutes)
-1. [Question testing objective 1]
-2. [Question testing objective 2]
-3. [Question testing objective 3]
+### 5. Class Exercise (7 minutes)
+*Different from worked examples — never copy-paste questions from above.*
+1. [Question]
+2. [Question]
+3. [Question]
+4. [WAEC-style question]
 
 ---
 
-### Homework Assignment
-[1–2 practical or thought-provoking tasks]
+### 6. Board Summary
+*5–8 specific bullet points for students to copy:*
+• [Definition 1]
+• [Definition 2]
+• [Key formula]
+• [Key rule/notation]
+• [Common mistake + how to avoid it]
+• [Exam tip]
 
 ---
 
-### WAEC/Exam Connection
-[How this topic appears in WAEC/JAMB exams. Common question types and mark-scheme tips.]
+### 7. Homework Assignment
+*Harder than class exercise. None of these questions can appear in the class exercise.*
+1. [Question]
+2. [Harder question]
+3. [Challenge question]
+
+---
+
+### 8. WAEC / JAMB Past Questions
+*Real past questions. Cite year and paper. Write the full question and full model answer.*
+
+**WAEC [Year], Paper [X], Q[N]:**
+[Full question text]
+**Model Answer:**
+[Complete mark-scheme answer — every step as WAEC would award marks]
+
+**WAEC [Year], Paper [X], Q[N]:**
+[Full question text]
+**Model Answer:**
+[Complete answer]
+
+**JAMB [Year], Q[N]:**
+[MCQ question with 4 options A–D]
+**Answer: [X]** — [Explanation of why this option is correct and why others are wrong]
 
 ---
 
@@ -201,70 +318,67 @@ ${rules}`;
   }
 
   // Multi-period plan
-  const periodBodies = Array.from({ length: periods }, (_, i) => {
-    const n = i + 1;
-    return `
-### PERIOD ${n} (45 minutes)
-
-#### Period ${n} Objective
-[Specific skill or sub-topic covered in this period]
-
-#### Teaching Content (30 minutes)
-[Detailed content for this period. Numbered steps, definitions, worked calculations, diagrams described in words.]
-
-#### Worked Example
-[1 fully worked example relevant to this period's content]
-
-#### Class Activity (10 minutes)
-[Task students do in class — individual or pair work]
-
-#### Period ${n} Evaluation (5 minutes)
-1. [Question 1]
-2. [Question 2]
-
----`.trim();
-  }).join("\n\n");
+  const periodBodies = Array.from({ length: periods }, (_, i) => periodBody(i + 1)).join("\n\n");
 
   return `${header}
 
-This is a ${periods}-PERIOD lesson plan. You MUST write a complete section for every period (Period 1 through Period ${periods}). Do not stop early.
+You are writing a ${periods}-PERIOD lesson note. You MUST write EVERY section for EVERY period (Period 1 through Period ${periods}). Stopping early is not acceptable.
 
-OUTPUT FORMAT — Return this exact structure in full:
+OUTPUT — copy this structure exactly and fill every placeholder:
 
-## Lesson Plan: ${input.topic}
+## Lesson Note: ${input.topic}
 **Subject:** ${input.subject} | **Class:** ${input.classLevel} | **Periods:** ${periods} | **Total Duration:** ${durationLabel}
+**Term:** ${input.term ?? "First Term"} | **Week:** ${input.week ?? "—"}
 
 ---
 
 ### Overall Learning Objectives
 By the end of all ${periods} periods, students should be able to:
-1. [Objective 1 — Knowledge/Recall]
-2. [Objective 2 — Comprehension/Application]
-3. [Objective 3 — Analysis/Synthesis]
-4. [Objective 4 — Evaluation/Problem-solving]
-5. [Add more objectives as the scope of ${periods} periods requires]
+1. [Objective — Knowledge/Recall, tied to NERDC/WAEC syllabus keyword]
+2. [Objective — Comprehension/Application]
+3. [Objective — Analysis/Synthesis]
+4. [Objective — Evaluation/Problem-solving]
+5. [Add more as the scope of ${periods} periods requires]
 
 ---
 
 ### Entry Behaviour
-[What prior knowledge students need before Period 1. One short paragraph.]
+*Name the exact prior topics from the Nigerian curriculum — NOT generic phrases like "basic understanding."*
+[e.g., "Students must have covered: Number Systems (SS1 Term 1), Surds (SS2 Term 2), and Indices (SS2 Term 1)."]
 
 ---
 
 ### Period Overview
-${Array.from({ length: periods }, (_, i) => `- **Period ${i + 1}:** [Sub-topic title]`).join("\n")}
+${Array.from({ length: periods }, (_, i) => `- **Period ${i + 1}:** [Specific sub-topic title for this period]`).join("\n")}
 
 ---
 
 ${periodBodies}
 
 ### Homework Assignment
-[Assigned after the final period — 1–3 tasks that consolidate the entire ${periods}-period sequence]
+*Assigned after the final period. Must be harder than any class exercise. No question can repeat from any class exercise.*
+1. [Question]
+2. [Harder question]
+3. [Multi-step challenge question]
 
 ---
 
-### WAEC/Exam Connection
-[How all sub-topics covered across these ${periods} periods appear in WAEC/JAMB. List specific past-question patterns and mark-scheme tips for each sub-topic.]
+### WAEC / JAMB Past Questions
+*Real past questions on this topic. Cite year and paper. Write full question + full model answer for each.*
+
+**WAEC [Year], Paper [X], Q[N]:**
+[Full question text]
+**Model Answer:**
+[Complete mark-scheme answer — every step as WAEC would award marks]
+
+**WAEC [Year], Paper [X], Q[N]:**
+[Full question text]
+**Model Answer:**
+[Complete answer]
+
+**JAMB [Year], Q[N]:**
+[MCQ question with 4 options A–D]
+**Answer: [X]** — [Explanation of why correct + why distractors are wrong]
 
 ---
 
