@@ -135,6 +135,9 @@ STRICT RULES — violating any of these means the lesson note is rejected:
 10. Entry Behaviour MUST name specific prior topics from the Nigerian curriculum — never write "basic understanding of mathematics"
 11. Write every section in FULL — never truncate, summarise, or say "continue pattern..."
 12. Minimum total length: 2,000 words. More is better.
+13. TOPIC ROADMAP is mandatory — list every sub-topic in the full topic sequence, mark covered ones with ✅, mark next ones with ⏭️
+14. COMING UP NEXT is mandatory at the end of every period — name the exact sub-topics students will study in the next lesson/period
+15. ALL sub-topics assigned to each period MUST be fully taught with definitions, examples, and exercises — never mark a sub-topic as covered without writing the full content for it
 `.trim();
 
   // Reusable period body template
@@ -209,6 +212,12 @@ STRICT RULES — violating any of these means the lesson note is rejected:
 • [One exam tip]
 (Write 5–8 bullets — all specific, nothing vague)
 
+#### ${n}.5 Coming Up Next
+*Tell students exactly what the next lesson/period will cover so they can prepare mentally.*
+
+> **Next lesson:** [Name the specific sub-topics coming in Period ${n + 1} or the following lesson]
+> Students should review: [1–2 things they already know that will connect to the next sub-topic]
+
 ---`.trim();
 
   if (periods === 1) {
@@ -238,12 +247,24 @@ By the end of this lesson, students should be able to:
 
 ---
 
-### 3. Teaching Content (20 minutes)
-[Full content — definitions, notation, analogies, formula boxes, ASCII diagrams. Follow RULES 4 and 5.]
+### 3. Topic Roadmap
+*List EVERY sub-topic in the full ${input.topic} sequence for ${input.classLevel}. This lesson covers the ✅ rows in full. ⏭️ rows are previewed at the end. 🔒 rows are future lessons.*
+
+| # | Sub-topic | Status |
+|---|-----------|--------|
+| 1 | [Sub-topic 1] | ✅ |
+| 2 | [Sub-topic 2] | ⏭️ |
+| 3 | [Sub-topic 3] | 🔒 |
+[Continue for all sub-topics in the topic — minimum 6 rows]
 
 ---
 
-### 4. Worked Examples — 5 Levels (15 minutes)
+### 4. Teaching Content (20 minutes)
+*Cover EVERY sub-topic marked ✅ in the roadmap above — definitions, notation, analogies, formula boxes, ASCII diagrams. Do not skip any ✅ sub-topic.*
+
+---
+
+### 5. Worked Examples — 5 Levels (15 minutes)
 
 **Example 1 — Level 1 (Definition / Identification):**
 **Q:** [Question]
@@ -267,7 +288,7 @@ By the end of this lesson, students should be able to:
 
 ---
 
-### 5. Class Exercise (7 minutes)
+### 6. Class Exercise (7 minutes)
 *Different from worked examples — never copy-paste questions from above.*
 1. [Question]
 2. [Question]
@@ -276,7 +297,7 @@ By the end of this lesson, students should be able to:
 
 ---
 
-### 6. Board Summary
+### 7. Board Summary
 *5–8 specific bullet points for students to copy:*
 • [Definition 1]
 • [Definition 2]
@@ -287,7 +308,13 @@ By the end of this lesson, students should be able to:
 
 ---
 
-### 7. Homework Assignment
+### 8. Coming Up Next
+> **Next lesson:** [Name the specific sub-topics marked ⏭️ in the Topic Roadmap above]
+> Students should review: [1–2 prior concepts that connect directly to the next sub-topic]
+
+---
+
+### 9. Homework Assignment
 *Harder than class exercise. None of these questions can appear in the class exercise.*
 1. [Question]
 2. [Harder question]
@@ -295,7 +322,7 @@ By the end of this lesson, students should be able to:
 
 ---
 
-### 8. WAEC / JAMB Past Questions
+### 10. WAEC / JAMB Past Questions
 *Real past questions. Cite year and paper. Write the full question and full model answer.*
 
 **WAEC [Year], Paper [X], Q[N]:**
@@ -348,8 +375,21 @@ By the end of all ${periods} periods, students should be able to:
 
 ---
 
+### Topic Roadmap
+*List EVERY sub-topic in the full ${input.topic} sequence for ${input.classLevel}. Mark each with its status:*
+*✅ = covered in this lesson | ⏭️ = next lesson | 🔒 = future lesson*
+
+| # | Sub-topic | Status |
+|---|-----------|--------|
+| 1 | [Sub-topic 1] | ✅ / ⏭️ / 🔒 |
+| 2 | [Sub-topic 2] | ✅ / ⏭️ / 🔒 |
+| 3 | [Sub-topic 3] | ✅ / ⏭️ / 🔒 |
+[Continue for every sub-topic in the full topic — minimum 6 rows]
+
+---
+
 ### Period Overview
-${Array.from({ length: periods }, (_, i) => `- **Period ${i + 1}:** [Specific sub-topic title for this period]`).join("\n")}
+${Array.from({ length: periods }, (_, i) => `- **Period ${i + 1}:** [Specific sub-topic title for this period — must match a ✅ row in the roadmap above]`).join("\n")}
 
 ---
 
