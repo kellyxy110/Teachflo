@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useRef } from "react";
 import { updateSchool, updateTeacher } from "@/app/actions/settings";
-import { Star, User, GraduationCap, BookOpen, FileText, Shield } from "lucide-react";
+import { Star, User, GraduationCap, BookOpen, FileText, Shield, Upload } from "lucide-react";
 
 // ── Constants ─────────────────────────────────────────────────────
 
@@ -223,6 +223,12 @@ export function SettingsClient({ school, teacher }: Props) {
   const [schoolPending, startSchool] = useTransition();
   const [teacherPending, startTeacher] = useTransition();
 
+  // Photo upload state
+  const [photoPreview, setPhotoPreview] = useState<string | null>(teacher.photoUrl);
+  const [photoUrl, setPhotoUrl] = useState<string | null>(teacher.photoUrl);
+  const [photoUploading, setPhotoUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   // Local state for multi-selects (checkboxes need to be controlled)
   const [selectedSubjects, setSelectedSubjects] = useState<string[]>(teacher.subjects);
   const [selectedLevels, setSelectedLevels] = useState<string[]>(teacher.classLevels ?? []);
@@ -234,6 +240,33 @@ export function SettingsClient({ school, teacher }: Props) {
   function showToast(message: string, ok: boolean) {
     setToast({ message, ok });
     setTimeout(() => setToast(null), 3000);
+  }
+
+  async function handlePhotoChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Instant local preview
+    const reader = new FileReader();
+    reader.onload = (ev) => setPhotoPreview(ev.target?.result as string);
+    reader.readAsDataURL(file);
+
+    setPhotoUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await fetch("/api/teacher/upload-photo", { method: "POST", body: fd });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Upload failed");
+      setPhotoUrl(data.photoUrl);
+      showToast("Photo uploaded successfully", true);
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : "Upload failed", false);
+      setPhotoPreview(teacher.photoUrl);
+    } finally {
+      setPhotoUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
   }
 
   function handleSchool(formData: FormData) {
@@ -248,9 +281,10 @@ export function SettingsClient({ school, teacher }: Props) {
   }
 
   function handleTeacher(formData: FormData) {
-    // Inject multi-select values into form data
+    // Inject multi-select values and current photoUrl into form data
     selectedSubjects.forEach((s) => formData.append("subjects", s));
     selectedLevels.forEach((l) => formData.append("classLevels", l));
+    if (photoUrl) formData.set("photoUrl", photoUrl);
     startTeacher(async () => {
       try {
         await updateTeacher(formData);
@@ -281,9 +315,9 @@ export function SettingsClient({ school, teacher }: Props) {
 
         {/* ── Profile Card (live rating display) ── */}
         <div className="bg-gradient-to-r from-primary/5 to-purple-500/5 border border-primary/20 rounded-xl p-5 flex items-center gap-5">
-          {teacher.photoUrl ? (
+          {photoPreview ? (
             <img
-              src={teacher.photoUrl}
+              src={photoPreview}
               alt="Profile"
               className="w-16 h-16 rounded-full object-cover border-2 border-primary/30 shrink-0"
             />
@@ -365,25 +399,45 @@ export function SettingsClient({ school, teacher }: Props) {
             <div className="p-6 space-y-4">
               {/* Avatar */}
               <div className="flex items-center gap-5 pb-4 border-b border-border">
-                <div className="shrink-0">
-                  {teacher.photoUrl ? (
-                    <img src={teacher.photoUrl} alt="Avatar" className="w-20 h-20 rounded-full object-cover border-2 border-primary/30" />
+                <div className="shrink-0 relative">
+                  {photoPreview ? (
+                    <img src={photoPreview} alt="Avatar" className="w-20 h-20 rounded-full object-cover border-2 border-primary/30" />
                   ) : (
                     <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center text-primary text-2xl font-bold border-2 border-primary/20">
                       {teacher.firstName[0]}{teacher.lastName[0]}
                     </div>
                   )}
+                  {photoUploading && (
+                    <div className="absolute inset-0 rounded-full bg-black/50 flex items-center justify-center">
+                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    </div>
+                  )}
                 </div>
-                <div className="flex-1">
-                  <Field label="Profile Photo URL" hint="Paste a direct image URL. Accepted: Clerk avatar, Google, LinkedIn, or any public .jpg/.png link.">
+                <div>
+                  {/* Hidden field so the form action still picks up photoUrl */}
+                  <input name="photoUrl" type="hidden" value={photoUrl ?? ""} />
+                  <label className={`cursor-pointer inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border transition-colors ${photoUploading ? "opacity-50 cursor-not-allowed bg-bg border-border text-muted" : "bg-primary/10 text-primary border-primary/20 hover:bg-primary/20"}`}>
+                    <Upload size={14} />
+                    {photoPreview ? "Change Photo" : "Upload Photo"}
                     <input
-                      name="photoUrl"
-                      type="url"
-                      defaultValue={teacher.photoUrl ?? ""}
-                      placeholder="https://example.com/your-photo.jpg"
-                      className={inputCls}
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      className="sr-only"
+                      onChange={handlePhotoChange}
+                      disabled={photoUploading}
                     />
-                  </Field>
+                  </label>
+                  <p className="text-xs text-muted mt-1.5">JPEG, PNG, or WebP · Max 5 MB</p>
+                  {photoUrl && (
+                    <button
+                      type="button"
+                      onClick={() => { setPhotoPreview(null); setPhotoUrl(null); }}
+                      className="text-xs text-danger/70 hover:text-danger mt-1 block"
+                    >
+                      Remove photo
+                    </button>
+                  )}
                 </div>
               </div>
 
