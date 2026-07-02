@@ -47,7 +47,7 @@ export function WhyTeachNexisSection() {
     <section
       id="why"
       className="py-24 px-6"
-      style={{ background: "linear-gradient(180deg, #04081a 0%, #080d20 100%)" }}
+      style={{ background: "linear-gradient(180deg, #fdf8f0 0%, #fef9f0 100%)" }}
     >
       <div className="max-w-6xl mx-auto">
         {/* Heading */}
@@ -60,11 +60,11 @@ export function WhyTeachNexisSection() {
         >
           <span
             className="inline-block text-xs font-black uppercase tracking-[0.2em] mb-4 px-3 py-1.5 rounded-full"
-            style={{ background: "rgba(59,130,246,0.08)", color: "#60a5fa", border: "1px solid rgba(59,130,246,0.15)" }}
+            style={{ background: "rgba(37,99,235,0.08)", color: "#2563eb", border: "1px solid rgba(37,99,235,0.2)" }}
           >
             Why TeachNexis
           </span>
-          <h2 className="text-3xl sm:text-4xl md:text-5xl font-black leading-tight mb-4" style={{ color: "#f1f5f9" }}>
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-black leading-tight mb-4" style={{ color: "#0f172a" }}>
             Built different.<br />
             <span className="gradient-text">By design.</span>
           </h2>
@@ -85,18 +85,19 @@ export function WhyTeachNexisSection() {
               custom={i}
               className="relative rounded-2xl p-6 flex flex-col gap-4"
               style={{
-                background: `radial-gradient(ellipse at top left, ${p.glow} 0%, rgba(255,255,255,0.02) 60%)`,
-                border: "1px solid rgba(255,255,255,0.07)",
+                background: "#ffffff",
+                border: `1px solid ${p.color}22`,
+                boxShadow: `0 2px 16px ${p.glow}`,
               }}
             >
               <div
                 className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0"
-                style={{ background: `${p.color}18`, border: `1px solid ${p.color}30` }}
+                style={{ background: `${p.color}12`, border: `1px solid ${p.color}25` }}
               >
                 <p.icon size={20} style={{ color: p.color }} />
               </div>
               <div>
-                <h3 className="font-bold text-base mb-1.5" style={{ color: "#f1f5f9" }}>{p.title}</h3>
+                <h3 className="font-bold text-base mb-1.5" style={{ color: "#0f172a" }}>{p.title}</h3>
                 <p className="text-sm leading-relaxed" style={{ color: "#64748b" }}>{p.body}</p>
               </div>
             </motion.div>

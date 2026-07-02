@@ -34,7 +34,7 @@ export function PricingSection() {
     <section
       id="pricing"
       className="py-24 px-6"
-      style={{ background: "linear-gradient(180deg, #080d20 0%, #04081a 100%)" }}
+      style={{ background: "linear-gradient(180deg, #fefce8 0%, #fef9f0 100%)" }}
     >
       <div className="max-w-5xl mx-auto">
         {/* Heading */}
@@ -51,7 +51,7 @@ export function PricingSection() {
           >
             Simple Pricing
           </span>
-          <h2 className="text-3xl sm:text-4xl md:text-5xl font-black leading-tight mb-4" style={{ color: "#f1f5f9" }}>
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-black leading-tight mb-4" style={{ color: "#0f172a" }}>
             Honest pricing.<br />
             <span className="gradient-text">Free means free.</span>
           </h2>
@@ -70,14 +70,14 @@ export function PricingSection() {
             transition={{ duration: 0.5 }}
             className="rounded-3xl p-8 relative overflow-hidden"
             style={{
-              background: "linear-gradient(135deg, rgba(59,130,246,0.08), rgba(139,92,246,0.08))",
-              border: "1px solid rgba(59,130,246,0.2)",
+              background: "linear-gradient(135deg, rgba(37,99,235,0.06), rgba(217,119,6,0.06))",
+              border: "1px solid rgba(37,99,235,0.2)",
             }}
           >
             {/* Glow */}
             <div
               className="absolute top-0 left-0 right-0 h-40 pointer-events-none"
-              style={{ background: "radial-gradient(ellipse at top, rgba(59,130,246,0.06), transparent 70%)" }}
+              style={{ background: "radial-gradient(ellipse at top, rgba(37,99,235,0.05), transparent 70%)" }}
             />
 
             <div className="relative z-10">
@@ -85,15 +85,15 @@ export function PricingSection() {
                 <Zap size={16} style={{ color: "#60a5fa" }} />
                 <span className="text-xs font-black uppercase tracking-widest" style={{ color: "#60a5fa" }}>Free Forever</span>
               </div>
-              <div className="text-5xl font-black mb-1" style={{ color: "#f1f5f9" }}>₦0</div>
+              <div className="text-5xl font-black mb-1" style={{ color: "#0f172a" }}>₦0</div>
               <p className="text-sm mb-8" style={{ color: "#64748b" }}>No credit card. No expiry. No catch.</p>
 
               <Link
                 href="/sign-up"
                 className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl font-black text-white text-sm mb-8 transition-all hover:scale-[1.02]"
                 style={{
-                  background: "linear-gradient(135deg, #3b82f6, #8b5cf6)",
-                  boxShadow: "0 0 30px rgba(59,130,246,0.3)",
+                  background: "linear-gradient(135deg, #d97706, #2563eb)",
+                  boxShadow: "0 0 30px rgba(217,119,6,0.25)",
                 }}
               >
                 <Zap size={15} /> Start for free — no card needed
@@ -118,15 +118,15 @@ export function PricingSection() {
             transition={{ duration: 0.5, delay: 0.1 }}
             className="rounded-3xl p-8 relative"
             style={{
-              background: "rgba(255,255,255,0.02)",
-              border: "1px solid rgba(255,255,255,0.07)",
+              background: "#ffffff",
+              border: "1px solid rgba(0,0,0,0.08)",
             }}
           >
             <div className="flex items-center gap-2 mb-2">
-              <Lock size={14} style={{ color: "#a78bfa" }} />
-              <span className="text-xs font-black uppercase tracking-widest" style={{ color: "#a78bfa" }}>Pro — Coming Soon</span>
+              <Lock size={14} style={{ color: "#6366f1" }} />
+              <span className="text-xs font-black uppercase tracking-widest" style={{ color: "#6366f1" }}>Pro — Coming Soon</span>
             </div>
-            <div className="text-5xl font-black mb-1" style={{ color: "#64748b" }}>₦?</div>
+            <div className="text-5xl font-black mb-1" style={{ color: "#94a3b8" }}>₦?</div>
             <p className="text-sm mb-8" style={{ color: "#475569" }}>Pricing will be set based on affordability for Nigerian schools.</p>
 
             <div

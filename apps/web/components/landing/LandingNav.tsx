@@ -22,10 +22,10 @@ export function LandingNav() {
           className="absolute inset-0"
           style={{
             opacity: bgOpacity,
-            background: "rgba(4,8,26,0.85)",
+            background: "rgba(12,26,62,0.92)",
             backdropFilter: "blur(20px)",
             WebkitBackdropFilter: "blur(20px)",
-            borderBottom: "1px solid rgba(255,255,255,0.06)",
+            borderBottom: "1px solid rgba(255,255,255,0.08)",
           }}
         />
         <div className="relative max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
@@ -125,7 +125,7 @@ export function LandingNav() {
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             className="absolute top-16 left-0 right-0 md:hidden"
-            style={{ background: "rgba(4,8,26,0.95)", borderBottom: "1px solid rgba(255,255,255,0.06)", backdropFilter: "blur(20px)" }}
+            style={{ background: "rgba(12,26,62,0.97)", borderBottom: "1px solid rgba(255,255,255,0.08)", backdropFilter: "blur(20px)" }}
           >
             <div className="px-6 py-4 space-y-3">
               {[

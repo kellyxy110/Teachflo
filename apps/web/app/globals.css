@@ -77,39 +77,35 @@ body {
   --background: #080d1c;
 }
 
-/* ── Landing page dark theme ─────────────────────────────────── */
+/* ── Landing page theme ──────────────────────────────────────── */
 .landing {
-  --l-bg: #04081a;
-  --l-surface: rgba(13, 22, 53, 0.6);
-  --l-border: rgba(255, 255, 255, 0.08);
-  --l-text: #e2e8f0;
-  --l-text-2: #94a3b8;
-  --l-blue: #3b82f6;
-  --l-purple: #8b5cf6;
-  --l-cyan: #06b6d4;
-  --l-green: #10b981;
-  --l-glow-blue: 0 0 40px rgba(59, 130, 246, 0.3);
-  --l-glow-purple: 0 0 40px rgba(139, 92, 246, 0.3);
+  --l-bg: #fdf8f0;
+  --l-surface: rgba(255, 255, 255, 0.85);
+  --l-border: rgba(0, 0, 0, 0.07);
+  --l-text: #0f172a;
+  --l-text-2: #374151;
+  --l-blue: #2563eb;
+  --l-amber: #d97706;
+  --l-green: #059669;
+  --l-glow-blue: 0 0 40px rgba(37, 99, 235, 0.2);
+  --l-glow-amber: 0 0 40px rgba(217, 119, 6, 0.2);
   background: var(--l-bg);
   color: var(--l-text);
 }
 
 .landing .glass {
-  background: rgba(13, 22, 53, 0.5);
+  background: rgba(255, 255, 255, 0.7);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(0, 0, 0, 0.07);
 }
 
 .landing .glow-blue { box-shadow: var(--l-glow-blue); }
-.landing .glow-purple { box-shadow: var(--l-glow-purple); }
+.landing .glow-amber { box-shadow: var(--l-glow-amber); }
 
-.landing .neon-text-blue { color: #60a5fa; text-shadow: 0 0 20px rgba(96, 165, 250, 0.6); }
-.landing .neon-text-purple { color: #a78bfa; text-shadow: 0 0 20px rgba(167, 139, 250, 0.6); }
-
-/* Gradient text utility */
+/* Gradient text utility — amber → blue */
 .gradient-text {
-  background: linear-gradient(135deg, #60a5fa, #a78bfa, #06b6d4);
+  background: linear-gradient(135deg, #d97706, #2563eb);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;

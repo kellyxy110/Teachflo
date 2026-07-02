@@ -59,7 +59,7 @@ export function LandingFooter() {
     <footer
       ref={sectionRef}
       style={{
-        background: "linear-gradient(180deg, #04081a, #020510)",
+        background: "linear-gradient(180deg, #0c1a3e, #07102b)",
         borderTop: "1px solid rgba(255,255,255,0.06)",
       }}
     >
@@ -67,13 +67,13 @@ export function LandingFooter() {
       <div
         className="mx-6 mt-16 mb-16 rounded-3xl p-10 text-center relative overflow-hidden"
         style={{
-          background: "linear-gradient(135deg, rgba(59,130,246,0.12), rgba(139,92,246,0.12))",
-          border: "1px solid rgba(59,130,246,0.2)",
+          background: "linear-gradient(135deg, rgba(217,119,6,0.12), rgba(37,99,235,0.12))",
+          border: "1px solid rgba(217,119,6,0.25)",
         }}
       >
         <div
           className="absolute inset-0 pointer-events-none"
-          style={{ background: "radial-gradient(ellipse at center, rgba(59,130,246,0.08), transparent 70%)" }}
+          style={{ background: "radial-gradient(ellipse at center, rgba(217,119,6,0.06), transparent 70%)" }}
         />
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -84,21 +84,21 @@ export function LandingFooter() {
           <h2 className="text-3xl font-black mb-3" style={{ color: "#f1f5f9" }}>
             Ready to teach smarter?
           </h2>
-          <p className="mb-8 max-w-md mx-auto" style={{ color: "#64748b" }}>
+          <p className="mb-8 max-w-md mx-auto" style={{ color: "#94a3b8" }}>
             Join Nigerian teachers and students using TeachNexis to generate lessons, build exams, and prepare for WAEC, JAMB, and JUPEB — free forever.
           </p>
           <div className="flex items-center justify-center gap-4 flex-wrap">
             <Link
               href="/sign-up"
               className="px-8 py-4 rounded-2xl font-black text-white text-base transition-all hover:scale-105"
-              style={{ background: "linear-gradient(135deg, #3b82f6, #8b5cf6)", boxShadow: "0 0 40px rgba(59,130,246,0.3)" }}
+              style={{ background: "linear-gradient(135deg, #d97706, #2563eb)", boxShadow: "0 0 40px rgba(217,119,6,0.3)" }}
             >
               Start for free →
             </Link>
             <Link
               href="/sign-in"
               className="px-8 py-4 rounded-2xl font-semibold text-base transition-all hover:opacity-80"
-              style={{ background: "rgba(255,255,255,0.06)", color: "#94a3b8", border: "1px solid rgba(255,255,255,0.1)" }}
+              style={{ background: "rgba(255,255,255,0.06)", color: "#e2e8f0", border: "1px solid rgba(255,255,255,0.12)" }}
             >
               Sign in
             </Link>

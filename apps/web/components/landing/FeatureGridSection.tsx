@@ -103,7 +103,7 @@ export function FeatureGridSection() {
     <section
       id="features"
       className="py-24 px-6"
-      style={{ background: "#04081a" }}
+      style={{ background: "linear-gradient(180deg, #eff6ff 0%, #f0f7ff 100%)" }}
     >
       <div className="max-w-6xl mx-auto">
         {/* Heading */}
@@ -116,11 +116,11 @@ export function FeatureGridSection() {
         >
           <span
             className="inline-block text-xs font-black uppercase tracking-[0.2em] mb-4 px-3 py-1.5 rounded-full"
-            style={{ background: "rgba(139,92,246,0.08)", color: "#a78bfa", border: "1px solid rgba(139,92,246,0.15)" }}
+            style={{ background: "rgba(217,119,6,0.1)", color: "#b45309", border: "1px solid rgba(217,119,6,0.25)" }}
           >
             Platform Features
           </span>
-          <h2 className="text-3xl sm:text-4xl md:text-5xl font-black leading-tight mb-4" style={{ color: "#f1f5f9" }}>
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-black leading-tight mb-4" style={{ color: "#0f172a" }}>
             Everything a Nigerian school needs.<br />
             <span className="gradient-text">Nothing it doesn&apos;t.</span>
           </h2>
@@ -139,38 +139,38 @@ export function FeatureGridSection() {
               whileInView="show"
               viewport={{ once: true }}
               custom={i}
-              className="rounded-2xl p-5 flex flex-col gap-3 group hover:border-opacity-30 transition-all"
+              className="rounded-2xl p-5 flex flex-col gap-3 group transition-all hover:shadow-md"
               style={{
-                background: "rgba(255,255,255,0.025)",
-                border: "1px solid rgba(255,255,255,0.06)",
+                background: "#ffffff",
+                border: `1px solid ${f.color}18`,
               }}
             >
               <div className="flex items-start justify-between gap-3">
                 <div
                   className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
-                  style={{ background: `${f.color}15`, border: `1px solid ${f.color}25` }}
+                  style={{ background: `${f.color}12`, border: `1px solid ${f.color}20` }}
                 >
                   <f.icon size={18} style={{ color: f.color }} />
                 </div>
                 <span
                   className="text-xs font-bold px-2 py-0.5 rounded-full shrink-0"
-                  style={{ background: `${f.color}12`, color: f.color }}
+                  style={{ background: `${f.color}10`, color: f.color }}
                 >
                   {f.tag}
                 </span>
               </div>
 
               <div>
-                <h3 className="font-bold text-sm mb-1" style={{ color: "#f1f5f9" }}>{f.title}</h3>
+                <h3 className="font-bold text-sm mb-1" style={{ color: "#0f172a" }}>{f.title}</h3>
                 <p className="text-xs leading-relaxed" style={{ color: "#64748b" }}>{f.desc}</p>
               </div>
 
               <div
                 className="mt-auto pt-3 flex items-baseline gap-1"
-                style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}
+                style={{ borderTop: `1px solid ${f.color}15` }}
               >
                 <span className="text-lg font-black" style={{ color: f.color }}>{f.stat}</span>
-                <span className="text-xs" style={{ color: "#475569" }}>{f.statLabel}</span>
+                <span className="text-xs" style={{ color: "#94a3b8" }}>{f.statLabel}</span>
               </div>
             </motion.div>
           ))}

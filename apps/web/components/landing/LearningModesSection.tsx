@@ -14,9 +14,11 @@ const PracticeArena = dynamic(
     loading: () => (
       <div
         className="rounded-3xl p-16 text-center"
-        style={{ background: "rgba(13,22,53,0.5)", border: "1px solid rgba(255,255,255,0.06)" }}
+        style={{ background: "rgba(37,99,235,0.05)", border: "1px solid rgba(37,99,235,0.12)" }}
       >
-        <div className="text-4xl mb-4">🎮</div>
+        <div className="w-12 h-12 rounded-xl flex items-center justify-center mx-auto mb-4" style={{ background: "rgba(37,99,235,0.1)" }}>
+          <Trophy size={24} style={{ color: "#2563eb" }} />
+        </div>
         <p className="text-sm" style={{ color: "#64748b" }}>Loading games…</p>
       </div>
     ),
@@ -28,7 +30,6 @@ type Mode = "learn" | "practice" | "explore";
 const MODES: {
   id: Mode;
   label: string;
-  emoji: string;
   icon: React.ElementType;
   color: string;
   glow: string;
@@ -39,10 +40,9 @@ const MODES: {
   {
     id: "learn",
     label: "Learn",
-    emoji: "📚",
     icon: BookOpen,
-    color: "#3b82f6",
-    glow: "rgba(59,130,246,0.15)",
+    color: "#2563eb",
+    glow: "rgba(37,99,235,0.12)",
     headline: "AI-generated content, perfectly aligned",
     subline: "Full lesson plans for any topic in WAEC, JAMB, JUPEB or ELI12 mode — generated in under 10 seconds.",
     pills: ["AI Lessons", "Exam Builder", "Bento Dashboard", "Skill Tracking"],
@@ -50,10 +50,9 @@ const MODES: {
   {
     id: "practice",
     label: "Practice",
-    emoji: "🎯",
     icon: Target,
-    color: "#10b981",
-    glow: "rgba(16,185,129,0.15)",
+    color: "#059669",
+    glow: "rgba(5,150,105,0.12)",
     headline: "Study Buddy adapts to your weak spots",
     subline: "Choose how you want to learn: Explain, Test Me, Hint, or Step-by-Step. AI injects your skill data into every response.",
     pills: ["5 Learning Modes", "Skill Graph", "Weak Topic Focus", "Mistake Analysis"],
@@ -61,10 +60,9 @@ const MODES: {
   {
     id: "explore",
     label: "Explore",
-    emoji: "🧭",
     icon: Compass,
-    color: "#8b5cf6",
-    glow: "rgba(139,92,246,0.15)",
+    color: "#d97706",
+    glow: "rgba(217,119,6,0.12)",
     headline: "Challenge yourself with interactive games",
     subline: "Math Sprint, Concept Match, Fix the Answer, Quiz Battle — every game logs performance into your skill graph.",
     pills: ["4 Practice Games", "Scientific Calculator", "Real-time Scoring", "Skill Logging"],
@@ -112,8 +110,9 @@ function PracticeContent() {
             transition={{ delay: i * 0.07, duration: 0.45 }}
             className="rounded-2xl p-5"
             style={{
-              background: "rgba(13,22,53,0.6)",
+              background: "#ffffff",
               border: `1px solid ${color}20`,
+              boxShadow: "0 1px 6px rgba(0,0,0,0.05)",
             }}
           >
             <div
@@ -122,7 +121,7 @@ function PracticeContent() {
             >
               <Icon size={18} style={{ color }} aria-hidden="true" />
             </div>
-            <h3 className="text-sm font-bold mb-1.5" style={{ color: "#e2e8f0" }}>{title}</h3>
+            <h3 className="text-sm font-bold mb-1.5" style={{ color: "#0f172a" }}>{title}</h3>
             <p className="text-xs leading-relaxed" style={{ color: "#64748b" }}>{desc}</p>
           </motion.div>
         ))}
@@ -160,7 +159,7 @@ export function LearningModesSection() {
     <section
       id="modes"
       aria-label="Learning modes"
-      style={{ background: "#04081a" }}
+      style={{ background: "linear-gradient(180deg, #eff6ff 0%, #fef9f0 100%)" }}
       className="py-24 px-6 relative"
     >
       <span id="practice" className="absolute top-0" />
@@ -175,7 +174,7 @@ export function LearningModesSection() {
           <p className="text-xs font-bold uppercase tracking-[0.3em] mb-3" style={{ color: "#475569" }}>
             Choose your path
           </p>
-          <h2 className="text-4xl md:text-5xl font-black mb-4" style={{ color: "#f1f5f9" }}>
+          <h2 className="text-4xl md:text-5xl font-black mb-4" style={{ color: "#0f172a" }}>
             One platform,{" "}
             <span className="gradient-text">three learning modes</span>
           </h2>
@@ -202,9 +201,9 @@ export function LearningModesSection() {
                 onClick={() => setMode(m.id)}
                 className="relative rounded-2xl p-4 md:p-6 text-left transition-all focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
                 style={{
-                  background: isActive ? `${m.color}14` : "rgba(13,22,53,0.5)",
-                  border: isActive ? `1px solid ${m.color}45` : "1px solid rgba(255,255,255,0.06)",
-                  boxShadow: isActive ? `0 0 40px ${m.color}18` : "none",
+                  background: isActive ? `${m.color}10` : "#ffffff",
+                  border: isActive ? `1px solid ${m.color}40` : "1px solid rgba(0,0,0,0.07)",
+                  boxShadow: isActive ? `0 4px 20px ${m.color}18` : "0 1px 4px rgba(0,0,0,0.05)",
                 }}
               >
                 {/* Active indicator line */}
@@ -215,7 +214,12 @@ export function LearningModesSection() {
                     style={{ background: `linear-gradient(90deg, transparent, ${m.color}, transparent)` }}
                   />
                 )}
-                <div className="text-2xl mb-2 md:mb-3">{m.emoji}</div>
+                <div
+                  className="w-9 h-9 rounded-xl flex items-center justify-center mb-2 md:mb-3"
+                  style={{ background: isActive ? `${m.color}18` : "rgba(0,0,0,0.05)" }}
+                >
+                  <Icon size={18} style={{ color: isActive ? m.color : "#94a3b8" }} aria-hidden="true" />
+                </div>
                 <div className="flex items-center gap-2 mb-1">
                   <Icon size={14} style={{ color: isActive ? m.color : "#475569" }} aria-hidden="true" />
                   <span
@@ -260,7 +264,7 @@ export function LearningModesSection() {
             transition={{ duration: 0.3 }}
             className="text-center mb-10"
           >
-            <h3 className="text-xl md:text-2xl font-bold mb-2" style={{ color: "#e2e8f0" }}>
+            <h3 className="text-xl md:text-2xl font-bold mb-2" style={{ color: "#0f172a" }}>
               {active.headline}
             </h3>
             <p className="text-sm max-w-2xl mx-auto" style={{ color: "#64748b" }}>

@@ -48,14 +48,14 @@ function FAQItem({ item, index }: { item: typeof FAQS[0]; index: number }) {
       viewport={{ once: true }}
       transition={{ duration: 0.4, delay: index * 0.05 }}
       className="rounded-2xl overflow-hidden"
-      style={{ border: "1px solid rgba(255,255,255,0.07)", background: "rgba(255,255,255,0.025)" }}
+      style={{ border: "1px solid rgba(0,0,0,0.07)", background: "#ffffff" }}
     >
       <button
         onClick={() => setOpen(!open)}
         className="w-full flex items-center justify-between gap-4 px-6 py-5 text-left transition-colors hover:bg-white/[0.02]"
         aria-expanded={open}
       >
-        <span className="text-sm font-semibold" style={{ color: "#e2e8f0" }}>{item.q}</span>
+        <span className="text-sm font-semibold" style={{ color: "#0f172a" }}>{item.q}</span>
         <motion.div
           animate={{ rotate: open ? 180 : 0 }}
           transition={{ duration: 0.2 }}
@@ -93,7 +93,7 @@ export function FAQSection() {
     <section
       id="faq"
       className="py-24 px-6"
-      style={{ background: "#04081a" }}
+      style={{ background: "#fdf8f0" }}
     >
       <div className="max-w-3xl mx-auto">
         {/* Heading */}
@@ -110,7 +110,7 @@ export function FAQSection() {
           >
             FAQ
           </span>
-          <h2 className="text-3xl sm:text-4xl font-black leading-tight mb-4" style={{ color: "#f1f5f9" }}>
+          <h2 className="text-3xl sm:text-4xl font-black leading-tight mb-4" style={{ color: "#0f172a" }}>
             Common questions.<br />
             <span className="gradient-text">Honest answers.</span>
           </h2>

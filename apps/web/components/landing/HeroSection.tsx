@@ -41,7 +41,7 @@ export function HeroSection() {
     <section
       aria-label="Hero"
       className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden"
-      style={{ background: "linear-gradient(180deg, #04081a 0%, #0a0f28 60%, #04081a 100%)" }}
+      style={{ background: "linear-gradient(180deg, #0c1a3e 0%, #122044 60%, #0c1a3e 100%)" }}
     >
       {/* Three.js canvas — lazy, client-only */}
       <ThreeHero />
@@ -50,12 +50,12 @@ export function HeroSection() {
       <div
         className="absolute inset-0 pointer-events-none"
         aria-hidden="true"
-        style={{ background: "radial-gradient(ellipse 80% 60% at 50% 40%, rgba(59,130,246,0.07) 0%, transparent 70%)" }}
+        style={{ background: "radial-gradient(ellipse 80% 60% at 50% 40%, rgba(217,119,6,0.08) 0%, rgba(37,99,235,0.06) 50%, transparent 70%)" }}
       />
       <div
         className="absolute bottom-0 left-0 right-0 h-40 pointer-events-none"
         aria-hidden="true"
-        style={{ background: "linear-gradient(to bottom, transparent, #04081a)" }}
+        style={{ background: "linear-gradient(to bottom, transparent, #fdf8f0)" }}
       />
 
       {/* Main content */}
@@ -67,9 +67,9 @@ export function HeroSection() {
           transition={{ duration: 0.5 }}
           className="inline-flex items-center gap-2 mb-8 text-xs font-bold px-4 py-2 rounded-full"
           style={{
-            background: "rgba(59,130,246,0.1)",
-            border: "1px solid rgba(59,130,246,0.25)",
-            color: "#93c5fd",
+            background: "rgba(217,119,6,0.12)",
+            border: "1px solid rgba(217,119,6,0.3)",
+            color: "#fbbf24",
           }}
         >
           <Zap size={12} aria-hidden="true" />
@@ -112,8 +112,8 @@ export function HeroSection() {
             href="/sign-up"
             className="inline-flex items-center gap-2 px-8 py-4 rounded-2xl font-bold text-white text-base transition-all hover:scale-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
             style={{
-              background: "linear-gradient(135deg, #3b82f6, #8b5cf6)",
-              boxShadow: "0 0 40px rgba(59,130,246,0.4), 0 4px 20px rgba(0,0,0,0.4)",
+              background: "linear-gradient(135deg, #d97706, #2563eb)",
+              boxShadow: "0 0 40px rgba(217,119,6,0.35), 0 4px 20px rgba(0,0,0,0.3)",
             }}
           >
             <Zap size={18} aria-hidden="true" />
