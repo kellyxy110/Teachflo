@@ -3,31 +3,13 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useMobileNav } from "./MobileNavContext";
+import { useSidebarCollapse } from "./SidebarCollapseContext";
 import { Logo } from "@/components/brand/Logo";
 import {
-  LayoutDashboard,
-  GraduationCap,
-  Users,
-  BookOpen,
-  ClipboardList,
-  BarChart2,
-  FileText,
-  Library,
-  Settings,
-  PenSquare,
-  Sparkles,
-  Brain,
-  FlaskConical,
-  Code2,
-  Upload,
-  TestTube2,
-  ClipboardCheck,
-  HeartPulse,
-  Award,
-  Calculator,
-  Activity,
-  Atom,
-  X,
+  LayoutDashboard, GraduationCap, Users, BookOpen, ClipboardList,
+  BarChart2, FileText, Library, Settings, PenSquare, Sparkles, Brain,
+  FlaskConical, Code2, Upload, TestTube2, ClipboardCheck, HeartPulse,
+  Award, Calculator, Activity, Atom, X, PanelLeftClose, PanelLeftOpen,
 } from "lucide-react";
 
 const navItems = [
@@ -61,10 +43,11 @@ const bottomItems = [
 export function Sidebar() {
   const pathname = usePathname();
   const { isOpen, close } = useMobileNav();
+  const { collapsed, toggle } = useSidebarCollapse();
 
   return (
     <>
-      {/* Backdrop — mobile only */}
+      {/* Mobile backdrop */}
       {isOpen && (
         <div
           className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm md:hidden"
@@ -72,20 +55,38 @@ export function Sidebar() {
         />
       )}
 
-      {/* Sidebar */}
       <aside
         className={`
-          fixed left-0 top-0 h-full w-64 bg-surface border-r border-border
-          flex flex-col z-50 transition-transform duration-300 ease-out
-          md:w-56 md:translate-x-0 md:transition-none
-          ${isOpen ? "translate-x-0" : "-translate-x-full"}
+          fixed left-0 top-0 h-full bg-surface border-r border-border
+          flex flex-col z-50 transition-all duration-300 ease-out
+          ${collapsed ? "md:w-16" : "md:w-56"}
+          w-64 ${isOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}
         `}
       >
-        {/* Logo + close */}
-        <div className="px-4 py-5 border-b border-border flex items-center justify-between">
-          <Link href="/dashboard">
-            <Logo variant="dark" size="sm" />
-          </Link>
+        {/* Logo + collapse toggle */}
+        <div className="px-3 py-4 border-b border-border flex items-center justify-between min-h-[57px]">
+          {!collapsed && (
+            <Link href="/dashboard" className="flex-1 min-w-0">
+              <Logo variant="dark" size="sm" />
+            </Link>
+          )}
+          {collapsed && (
+            <Link href="/dashboard" className="mx-auto">
+              <Logo variant="dark" size="sm" iconOnly />
+            </Link>
+          )}
+
+          {/* Desktop collapse toggle */}
+          <button
+            onClick={toggle}
+            className="hidden md:flex items-center justify-center w-7 h-7 rounded-lg text-muted hover:text-text hover:bg-border/30 transition-colors shrink-0"
+            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+            title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          >
+            {collapsed ? <PanelLeftOpen size={15} /> : <PanelLeftClose size={15} />}
+          </button>
+
+          {/* Mobile close */}
           <button
             onClick={close}
             className="p-1.5 rounded-lg text-muted hover:text-text hover:bg-border/20 transition-colors md:hidden"
@@ -96,25 +97,38 @@ export function Sidebar() {
         </div>
 
         {/* Main nav */}
-        <nav className="flex-1 px-2 py-4 space-y-0.5 overflow-y-auto">
+        <nav className="flex-1 px-2 py-3 space-y-0.5 overflow-y-auto overflow-x-hidden">
           {navItems.map(({ href, label, icon: Icon }) => {
             const active = pathname === href || pathname.startsWith(href + "/");
             return (
               <Link
                 key={href}
                 href={href}
+                title={collapsed ? label : undefined}
                 className={`
-                  flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium
-                  transition-colors duration-150
-                  ${
-                    active
-                      ? "bg-primary-50 text-primary border-l-2 border-primary -ml-[2px] pl-[14px]"
-                      : "text-text-2 hover:bg-border/20 hover:text-text"
+                  flex items-center gap-3 rounded-lg text-sm font-medium
+                  transition-colors duration-150 group relative
+                  ${collapsed ? "px-0 py-2.5 justify-center" : "px-3 py-2.5"}
+                  ${active
+                    ? "bg-primary-50 text-primary border-l-2 border-primary -ml-[2px] pl-[14px]"
+                    : "text-text-2 hover:bg-border/20 hover:text-text"
                   }
                 `}
               >
                 <Icon size={16} className="shrink-0" />
-                {label}
+                {!collapsed && <span className="truncate">{label}</span>}
+
+                {/* Tooltip when collapsed */}
+                {collapsed && (
+                  <span className="
+                    absolute left-full ml-3 px-2 py-1 rounded-md text-xs font-medium
+                    bg-popover text-text border border-border shadow-lg
+                    opacity-0 group-hover:opacity-100 pointer-events-none
+                    whitespace-nowrap z-50 transition-opacity duration-150
+                  ">
+                    {label}
+                  </span>
+                )}
               </Link>
             );
           })}
@@ -128,18 +142,26 @@ export function Sidebar() {
               <Link
                 key={href}
                 href={href}
+                title={collapsed ? label : undefined}
                 className={`
-                  flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium
-                  transition-colors duration-150
-                  ${
-                    active
-                      ? "bg-primary-50 text-primary"
-                      : "text-text-2 hover:bg-border/20 hover:text-text"
-                  }
+                  flex items-center gap-3 rounded-lg text-sm font-medium
+                  transition-colors duration-150 group relative
+                  ${collapsed ? "px-0 py-2.5 justify-center" : "px-3 py-2.5"}
+                  ${active ? "bg-primary-50 text-primary" : "text-text-2 hover:bg-border/20 hover:text-text"}
                 `}
               >
                 <Icon size={16} className="shrink-0" />
-                {label}
+                {!collapsed && <span>{label}</span>}
+                {collapsed && (
+                  <span className="
+                    absolute left-full ml-3 px-2 py-1 rounded-md text-xs font-medium
+                    bg-popover text-text border border-border shadow-lg
+                    opacity-0 group-hover:opacity-100 pointer-events-none
+                    whitespace-nowrap z-50 transition-opacity duration-150
+                  ">
+                    {label}
+                  </span>
+                )}
               </Link>
             );
           })}

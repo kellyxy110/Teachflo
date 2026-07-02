@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Save, Plus, CheckCircle, AlertCircle } from "lucide-react";
-import { KaTeXPreview, LaTeXToolbar } from "@/components/exam/KaTeXPreview";
-import { saveManualQuestion } from "@/app/actions/questions";
-import type { ManualQuestionInput } from "@/app/actions/questions";
-import type { ClassLevel, ExamType, Difficulty, Section, QuestionType } from "@prisma/client";
+import {
+  Download, FileText, FileSpreadsheet,
+  CheckCircle, AlertCircle, ChevronLeft, ChevronRight, Plus,
+} from "lucide-react";
+import * as XLSX from "xlsx";
+import type { ClassLevel, ExamType, Section } from "@prisma/client";
 
 const CLASS_LEVELS: ClassLevel[] = ["JS1", "JS2", "JS3", "SS1", "SS2", "SS3"];
 const SUBJECTS = [
@@ -23,26 +24,31 @@ const EXAM_TYPES: { value: ExamType; label: string }[] = [
   { value: "JAMB_PREP", label: "JAMB Prep" },
   { value: "JUPEB_PREP", label: "JUPEB Prep" },
 ];
-const QUESTION_TYPES: { value: QuestionType; label: string; desc: string }[] = [
-  { value: "MCQ", label: "Multiple Choice", desc: "A–E options with one correct answer" },
-  { value: "SHORT_ANSWER", label: "Short Answer", desc: "Brief written response" },
-  { value: "ESSAY", label: "Essay", desc: "Extended written response" },
-  { value: "STRUCTURED", label: "Structured", desc: "Multi-part with sub-questions" },
-  { value: "CALCULATION", label: "Calculation", desc: "Numeric answer with working" },
-];
-const DIFFICULTIES: { value: Difficulty; label: string }[] = [
-  { value: "BASIC", label: "Basic" },
-  { value: "APPLICATION", label: "Application" },
-  { value: "WAEC", label: "WAEC" },
-  { value: "JAMB", label: "JAMB" },
-  { value: "JUPEB", label: "JUPEB" },
-];
 const SECTIONS: { value: Section; label: string }[] = [
   { value: "A", label: "Section A (Objectives)" },
   { value: "B", label: "Section B (Theory)" },
   { value: "C", label: "Section C (Advanced)" },
 ];
-const BLOOM_LEVELS = ["REMEMBER", "UNDERSTAND", "APPLY", "ANALYZE", "EVALUATE", "CREATE"];
+
+type OptionFormat = "letters" | "numbers";
+type CorrectLetter = "A" | "B" | "C" | "D" | "";
+
+interface QuestionSlot {
+  stem: string;
+  optA: string;
+  optB: string;
+  optC: string;
+  optD: string;
+  correct: CorrectLetter;
+}
+
+interface Meta {
+  title: string;
+  subject: string;
+  classLevel: string;
+  examType: ExamType;
+  section: Section;
+}
 
 type ExamOption = {
   id: string;
@@ -53,396 +59,335 @@ type ExamOption = {
   _count: { questions: number };
 };
 
-const INITIAL_FORM = {
-  examId: "",
-  subject: "",
-  classLevel: "" as ClassLevel | "",
-  topic: "",
-  examType: "SCHOOL_EXAM" as ExamType,
-  difficulty: "WAEC" as Difficulty,
-  questionType: "MCQ" as QuestionType,
-  section: "A" as Section,
-  stem: "",
-  optionA: "",
-  optionB: "",
-  optionC: "",
-  optionD: "",
-  optionE: "",
-  correctOption: "",
-  questionText: "",
-  markScheme: "",
-  solution: "",
-  explanation: "",
-  commonMistakes: "",
-  examTip: "",
-  curriculumRef: "",
-  bloomLevel: "UNDERSTAND",
-  skillTag: "",
-  topicTag: "",
-  subTopicTag: "",
-  estimatedTime: 90,
-};
+const PAGE_SIZE = 5;
+const emptySlot = (): QuestionSlot => ({ stem: "", optA: "", optB: "", optC: "", optD: "", correct: "" });
+const initialMeta = (): Meta => ({ title: "", subject: "", classLevel: "", examType: "SCHOOL_EXAM", section: "A" });
+
+function optLabel(letter: "A" | "B" | "C" | "D", fmt: OptionFormat): string {
+  if (fmt === "letters") return letter;
+  const n = { A: "1", B: "2", C: "3", D: "4" }[letter];
+  return `Option ${n}`;
+}
+
+function correctDisplay(letter: CorrectLetter, fmt: OptionFormat): string {
+  if (!letter) return "";
+  if (fmt === "letters") return letter;
+  return String({ A: 1, B: 2, C: 3, D: 4 }[letter]);
+}
 
 export function QuestionBuilderClient({ exams }: { exams: ExamOption[] }) {
   const router = useRouter();
-  const [isPending, startTransition] = useTransition();
-  const [form, setForm] = useState(INITIAL_FORM);
-  const [saved, setSaved] = useState<{ questionId: string; examId: string } | null>(null);
-  const [error, setError] = useState("");
-  const [addAnother, setAddAnother] = useState(false);
+  const [meta, setMeta] = useState<Meta>(initialMeta());
+  const [questions, setQuestions] = useState<QuestionSlot[]>(Array.from({ length: PAGE_SIZE }, emptySlot));
+  const [page, setPage] = useState(0);
+  const [optFmt, setOptFmt] = useState<OptionFormat>("letters");
+  const [notice, setNotice] = useState<{ type: "ok" | "err"; msg: string } | null>(null);
+  const [examId, setExamId] = useState("");
 
-  const isMCQ = form.questionType === "MCQ";
-  const isValid = form.stem && form.solution && form.explanation
-    && form.subject && form.classLevel && form.topic
-    && (!isMCQ || (form.optionA && form.optionB && form.optionC && form.optionD && form.correctOption));
+  const totalPages = Math.ceil(questions.length / PAGE_SIZE);
+  const pageQuestions = questions.slice(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE);
+  const filledCount = questions.filter((q) => q.stem.trim()).length;
 
-  function set<K extends keyof typeof form>(key: K, value: (typeof form)[K]) {
-    setForm((f) => ({ ...f, [key]: value }));
+  function setMf<K extends keyof Meta>(k: K, v: Meta[K]) {
+    setMeta((m) => ({ ...m, [k]: v }));
   }
 
-  function handleSave() {
-    if (!isValid || !form.classLevel) return;
-    setError("");
-    setSaved(null);
-
-    startTransition(async () => {
-      try {
-        const result = await saveManualQuestion({
-          ...form,
-          classLevel: form.classLevel as ClassLevel,
-          examId: form.examId || undefined,
-          estimatedTime: form.estimatedTime || 90,
-        } as ManualQuestionInput);
-        setSaved(result);
-
-        if (addAnother) {
-          setForm((f) => ({
-            ...INITIAL_FORM,
-            examId: result.examId,
-            subject: f.subject,
-            classLevel: f.classLevel,
-            topic: f.topic,
-            examType: f.examType,
-            difficulty: f.difficulty,
-            questionType: f.questionType,
-            section: f.section,
-            bloomLevel: f.bloomLevel,
-          }));
-        }
-      } catch {
-        setError("Failed to save question. Please try again.");
-      }
+  function setSlot(pageIdx: number, field: keyof QuestionSlot, value: string) {
+    const absIdx = page * PAGE_SIZE + pageIdx;
+    setQuestions((qs) => {
+      const next = [...qs];
+      next[absIdx] = { ...next[absIdx], [field]: value };
+      return next;
     });
   }
 
-  return (
-    <div className="space-y-6">
-      {/* Destination: existing exam or new */}
-      <div className="bg-surface border border-border rounded-xl p-5 space-y-4">
-        <h3 className="font-semibold text-text text-sm">Add to Exam</h3>
-        <div>
-          <label htmlFor="qb-examId" className="sr-only">Add to Exam</label>
-          <select
-            id="qb-examId"
-            value={form.examId}
-            onChange={(e) => set("examId", e.target.value)}
-            className="w-full px-3 py-2 border border-border rounded-lg text-sm text-text bg-surface focus:outline-none focus:ring-2 focus:ring-primary/20"
-          >
-            <option value="">Create new exam (from question details below)</option>
-            {exams.map((ex) => (
-              <option key={ex.id} value={ex.id}>
-                {ex.title} ({ex._count.questions} questions)
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
+  function addPage() {
+    setQuestions((qs) => [...qs, ...Array.from({ length: PAGE_SIZE }, emptySlot)]);
+    setPage(totalPages); // go to new page
+  }
 
-      {/* Question metadata */}
+  // ── Excel download ──────────────────────────────────────────────────────────
+  function downloadExcel() {
+    const filled = questions.filter((q) => q.stem.trim());
+    if (!filled.length) { setNotice({ type: "err", msg: "No questions to export." }); return; }
+
+    const headers = [
+      "No.", "Question",
+      optFmt === "letters" ? "Option A" : "Option 1",
+      optFmt === "letters" ? "Option B" : "Option 2",
+      optFmt === "letters" ? "Option C" : "Option 3",
+      optFmt === "letters" ? "Option D" : "Option 4",
+      "Correct Answer",
+    ];
+    const rows = filled.map((q, i) => [
+      i + 1,
+      q.stem,
+      q.optA,
+      q.optB,
+      q.optC,
+      q.optD,
+      correctDisplay(q.correct, optFmt),
+    ]);
+
+    const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+    // Style column widths
+    ws["!cols"] = [{ wch: 5 }, { wch: 45 }, { wch: 20 }, { wch: 20 }, { wch: 20 }, { wch: 20 }, { wch: 14 }];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Questions");
+    XLSX.writeFile(wb, `${meta.title || "exam-questions"}.xlsx`);
+    setNotice({ type: "ok", msg: `Exported ${filled.length} questions to Excel.` });
+  }
+
+  // ── Word download ───────────────────────────────────────────────────────────
+  function downloadWord() {
+    const filled = questions.filter((q) => q.stem.trim());
+    if (!filled.length) { setNotice({ type: "err", msg: "No questions to export." }); return; }
+
+    const colH = (l: "A" | "B" | "C" | "D") => optFmt === "letters" ? `Option ${l}` : `Option ${{ A:1,B:2,C:3,D:4 }[l]}`;
+    const rows = filled.map((q, i) => `
+      <tr>
+        <td style="padding:6px;border:1px solid #ccc;text-align:center">${i + 1}</td>
+        <td style="padding:6px;border:1px solid #ccc">${q.stem.replace(/</g, "&lt;")}</td>
+        <td style="padding:6px;border:1px solid #ccc">${q.optA.replace(/</g, "&lt;")}</td>
+        <td style="padding:6px;border:1px solid #ccc">${q.optB.replace(/</g, "&lt;")}</td>
+        <td style="padding:6px;border:1px solid #ccc">${q.optC.replace(/</g, "&lt;")}</td>
+        <td style="padding:6px;border:1px solid #ccc">${q.optD.replace(/</g, "&lt;")}</td>
+        <td style="padding:6px;border:1px solid #ccc;text-align:center;font-weight:bold">${correctDisplay(q.correct, optFmt)}</td>
+      </tr>`).join("");
+
+    const html = `
+<html><head><meta charset="utf-8">
+<style>body{font-family:Arial,sans-serif;font-size:12pt;margin:30px}h2{margin-bottom:4px}p.sub{color:#555;font-size:10pt;margin-bottom:16px}table{border-collapse:collapse;width:100%}th{background:#f0f0f0;padding:6px 8px;border:1px solid #ccc;font-size:10pt}td{font-size:10pt}</style>
+</head><body>
+<h2>${(meta.title || "Exam Questions").replace(/</g,"&lt;")}</h2>
+<p class="sub">${meta.subject || "Subject"} &bull; ${meta.classLevel || "Class"} &bull; ${EXAM_TYPES.find(t=>t.value===meta.examType)?.label ?? meta.examType} &bull; ${SECTIONS.find(s=>s.value===meta.section)?.label ?? meta.section}</p>
+<table>
+<thead><tr>
+  <th style="width:40px">No.</th>
+  <th>Question</th>
+  <th style="width:120px">${colH("A")}</th>
+  <th style="width:120px">${colH("B")}</th>
+  <th style="width:120px">${colH("C")}</th>
+  <th style="width:120px">${colH("D")}</th>
+  <th style="width:70px">Answer</th>
+</tr></thead>
+<tbody>${rows}</tbody>
+</table>
+</body></html>`;
+
+    const blob = new Blob([html], { type: "application/msword" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${meta.title || "exam-questions"}.doc`;
+    a.click();
+    URL.revokeObjectURL(url);
+    setNotice({ type: "ok", msg: `Exported ${filled.length} questions to Word.` });
+  }
+
+  return (
+    <div className="space-y-6 max-w-5xl">
+
+      {/* Exam metadata */}
       <div className="bg-surface border border-border rounded-xl p-5 space-y-4">
-        <h3 className="font-semibold text-text text-sm">Question Details</h3>
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+        <h3 className="font-semibold text-text text-sm">Exam Details</h3>
+
+        {/* Existing exam selector */}
+        {exams.length > 0 && (
+          <div>
+            <label className="block text-xs font-medium text-text-2 mb-1">Add to existing exam (optional)</label>
+            <select value={examId} onChange={(e) => setExamId(e.target.value)}
+              className="w-full px-3 py-2 border border-border rounded-lg text-sm text-text bg-surface focus:outline-none focus:ring-2 focus:ring-primary/20">
+              <option value="">— create new —</option>
+              {exams.map((ex) => (
+                <option key={ex.id} value={ex.id}>{ex.title} ({ex._count.questions} questions)</option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        <div>
+          <label className="block text-xs font-medium text-text-2 mb-1">Exam Title</label>
+          <input type="text" value={meta.title} onChange={(e) => setMf("title", e.target.value)}
+            placeholder="e.g. SS2 Biology 2nd Term Exam" maxLength={120}
+            className="w-full px-3 py-2 border border-border rounded-lg text-sm text-text placeholder:text-muted bg-surface focus:outline-none focus:ring-2 focus:ring-primary/20" />
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <div className="col-span-2 sm:col-span-1">
-            <label htmlFor="qb-subject" className="block text-xs font-medium text-text-2 mb-1">Subject *</label>
-            <select id="qb-subject" aria-required="true" value={form.subject} onChange={(e) => set("subject", e.target.value)} className="w-full px-3 py-2 border border-border rounded-lg text-sm text-text bg-surface focus:outline-none focus:ring-2 focus:ring-primary/20">
+            <label className="block text-xs font-medium text-text-2 mb-1">Subject</label>
+            <select value={meta.subject} onChange={(e) => setMf("subject", e.target.value)}
+              className="w-full px-3 py-2 border border-border rounded-lg text-sm text-text bg-surface focus:outline-none focus:ring-2 focus:ring-primary/20">
               <option value="">Select...</option>
               {SUBJECTS.map((s) => <option key={s} value={s}>{s}</option>)}
             </select>
           </div>
           <div>
-            <label htmlFor="qb-classLevel" className="block text-xs font-medium text-text-2 mb-1">Class *</label>
-            <select id="qb-classLevel" aria-required="true" value={form.classLevel} onChange={(e) => set("classLevel", e.target.value as ClassLevel)} className="w-full px-3 py-2 border border-border rounded-lg text-sm text-text bg-surface focus:outline-none focus:ring-2 focus:ring-primary/20">
+            <label className="block text-xs font-medium text-text-2 mb-1">Class</label>
+            <select value={meta.classLevel} onChange={(e) => setMf("classLevel", e.target.value as ClassLevel)}
+              className="w-full px-3 py-2 border border-border rounded-lg text-sm text-text bg-surface focus:outline-none focus:ring-2 focus:ring-primary/20">
               <option value="">Select...</option>
               {CLASS_LEVELS.map((l) => <option key={l} value={l}>{l}</option>)}
             </select>
           </div>
           <div>
-            <label htmlFor="qb-examType" className="block text-xs font-medium text-text-2 mb-1">Exam Type</label>
-            <select id="qb-examType" value={form.examType} onChange={(e) => set("examType", e.target.value as ExamType)} className="w-full px-3 py-2 border border-border rounded-lg text-sm text-text bg-surface focus:outline-none focus:ring-2 focus:ring-primary/20">
+            <label className="block text-xs font-medium text-text-2 mb-1">Exam Type</label>
+            <select value={meta.examType} onChange={(e) => setMf("examType", e.target.value as ExamType)}
+              className="w-full px-3 py-2 border border-border rounded-lg text-sm text-text bg-surface focus:outline-none focus:ring-2 focus:ring-primary/20">
               {EXAM_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
             </select>
           </div>
           <div>
-            <label htmlFor="qb-section" className="block text-xs font-medium text-text-2 mb-1">Section</label>
-            <select id="qb-section" value={form.section} onChange={(e) => set("section", e.target.value as Section)} className="w-full px-3 py-2 border border-border rounded-lg text-sm text-text bg-surface focus:outline-none focus:ring-2 focus:ring-primary/20">
+            <label className="block text-xs font-medium text-text-2 mb-1">Section</label>
+            <select value={meta.section} onChange={(e) => setMf("section", e.target.value as Section)}
+              className="w-full px-3 py-2 border border-border rounded-lg text-sm text-text bg-surface focus:outline-none focus:ring-2 focus:ring-primary/20">
               {SECTIONS.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
             </select>
           </div>
         </div>
-
-        <div>
-          <label htmlFor="qb-topic" className="block text-xs font-medium text-text-2 mb-1">Topic *</label>
-          <input
-            id="qb-topic"
-            aria-required="true"
-            type="text"
-            value={form.topic}
-            onChange={(e) => set("topic", e.target.value)}
-            placeholder="e.g. Quadratic Equations, Photosynthesis..."
-            className="w-full px-3 py-2 border border-border rounded-lg text-sm text-text placeholder:text-muted bg-surface focus:outline-none focus:ring-2 focus:ring-primary/20"
-          />
-        </div>
-
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-          <div>
-            <label htmlFor="qb-skillTag" className="block text-xs font-medium text-text-2 mb-1">Skill Tag</label>
-            <input id="qb-skillTag" type="text" value={form.skillTag} onChange={(e) => set("skillTag", e.target.value)} placeholder="e.g. factoring-quadratics" className="w-full px-3 py-2 border border-border rounded-lg text-sm text-text placeholder:text-muted bg-surface focus:outline-none focus:ring-2 focus:ring-primary/20" />
-          </div>
-          <div>
-            <label htmlFor="qb-subTopicTag" className="block text-xs font-medium text-text-2 mb-1">Sub-topic</label>
-            <input id="qb-subTopicTag" type="text" value={form.subTopicTag} onChange={(e) => set("subTopicTag", e.target.value)} placeholder="e.g. completing-the-square" className="w-full px-3 py-2 border border-border rounded-lg text-sm text-text placeholder:text-muted bg-surface focus:outline-none focus:ring-2 focus:ring-primary/20" />
-          </div>
-          <div>
-            <label htmlFor="qb-estimatedTime" className="block text-xs font-medium text-text-2 mb-1">Time (seconds)</label>
-            <input id="qb-estimatedTime" type="number" value={form.estimatedTime} onChange={(e) => set("estimatedTime", parseInt(e.target.value) || 90)} min={10} max={600} className="w-full px-3 py-2 border border-border rounded-lg text-sm text-text bg-surface focus:outline-none focus:ring-2 focus:ring-primary/20" />
-          </div>
-        </div>
-
-        {/* Difficulty */}
-        <div>
-          <label className="block text-xs font-medium text-text-2 mb-2">Difficulty</label>
-          <div className="flex gap-2 flex-wrap">
-            {DIFFICULTIES.map(({ value, label }) => (
-              <button key={value} onClick={() => set("difficulty", value)} className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${form.difficulty === value ? "bg-primary text-white border-primary" : "bg-bg text-text-2 border-border hover:border-primary/40"}`}>
-                {label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Bloom's Level */}
-        <div>
-          <label className="block text-xs font-medium text-text-2 mb-2">Bloom&apos;s Level</label>
-          <div className="flex gap-2 flex-wrap">
-            {BLOOM_LEVELS.map((b) => (
-              <button key={b} onClick={() => set("bloomLevel", b)} className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${form.bloomLevel === b ? "bg-purple-600 text-white border-purple-600" : "bg-bg text-text-2 border-border hover:border-purple-400/40"}`}>
-                {b}
-              </button>
-            ))}
-          </div>
-        </div>
       </div>
 
-      {/* Question type selector + content */}
-      <div className="bg-surface border border-border rounded-xl p-5 space-y-5">
-        <h3 className="font-semibold text-text text-sm">Question Content</h3>
-
-        {/* Type pills */}
-        <div className="flex gap-2 flex-wrap">
-          {QUESTION_TYPES.map(({ value, label, desc }) => (
-            <button
-              key={value}
-              onClick={() => set("questionType", value)}
-              title={desc}
-              className={`px-4 py-2 rounded-xl text-xs font-semibold border transition-all ${
-                form.questionType === value
-                  ? "bg-primary text-white border-primary shadow-sm"
-                  : "bg-bg text-text-2 border-border hover:border-primary/40"
-              }`}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-
-        {/* Question stem */}
-        <div>
-          <label htmlFor="qb-stem" className="block text-xs font-medium text-text-2 mb-1">Question Stem * <span className="text-muted font-normal">— use $...$ for math symbols</span></label>
-          <textarea
-            id="qb-stem"
-            aria-required="true"
-            value={form.stem}
-            onChange={(e) => set("stem", e.target.value)}
-            rows={3}
-            placeholder="Enter the question text... Use $x^{2}$ for math symbols"
-            className="w-full px-3 py-2 border border-border rounded-lg text-sm text-text placeholder:text-muted bg-surface focus:outline-none focus:ring-2 focus:ring-primary/20 resize-y font-mono"
-          />
-          <LaTeXToolbar onInsert={(latex) => set("stem", form.stem + " " + latex)} />
-          <KaTeXPreview text={form.stem} />
-        </div>
-
-        {/* MCQ options */}
-        {isMCQ && (
-          <div className="space-y-3">
-            <span className="block text-xs font-medium text-text-2" id="qb-options-label">Options *</span>
-            {(["A", "B", "C", "D", "E"] as const).map((opt) => {
-              const key = `option${opt}` as keyof typeof form;
-              const isCorrect = form.correctOption === opt;
-              return (
-                <div key={opt}>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => set("correctOption", opt)}
-                      className={`shrink-0 w-8 h-8 rounded-lg text-xs font-bold border transition-all ${
-                        isCorrect
-                          ? "bg-success text-white border-success"
-                          : "bg-bg text-text-2 border-border hover:border-success/40"
-                      }`}
-                      title={isCorrect ? "Correct answer" : `Mark ${opt} as correct`}
-                    >
-                      {opt}
-                    </button>
-                    <label htmlFor={`qb-option${opt}`} className="sr-only">Option {opt}</label>
-                    <input
-                      id={`qb-option${opt}`}
-                      type="text"
-                      aria-required={opt !== "E" ? "true" : undefined}
-                      value={form[key] as string}
-                      onChange={(e) => set(key, e.target.value)}
-                      placeholder={opt === "E" ? "Option E (optional)" : `Option ${opt} *`}
-                      className="flex-1 px-3 py-2 border border-border rounded-lg text-sm text-text placeholder:text-muted bg-surface focus:outline-none focus:ring-2 focus:ring-primary/20"
-                    />
-                    {isCorrect && <CheckCircle size={16} className="text-success shrink-0" />}
-                  </div>
-                  <KaTeXPreview text={form[key] as string} />
-                </div>
-              );
-            })}
-            <p className="text-xs text-text-2">Click a letter to mark it as the correct answer. Use $...$ for math symbols in options.</p>
-          </div>
-        )}
-
-        {/* Theory/structured additional text */}
-        {!isMCQ && (
-          <div>
-            <label htmlFor="qb-questionText" className="block text-xs font-medium text-text-2 mb-1">Extended Question Text</label>
-            <textarea
-              id="qb-questionText"
-              value={form.questionText}
-              onChange={(e) => set("questionText", e.target.value)}
-              rows={3}
-              placeholder="Additional context, data tables, or sub-questions..."
-              className="w-full px-3 py-2 border border-border rounded-lg text-sm text-text placeholder:text-muted bg-surface focus:outline-none focus:ring-2 focus:ring-primary/20 resize-y"
-            />
-          </div>
-        )}
-
-        {/* Solution */}
-        <div>
-          <label htmlFor="qb-solution" className="block text-xs font-medium text-text-2 mb-1">Solution / Model Answer * <span className="text-muted font-normal">— $...$ for math</span></label>
-          <textarea
-            id="qb-solution"
-            aria-required="true"
-            value={form.solution}
-            onChange={(e) => set("solution", e.target.value)}
-            rows={3}
-            placeholder="Full solution with working..."
-            className="w-full px-3 py-2 border border-border rounded-lg text-sm text-text placeholder:text-muted bg-surface focus:outline-none focus:ring-2 focus:ring-primary/20 resize-y"
-          />
-          <KaTeXPreview text={form.solution} />
-        </div>
-
-        {/* Explanation */}
-        <div>
-          <label htmlFor="qb-explanation" className="block text-xs font-medium text-text-2 mb-1">Explanation *</label>
-          <textarea
-            id="qb-explanation"
-            aria-required="true"
-            value={form.explanation}
-            onChange={(e) => set("explanation", e.target.value)}
-            rows={2}
-            placeholder="Why this answer is correct — helps students understand..."
-            className="w-full px-3 py-2 border border-border rounded-lg text-sm text-text placeholder:text-muted bg-surface focus:outline-none focus:ring-2 focus:ring-primary/20 resize-y"
-          />
-          <KaTeXPreview text={form.explanation} />
-        </div>
-
-        {/* Mark scheme (for theory/structured) */}
-        {!isMCQ && (
-          <div>
-            <label htmlFor="qb-markScheme" className="block text-xs font-medium text-text-2 mb-1">Mark Scheme</label>
-            <textarea
-              id="qb-markScheme"
-              value={form.markScheme}
-              onChange={(e) => set("markScheme", e.target.value)}
-              rows={2}
-              placeholder="How marks should be awarded..."
-              className="w-full px-3 py-2 border border-border rounded-lg text-sm text-text placeholder:text-muted bg-surface focus:outline-none focus:ring-2 focus:ring-primary/20 resize-y"
-            />
-          </div>
-        )}
-
-        {/* Common mistakes + exam tip */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label htmlFor="qb-commonMistakes" className="block text-xs font-medium text-text-2 mb-1">Common Mistakes</label>
-            <input id="qb-commonMistakes" type="text" value={form.commonMistakes} onChange={(e) => set("commonMistakes", e.target.value)} placeholder="e.g. Students forget to square root both sides" className="w-full px-3 py-2 border border-border rounded-lg text-sm text-text placeholder:text-muted bg-surface focus:outline-none focus:ring-2 focus:ring-primary/20" />
-          </div>
-          <div>
-            <label htmlFor="qb-examTip" className="block text-xs font-medium text-text-2 mb-1">Exam Tip</label>
-            <input id="qb-examTip" type="text" value={form.examTip} onChange={(e) => set("examTip", e.target.value)} placeholder="e.g. Always check units in WAEC Physics" className="w-full px-3 py-2 border border-border rounded-lg text-sm text-text placeholder:text-muted bg-surface focus:outline-none focus:ring-2 focus:ring-primary/20" />
-          </div>
-        </div>
-      </div>
-
-      {/* Actions */}
-      <div className="bg-surface border border-border rounded-xl p-5 space-y-4">
+      {/* Option format toggle + summary */}
+      <div className="flex items-center justify-between gap-4 flex-wrap">
         <div className="flex items-center gap-3">
-          <label htmlFor="qb-addAnother" className="flex items-center gap-2 text-sm text-text-2 cursor-pointer">
-            <input
-              id="qb-addAnother"
-              type="checkbox"
-              checked={addAnother}
-              onChange={(e) => setAddAnother(e.target.checked)}
-              className="rounded border-border"
-            />
-            Add another question after saving
-          </label>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <button
-            onClick={handleSave}
-            disabled={!isValid || isPending}
-            className="flex items-center gap-2 bg-primary text-white px-6 py-2.5 rounded-lg text-sm font-semibold hover:bg-primary-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isPending ? (
-              <><Save size={15} className="animate-pulse" /> Saving...</>
-            ) : (
-              <><Save size={15} /> Save Question</>
-            )}
+          <span className="text-sm font-medium text-text-2">Option labels:</span>
+          <button onClick={() => setOptFmt("letters")}
+            className={`px-4 py-1.5 rounded-lg text-xs font-bold border transition-colors ${optFmt === "letters" ? "bg-primary text-white border-primary" : "bg-surface border-border text-text-2 hover:border-primary/40"}`}>
+            A / B / C / D
           </button>
-
-          {saved && !addAnother && (
-            <button
-              onClick={() => router.push(`/exams/${saved.examId}`)}
-              className="flex items-center gap-2 bg-success/10 text-success px-5 py-2.5 rounded-lg text-sm font-semibold border border-success/30 hover:bg-success/20 transition-colors"
-            >
-              View Exam →
-            </button>
-          )}
+          <button onClick={() => setOptFmt("numbers")}
+            className={`px-4 py-1.5 rounded-lg text-xs font-bold border transition-colors ${optFmt === "numbers" ? "bg-primary text-white border-primary" : "bg-surface border-border text-text-2 hover:border-primary/40"}`}>
+            Option 1 / 2 / 3 / 4
+          </button>
         </div>
+        <span className="text-xs text-muted bg-surface border border-border px-3 py-1.5 rounded-lg">
+          {filledCount} of {questions.length} questions filled
+        </span>
+      </div>
 
-        {error && (
-          <div className="flex items-center gap-2 text-sm text-danger">
-            <AlertCircle size={14} /> {error}
-          </div>
+      {/* Question slots for current page */}
+      <div className="space-y-4">
+        {pageQuestions.map((q, pageIdx) => {
+          const absIdx = page * PAGE_SIZE + pageIdx;
+          const qNum = absIdx + 1;
+          return (
+            <div key={absIdx} className="bg-surface border border-border rounded-xl overflow-hidden">
+              <div className="px-4 py-2.5 bg-bg border-b border-border flex items-center gap-2">
+                <span className="w-7 h-7 rounded-full bg-primary text-white text-xs font-bold flex items-center justify-center shrink-0">{qNum}</span>
+                <span className="text-xs font-semibold text-text-2">Question {qNum}</span>
+                {q.correct && (
+                  <span className="ml-auto text-xs font-medium text-success flex items-center gap-1">
+                    <CheckCircle size={11} />
+                    Answer: {optFmt === "letters" ? q.correct : { A:"1",B:"2",C:"3",D:"4" }[q.correct]}
+                  </span>
+                )}
+              </div>
+              <div className="p-4 space-y-3">
+                {/* Question text */}
+                <textarea
+                  value={q.stem}
+                  onChange={(e) => setSlot(pageIdx, "stem", e.target.value)}
+                  rows={2}
+                  placeholder={`Type question ${qNum} here…`}
+                  className="w-full px-3 py-2 border border-border rounded-lg text-sm text-text placeholder:text-muted bg-bg focus:outline-none focus:ring-2 focus:ring-primary/20 resize-y"
+                />
+
+                {/* Options row */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {(["A", "B", "C", "D"] as const).map((letter) => {
+                    const fieldKey = `opt${letter}` as "optA" | "optB" | "optC" | "optD";
+                    const isCorrect = q.correct === letter;
+                    return (
+                      <div key={letter} className="flex items-center gap-2">
+                        <button
+                          onClick={() => setSlot(pageIdx, "correct", isCorrect ? "" : letter)}
+                          title={isCorrect ? "Click to deselect" : `Mark as correct answer`}
+                          className={`shrink-0 w-8 h-8 rounded-lg text-xs font-bold border transition-all ${
+                            isCorrect
+                              ? "bg-success text-white border-success shadow-sm"
+                              : "bg-bg text-text-2 border-border hover:border-success/50 hover:text-success"
+                          }`}
+                        >
+                          {optFmt === "letters" ? letter : { A:"1",B:"2",C:"3",D:"4" }[letter]}
+                        </button>
+                        <input
+                          type="text"
+                          value={q[fieldKey]}
+                          onChange={(e) => setSlot(pageIdx, fieldKey, e.target.value)}
+                          placeholder={`${optLabel(letter, optFmt)}…`}
+                          className={`flex-1 px-3 py-2 rounded-lg text-sm border transition-colors text-text placeholder:text-muted bg-bg focus:outline-none focus:ring-2 ${
+                            isCorrect
+                              ? "border-success/50 focus:ring-success/20 bg-success/5"
+                              : "border-border focus:ring-primary/20"
+                          }`}
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Page nav */}
+      <div className="flex items-center justify-between gap-4">
+        <button
+          onClick={() => setPage((p) => Math.max(0, p - 1))}
+          disabled={page === 0}
+          className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm border border-border text-text-2 hover:border-primary/40 hover:text-text disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+        >
+          <ChevronLeft size={14} /> Previous 5
+        </button>
+
+        <span className="text-xs text-muted">
+          Page {page + 1} of {totalPages} &bull; Questions {page * PAGE_SIZE + 1}–{Math.min((page + 1) * PAGE_SIZE, questions.length)}
+        </span>
+
+        {page < totalPages - 1 ? (
+          <button
+            onClick={() => setPage((p) => p + 1)}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm border border-border text-text-2 hover:border-primary/40 hover:text-text transition-colors"
+          >
+            Next 5 <ChevronRight size={14} />
+          </button>
+        ) : (
+          <button
+            onClick={addPage}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm border border-dashed border-primary/40 text-primary hover:bg-primary/5 transition-colors"
+          >
+            <Plus size={14} /> Add 5 more
+          </button>
         )}
+      </div>
 
-        {saved && (
-          <div className="flex items-center gap-2 text-sm text-success">
-            <CheckCircle size={14} /> Question saved successfully!
-            {addAnother && " Form reset — add another question."}
+      {/* Download actions */}
+      <div className="bg-surface border border-border rounded-xl p-5">
+        <h3 className="font-semibold text-text text-sm mb-4">Download Question Paper</h3>
+        <div className="flex flex-wrap gap-3">
+          <button
+            onClick={downloadExcel}
+            className="flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold bg-emerald-600 hover:bg-emerald-700 text-white transition-colors"
+          >
+            <FileSpreadsheet size={16} /> Download as Excel (.xlsx)
+          </button>
+          <button
+            onClick={downloadWord}
+            className="flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold bg-blue-600 hover:bg-blue-700 text-white transition-colors"
+          >
+            <FileText size={16} /> Download as Word (.doc)
+          </button>
+        </div>
+        <p className="text-xs text-muted mt-3">
+          Excel: columns A–F for questions and options, column G for correct answer.
+          {optFmt === "numbers" && " Answers exported as numbers (1–4)."}
+        </p>
+
+        {notice && (
+          <div className={`flex items-center gap-2 text-sm mt-3 ${notice.type === "ok" ? "text-success" : "text-danger"}`}>
+            {notice.type === "ok" ? <CheckCircle size={14} /> : <AlertCircle size={14} />}
+            {notice.msg}
           </div>
         )}
       </div>
