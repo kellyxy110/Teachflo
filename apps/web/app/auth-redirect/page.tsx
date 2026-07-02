@@ -8,14 +8,18 @@ export default async function AuthRedirectPage() {
   const { userId } = await safeAuth();
   if (!userId) redirect("/sign-in");
 
-  const [teacher, student] = await Promise.all([
-    db.teacher.findUnique({ where: { clerkId: userId }, select: { id: true } }),
-    db.student.findUnique({ where: { clerkId: userId }, select: { id: true } }),
-  ]);
+  try {
+    const [teacher, student] = await Promise.all([
+      db.teacher.findUnique({ where: { clerkId: userId }, select: { id: true } }),
+      db.student.findUnique({ where: { clerkId: userId }, select: { id: true } }),
+    ]);
 
-  if (teacher) redirect("/dashboard");
-  if (student) redirect("/s/dashboard");
+    if (teacher) redirect("/dashboard");
+    if (student) redirect("/s/dashboard");
+  } catch {
+    // DB unavailable — send to onboarding so users aren't blocked
+    redirect("/choose-role");
+  }
 
-  // New user — pick a role
   redirect("/choose-role");
 }
