@@ -258,7 +258,8 @@ export function SettingsClient({ school, teacher }: Props) {
       const res = await fetch("/api/teacher/upload-photo", { method: "POST", body: fd });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Upload failed");
-      setPhotoUrl(data.photoUrl);
+      setPhotoUrl(data.photoUrl);          // clean URL — persisted to DB on form save
+      setPhotoPreview(data.previewUrl ?? data.photoUrl); // cache-busted for immediate display
       showToast("Photo uploaded successfully", true);
     } catch (err) {
       showToast(err instanceof Error ? err.message : "Upload failed", false);

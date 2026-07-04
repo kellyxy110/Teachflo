@@ -60,13 +60,14 @@ export async function POST(request: Request) {
   }
 
   const { data: urlData } = supabase.storage.from("avatars").getPublicUrl(fileName);
-  // Append cache-bust so the browser reloads after re-upload
-  const photoUrl = `${urlData.publicUrl}?t=${Date.now()}`;
+  const cleanUrl = urlData.publicUrl;
+  // Cache-bust only for the browser preview — DB always stores the clean URL
+  const previewUrl = `${cleanUrl}?t=${Date.now()}`;
 
   await db.teacher.update({
     where: { id: teacher.id },
-    data: { photoUrl: urlData.publicUrl },
+    data: { photoUrl: cleanUrl },
   });
 
-  return Response.json({ photoUrl });
+  return Response.json({ photoUrl: cleanUrl, previewUrl });
 }

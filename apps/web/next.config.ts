@@ -29,6 +29,7 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   transpilePackages: ["@teachflow/shared", "@teachflow/database", "@teachflow/ai-prompts"],
+  serverExternalPackages: ["pdf-parse"],
   images: {
     remotePatterns: [
       { protocol: "https", hostname: "images.unsplash.com" },
