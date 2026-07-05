@@ -16,12 +16,15 @@ const securityHeaders = [
     key: "Content-Security-Policy",
     value: [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://clerk.teachnexis.vercel.app https://*.clerk.accounts.dev https://js.stripe.com",
+      // Clerk scripts + Cloudflare Turnstile (bot-protection CAPTCHA)
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://clerk.teachnexis.vercel.app https://*.clerk.accounts.dev https://challenges.cloudflare.com https://js.stripe.com",
       "worker-src blob: 'self'",
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "font-src 'self' https://fonts.gstatic.com",
       "img-src 'self' data: blob: https://img.clerk.com https://images.unsplash.com https://*.supabase.co",
-      "connect-src 'self' blob: https://*.clerk.accounts.dev https://api.clerk.dev wss://*.clerk.accounts.dev https://openrouter.ai https://api.groq.com https://api.cerebras.ai https://ingest.sentry.io",
+      // Turnstile iframe (Clerk Bot Protection) + Clerk account iframes
+      "frame-src 'self' https://challenges.cloudflare.com https://*.clerk.accounts.dev https://clerk.teachnexis.vercel.app",
+      "connect-src 'self' blob: https://*.clerk.accounts.dev https://api.clerk.dev wss://*.clerk.accounts.dev https://challenges.cloudflare.com https://openrouter.ai https://api.groq.com https://api.cerebras.ai https://ingest.sentry.io https://router.bynara.id",
       "frame-ancestors 'none'",
     ].join("; "),
   },
