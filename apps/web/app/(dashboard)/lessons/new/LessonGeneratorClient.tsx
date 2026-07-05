@@ -4,6 +4,7 @@ import { useState, useRef, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Sparkles, Copy, Save, RefreshCw, Check, AlertTriangle } from "lucide-react";
 import { saveLesson } from "@/app/actions/lessons";
+import { GenerateVisualButton } from "@/components/media/GenerateVisualButton";
 import type { ClassLevel } from "@prisma/client";
 
 const CLASS_LEVELS: ClassLevel[] = ["JS1","JS2","JS3","SS1","SS2","SS3"];
@@ -247,6 +248,17 @@ export function LessonGeneratorClient() {
             You can still copy or save what was generated.
           </div>
         </div>
+      )}
+
+      {/* Visual Aid Generator — shown when lesson output is available */}
+      {(phase === "done" || phase === "incomplete") && (
+        <GenerateVisualButton
+          task="lesson_diagram"
+          subject={form.subject}
+          topic={form.topic}
+          classLevel={form.classLevel || undefined}
+          buttonLabel="Generate Visual Aid for This Lesson"
+        />
       )}
 
       {/* Output */}

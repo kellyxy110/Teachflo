@@ -6,8 +6,9 @@ import * as XLSX from "xlsx";
 import {
   Edit3, Eye, Download, CheckCircle, AlertCircle,
   ChevronLeft, ChevronRight, Plus, User, GraduationCap,
-  FileText, FileSpreadsheet, BookOpen, Hash, BarChart2, Lightbulb,
+  FileText, FileSpreadsheet, BookOpen, Hash, BarChart2, Lightbulb, X,
 } from "lucide-react";
+import { GenerateVisualButton } from "@/components/media/GenerateVisualButton";
 import type { ClassLevel, ExamType, Section } from "@prisma/client";
 import { KaTeXPreview, LaTeXToolbar } from "@/components/exam/KaTeXPreview";
 
@@ -52,6 +53,7 @@ interface QuestionSlot {
   difficulty: string;
   topic: string;
   explanation: string;
+  diagramUrl?: string;
 }
 interface Meta {
   title: string; subject: string; classLevel: string;
@@ -152,7 +154,7 @@ export function QuestionBuilderClient({ exams }: { exams: ExamOption[] }) {
     setMeta((m) => ({ ...m, [k]: v }));
   }
 
-  function setSlot(pageIdx: number, field: keyof QuestionSlot, value: string | number) {
+  function setSlot(pageIdx: number, field: keyof QuestionSlot, value: string | number | undefined) {
     const abs = page * PAGE_SIZE + pageIdx;
     setQuestions((qs) => {
       const next = [...qs];
@@ -933,6 +935,39 @@ ${body}
                           className={`${iCls} resize-y`}
                         />
                       </div>
+
+                      {/* Visual Diagram Generator */}
+                      <GenerateVisualButton
+                        task="exam_diagram"
+                        subject={meta.subject || undefined}
+                        topic={q.topic || meta.title || undefined}
+                        classLevel={meta.classLevel || undefined}
+                        defaultStyle="diagram"
+                        buttonLabel="Add Question Diagram"
+                        onGenerated={(result) => setSlot(pageIdx, "diagramUrl", result.assetUrl)}
+                      />
+
+                      {/* Attached diagram preview */}
+                      {q.diagramUrl && (
+                        <div className="rounded-lg overflow-hidden border border-border bg-surface">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={q.diagramUrl}
+                            alt="Question diagram"
+                            className="w-full h-auto max-h-48 object-contain"
+                          />
+                          <div className="flex items-center justify-between px-3 py-2 bg-bg border-t border-border">
+                            <span className="text-xs text-muted">Attached diagram</span>
+                            <button
+                              type="button"
+                              onClick={() => setSlot(pageIdx, "diagramUrl", undefined)}
+                              className="flex items-center gap-1 text-xs text-danger hover:text-danger/80 transition-colors"
+                            >
+                              <X size={11} /> Remove
+                            </button>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
