@@ -75,7 +75,7 @@ export async function POST(request: Request) {
       const chunks = await retrieveRAGContext(`${subject} ${topic} ${classLevel}`, schoolId, 6);
       if (chunks.length > 0) {
         textbookContext = chunks
-          .filter((c) => c.similarity > 0.5)
+          .filter((c) => c.similarity > 0.3)
           .slice(0, 5)
           .map((c, i) => `[Excerpt ${i + 1}]\n${c.content}`)
           .join("\n\n");

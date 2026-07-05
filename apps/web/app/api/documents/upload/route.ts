@@ -2,8 +2,20 @@ import { safeAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { chunkText } from "@/lib/chunker";
 import { storeDocumentChunks } from "@/lib/vector-search";
-import pdfParse from "pdf-parse";
 import { rateLimit } from "@/lib/rate-limit";
+
+// pdf-parse ships an ESM build that has no default export in some resolution
+// paths (Turbopack picks it up). Dynamic import + fallback handles both CJS and ESM.
+type PdfResult = { text: string; numpages: number };
+async function parsePdf(buffer: Buffer): Promise<PdfResult> {
+  const mod = await import("pdf-parse");
+  // CJS interop: module.exports is the function (no .default)
+  // ESM build: .default is the function
+  const fn =
+    (mod as { default?: (b: Buffer) => Promise<PdfResult> }).default ??
+    (mod as unknown as (b: Buffer) => Promise<PdfResult>);
+  return fn(buffer);
+}
 
 export const maxDuration = 60;
 
@@ -77,7 +89,7 @@ export async function POST(request: Request) {
   try {
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
-    const parsed = await pdfParse(buffer);
+    const parsed = await parsePdf(buffer);
 
     const text = parsed.text?.trim() ?? "";
     if (!text) {
