@@ -66,7 +66,14 @@ interface CompletionOpts extends StreamOpts {
   json?: boolean;
 }
 
-const MODEL_TIMEOUT_MS = 8000;
+// Time allowed for a model to establish its first response byte.
+// If the model doesn't begin streaming within this window, we skip to the next model.
+// This ONLY controls connection establishment — once streaming starts the timeout is cleared.
+const CONNECT_TIMEOUT_MS = 12_000;
+
+// Timeout for non-streaming completions (the entire round-trip, not just connection).
+const COMPLETION_TIMEOUT_MS = 45_000;
+
 const MAX_FALLBACK_ATTEMPTS = 4;
 
 export async function openRouterStream(
@@ -78,6 +85,13 @@ export async function openRouterStream(
   const candidates = models.slice(0, MAX_FALLBACK_ATTEMPTS);
 
   for (const model of candidates) {
+    // Use a manual AbortController with a clearable timer.
+    // The timer aborts only if the model doesn't begin responding within CONNECT_TIMEOUT_MS.
+    // Once create() resolves (stream has started), we clear the timer so the full stream
+    // runs without a hard cut-off — Vercel's maxDuration on the route handles overall limits.
+    const ctrl = new AbortController();
+    const connectTimer = setTimeout(() => ctrl.abort(), CONNECT_TIMEOUT_MS);
+
     try {
       const stream = await getOpenRouterClient(model).chat.completions.create(
         {
@@ -85,17 +99,21 @@ export async function openRouterStream(
           messages,
           stream: true,
           temperature: opts.temperature ?? 0.7,
-          max_tokens: opts.max_tokens ?? 2000,
+          max_tokens: opts.max_tokens ?? 4000,
         },
-        { signal: AbortSignal.timeout(MODEL_TIMEOUT_MS) }
+        { signal: ctrl.signal }
       );
+      clearTimeout(connectTimer); // Stream connected — let it run to completion
       return stream;
     } catch (e) {
+      clearTimeout(connectTimer);
       lastError = e instanceof Error ? e : new Error(String(e));
     }
   }
 
   if (process.env.GROQ_API_KEY) {
+    const ctrl = new AbortController();
+    const connectTimer = setTimeout(() => ctrl.abort(), CONNECT_TIMEOUT_MS);
     try {
       const stream = await getGroqClient().chat.completions.create(
         {
@@ -103,12 +121,14 @@ export async function openRouterStream(
           messages,
           stream: true,
           temperature: opts.temperature ?? 0.7,
-          max_tokens: opts.max_tokens ?? 2000,
+          max_tokens: opts.max_tokens ?? 4000,
         },
-        { signal: AbortSignal.timeout(MODEL_TIMEOUT_MS) }
+        { signal: ctrl.signal }
       );
+      clearTimeout(connectTimer);
       return stream;
     } catch (e) {
+      clearTimeout(connectTimer);
       lastError = e instanceof Error ? e : new Error(String(e));
     }
   }
@@ -134,7 +154,7 @@ export async function openRouterCompletion(
           max_tokens: opts.max_tokens ?? 6000,
           ...(opts.json ? { response_format: { type: "json_object" as const } } : {}),
         },
-        { signal: AbortSignal.timeout(MODEL_TIMEOUT_MS) }
+        { signal: AbortSignal.timeout(COMPLETION_TIMEOUT_MS) }
       );
       return { completion, model };
     } catch (e) {
@@ -151,7 +171,7 @@ export async function openRouterCompletion(
           temperature: opts.temperature ?? 0.4,
           max_tokens: opts.max_tokens ?? 6000,
         },
-        { signal: AbortSignal.timeout(MODEL_TIMEOUT_MS) }
+        { signal: AbortSignal.timeout(COMPLETION_TIMEOUT_MS) }
       );
       return { completion, model: GROQ_MODELS.TEACHING };
     } catch (e) {

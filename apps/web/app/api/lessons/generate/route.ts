@@ -7,7 +7,12 @@ import { getTopicByLabel, getTopicContext } from "@/lib/curriculum-graph";
 import { retrieveRAGContext } from "@/lib/vector-search";
 import type { ClassLevel, Term } from "@prisma/client";
 
-export const maxDuration = 120;
+// 300 seconds = maximum allowed on Vercel Pro. Long lesson notes need this.
+export const maxDuration = 300;
+
+// Sentinel appended to the stream when generation completes normally.
+// The client strips it and uses its presence to confirm the lesson is complete.
+export const LESSON_COMPLETE_SENTINEL = "<!-- LESSON_COMPLETE -->";
 
 export async function POST(request: Request) {
   let userId: string | null = null;
@@ -93,7 +98,6 @@ export async function POST(request: Request) {
     stream = await openRouterStream(
       LESSON_MODELS,
       [{ role: "user", content: prompt }],
-      // Lower temperature for structured lesson output — 0.4 gives reliable section adherence
       { max_tokens: lessonMaxTokens(periodCount), temperature: 0.4 }
     );
   } catch (e) {
@@ -104,9 +108,21 @@ export async function POST(request: Request) {
   const encoder = new TextEncoder();
   const readable = new ReadableStream({
     async start(controller) {
-      for await (const chunk of stream) {
-        const text = chunk.choices[0]?.delta?.content ?? "";
-        if (text) controller.enqueue(encoder.encode(text));
+      let finishReason: string | null = null;
+      try {
+        for await (const chunk of stream) {
+          const text = chunk.choices[0]?.delta?.content ?? "";
+          if (text) controller.enqueue(encoder.encode(text));
+          const reason = chunk.choices[0]?.finish_reason;
+          if (reason) finishReason = reason;
+        }
+      } catch {
+        // Stream may have been cancelled by the client — treat as incomplete
+      }
+      // Append sentinel so the client can verify the lesson generated fully.
+      // "stop" = model finished naturally. "length" = hit max_tokens (still complete output).
+      if (finishReason === "stop" || finishReason === "length") {
+        controller.enqueue(encoder.encode(`\n\n${LESSON_COMPLETE_SENTINEL}`));
       }
       controller.close();
     },
@@ -119,7 +135,6 @@ export async function POST(request: Request) {
     headers: {
       "Content-Type": "text/plain; charset=utf-8",
       "X-Accel-Buffering": "no",
-      // Debug: tells the client whether RAG textbook context was retrieved
       "X-RAG-Context": textbookContext ? "yes" : "no",
     },
   });

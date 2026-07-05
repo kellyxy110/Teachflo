@@ -2,7 +2,7 @@
 
 import { useState, useRef, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Sparkles, Copy, Save, RefreshCw, Check } from "lucide-react";
+import { Sparkles, Copy, Save, RefreshCw, Check, AlertTriangle } from "lucide-react";
 import { saveLesson } from "@/app/actions/lessons";
 import type { ClassLevel } from "@prisma/client";
 
@@ -16,7 +16,10 @@ const SUBJECTS = [
   "Food and Nutrition","Computer Studies","French",
 ];
 
-type Phase = "idle" | "generating" | "done" | "saving";
+// Appended by the server when generation finishes normally (stop or length finish_reason).
+const COMPLETION_SENTINEL = "<!-- LESSON_COMPLETE -->";
+
+type Phase = "idle" | "generating" | "done" | "incomplete" | "saving";
 
 export function LessonGeneratorClient() {
   const router = useRouter();
@@ -67,16 +70,23 @@ export function LessonGeneratorClient() {
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
       let full = "";
+      let complete = false;
 
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
-        const chunk = decoder.decode(value, { stream: true });
-        full += chunk;
+        full += decoder.decode(value, { stream: true });
+
+        // Check for completion sentinel — strip it from display
+        if (full.includes(COMPLETION_SENTINEL)) {
+          complete = true;
+          full = full.replace(COMPLETION_SENTINEL, "").trimEnd();
+        }
+
         setMarkdown(full);
       }
 
-      setPhase("done");
+      setPhase(complete ? "done" : "incomplete");
     } catch (err: unknown) {
       if ((err as Error).name !== "AbortError") {
         setPhase("idle");
@@ -106,6 +116,8 @@ export function LessonGeneratorClient() {
       router.push(`/lessons/${id}`);
     });
   }
+
+  const isOutputVisible = phase === "generating" || phase === "done" || phase === "incomplete" || phase === "saving";
 
   return (
     <div className="space-y-6">
@@ -219,8 +231,26 @@ export function LessonGeneratorClient() {
         </div>
       </div>
 
+      {/* Incomplete warning */}
+      {phase === "incomplete" && (
+        <div className="flex items-start gap-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-xl px-4 py-3">
+          <AlertTriangle size={16} className="text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
+          <div className="text-sm text-amber-800 dark:text-amber-300">
+            <span className="font-semibold">Generation incomplete.</span>{" "}
+            Some lesson sections were not produced — the AI model stopped early. Please regenerate or click{" "}
+            <button
+              onClick={generate}
+              className="underline font-medium hover:text-amber-900 dark:hover:text-amber-200"
+            >
+              try again
+            </button>.
+            You can still copy or save what was generated.
+          </div>
+        </div>
+      )}
+
       {/* Output */}
-      {(phase === "generating" || phase === "done" || phase === "saving") && (
+      {isOutputVisible && (
         <div className="bg-surface rounded-xl border border-border overflow-hidden">
           {/* Toolbar */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-bg">
@@ -231,15 +261,27 @@ export function LessonGeneratorClient() {
                   Writing your lesson plan...
                 </span>
               )}
-              {(phase === "done" || phase === "saving") && (
+              {phase === "done" && (
                 <span className="flex items-center gap-1.5 text-xs text-success">
                   <Check size={13} />
                   Lesson plan ready
                 </span>
               )}
+              {phase === "incomplete" && (
+                <span className="flex items-center gap-1.5 text-xs text-amber-600 dark:text-amber-400">
+                  <AlertTriangle size={13} />
+                  Incomplete — regenerate to get full lesson
+                </span>
+              )}
+              {phase === "saving" && (
+                <span className="flex items-center gap-1.5 text-xs text-primary">
+                  <RefreshCw size={13} className="animate-spin" />
+                  Saving...
+                </span>
+              )}
             </div>
 
-            {(phase === "done" || phase === "saving") && (
+            {(phase === "done" || phase === "incomplete" || phase === "saving") && (
               <div className="flex items-center gap-2">
                 <button
                   onClick={handleCopy}

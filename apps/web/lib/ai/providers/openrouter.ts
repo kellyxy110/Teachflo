@@ -1,14 +1,15 @@
 import OpenAI from "openai";
 
 export const OPENROUTER_MODELS = {
-  // Core task models
+  // ── Core production models ────────────────────────────────────────────
   EXAM:            "deepseek/deepseek-v4-flash:free",
   REASONING:       "qwen/qwen3-next-80b-a3b-instruct:free",
   GENERAL:         "meta-llama/llama-3.3-70b-instruct:free",
   MULTIMODAL:      "google/gemma-4-31b-it:free",
   AGENT:           "moonshotai/kimi-k2.6:free",
   FRONTIER:        "nousresearch/hermes-3-llama-3.1-405b:free",
-  // Extended free-tier models
+
+  // ── Extended free-tier models ─────────────────────────────────────────
   GPT_OSS:         "openai/gpt-oss-120b:free",
   NEMOTRON_ULTRA:  "nvidia/nemotron-3-ultra-550b-a55b:free",
   NEMOTRON_SUPER:  "nvidia/nemotron-3-super-120b-a12b:free",
@@ -19,18 +20,29 @@ export const OPENROUTER_MODELS = {
   GEMMA_26B:       "google/gemma-4-26b-a4b-it:free",
   QWEN_CODER:      "qwen/qwen3-coder:free",
   LLAMA_3B:        "meta-llama/llama-3.2-3b-instruct:free",
-  // Coding-specialist models (sourced from OmniRoute free-tier catalog)
+
+  // ── Coding-specialist models ──────────────────────────────────────────
   LAGUNA_M:        "poolside/laguna-m.1:free",
   LAGUNA_XS:       "poolside/laguna-xs.2:free",
   ARCEE_TRINITY:   "arcee-ai/trinity-large-preview:free",
   STEP_FLASH:      "stepfun/step-3.7-flash:free",
   NEX_N2:          "nex-agi/nex-n2-pro:free",
-  // Premium models (free while available — fallback skips if unavailable)
+
+  // ── Premium models (free while available) ────────────────────────────
   MINIMAX_M3:      "minimax/minimax-m3:free",
   SONNET_4_5:      "anthropic/claude-sonnet-4.5:free",
   R1_DISTILL:      "deepseek/deepseek-r1-distill-qwen-1.5b:free",
+
+  // ── Candidate evaluation models ───────────────────────────────────────
+  // These are loaded from env vars so they can be swapped without a deploy.
+  // Set the corresponding env var to the OpenRouter model ID to enable.
+  // See apps/web/lib/ai/model-registry.ts for the full candidate list.
+  EVAL_PRIMARY:   process.env.EVAL_MODEL_PRIMARY   ?? "qwen/qwen3-next-80b-a3b-instruct:free",
+  EVAL_SECONDARY: process.env.EVAL_MODEL_SECONDARY ?? "meta-llama/llama-3.3-70b-instruct:free",
+  EVAL_AGENT:     process.env.EVAL_MODEL_AGENT     ?? "moonshotai/kimi-k2.6:free",
 } as const;
 
+// Per-model API key routing — allows separate rate-limit pools per provider key
 const MODEL_KEY_MAP: Record<string, string> = {
   [OPENROUTER_MODELS.EXAM]:     "OPENROUTER_KEY_DEEPSEEK",
   [OPENROUTER_MODELS.REASONING]:"OPENROUTER_KEY_QWEN",
@@ -38,7 +50,7 @@ const MODEL_KEY_MAP: Record<string, string> = {
   [OPENROUTER_MODELS.MULTIMODAL]:"OPENROUTER_KEY_GEMMA",
   [OPENROUTER_MODELS.AGENT]:    "OPENROUTER_KEY_KIMI",
   [OPENROUTER_MODELS.FRONTIER]: "OPENROUTER_KEY_HERMES",
-  // Extended models all fall back to shared OPENROUTER_API_KEY
+  // Extended models fall back to shared OPENROUTER_API_KEY
 };
 
 const DEFAULT_HEADERS = {
