@@ -119,6 +119,8 @@ export async function POST(request: Request) {
     headers: {
       "Content-Type": "text/plain; charset=utf-8",
       "X-Accel-Buffering": "no",
+      // Debug: tells the client whether RAG textbook context was retrieved
+      "X-RAG-Context": textbookContext ? "yes" : "no",
     },
   });
 }
