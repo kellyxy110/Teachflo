@@ -96,6 +96,25 @@ function renderMathHtml(raw: string): string {
   }).join("");
 }
 
+// MathML variant for Word export — Word renders MathML natively via its own equation
+// engine (Cambria Math). This avoids the KaTeX CDN CSS/font dependency that Word blocks.
+function renderMathMML(raw: string): string {
+  const parts = raw.split(/(\$\$[\s\S]+?\$\$|\$[^$\n]+?\$)/g);
+  return parts.map((part) => {
+    if (part.startsWith("$$") && part.endsWith("$$")) {
+      const tex = part.slice(2, -2).trim();
+      try { return katex.renderToString(tex, { displayMode: true, throwOnError: false, output: "mathml" }); }
+      catch { return htmlEsc(part); }
+    }
+    if (part.startsWith("$") && part.endsWith("$")) {
+      const tex = part.slice(1, -1).trim();
+      try { return katex.renderToString(tex, { throwOnError: false, output: "mathml" }); }
+      catch { return htmlEsc(part); }
+    }
+    return htmlEsc(part);
+  }).join("");
+}
+
 function stripMath(raw: string): string {
   return raw.replace(/\$\$?([^$]+?)\$\$?/g, (_, tex) => tex.trim()).trim();
 }
@@ -236,7 +255,7 @@ export function QuestionBuilderClient({ exams }: { exams: ExamOption[] }) {
 
   // ── Word export ───────────────────────────────────────────────
 
-  const KATEX_CDN = "https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css";
+  // Math is rendered as MathML so no external CSS is needed — Word uses its own engine.
 
   function buildWordDoc(body: string, isTeacher: boolean): string {
     const examTypeLabel = EXAM_TYPES.find((t) => t.value === meta.examType)?.label ?? meta.examType;
@@ -248,7 +267,6 @@ export function QuestionBuilderClient({ exams }: { exams: ExamOption[] }) {
     return `<!DOCTYPE html>
 <html><head>
 <meta charset="utf-8">
-<link rel="stylesheet" href="${KATEX_CDN}">
 <style>
   @page { margin: 2.5cm 2.8cm; }
   body {
@@ -398,14 +416,14 @@ ${body}
         const marksLabel = q.marks > 1 ? `${q.marks} marks` : "1 mark";
         const opts = LETTERS
           .filter((l) => getOpt(q, l).trim())
-          .map((l) => `<div class="opt"><span class="opt-lbl">(${l})</span><span>${renderMathHtml(getOpt(q, l))}</span></div>`)
+          .map((l) => `<div class="opt"><span class="opt-lbl">(${l})</span><span>${renderMathMML(getOpt(q, l))}</span></div>`)
           .join("");
         return `<div class="q">
   <div class="q-header">
     <span class="q-num">${i + 1}.</span>
     <span class="q-meta-badge">[${marksLabel}]</span>
   </div>
-  <div class="stem">${renderMathHtml(q.stem)}</div>
+  <div class="stem">${renderMathMML(q.stem)}</div>
   <div class="opts">${opts}</div>
 </div>`;
       }).join("\n");
@@ -430,7 +448,7 @@ ${body}
           .filter((l) => getOpt(q, l).trim())
           .map((l) => {
             const isCorrect = q.correct === l;
-            return `<div class="opt${isCorrect ? " correct" : ""}"><span class="opt-lbl">(${l})</span><span>${renderMathHtml(getOpt(q, l))}</span></div>`;
+            return `<div class="opt${isCorrect ? " correct" : ""}"><span class="opt-lbl">(${l})</span><span>${renderMathMML(getOpt(q, l))}</span></div>`;
           }).join("");
         const explanationHtml = q.explanation.trim()
           ? `<div class="explanation"><span class="explanation-label">Marking Guide:</span> ${htmlEsc(q.explanation)}</div>`
@@ -440,7 +458,7 @@ ${body}
     <span class="q-num">${i + 1}.</span>
     <span class="q-meta-badge">[${marksLabel}${diffBadge}${topicBadge}]</span>
   </div>
-  <div class="stem">${renderMathHtml(q.stem)}</div>
+  <div class="stem">${renderMathMML(q.stem)}</div>
   <div class="opts">${opts}</div>
   ${explanationHtml}
 </div>`;

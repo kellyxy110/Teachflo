@@ -1,6 +1,7 @@
 import type OpenAI from "openai";
 import { getGroqClient, GROQ_MODELS } from "@/lib/ai/providers/groq";
 import { getOpenRouterClient, OPENROUTER_MODELS } from "@/lib/ai/providers/openrouter";
+import { getBynaraClient, BYNARA_MODELS } from "@/lib/ai/providers/bynara";
 
 // Re-export client factories so existing imports keep working
 export { getGroqClient, getOpenRouterClient };
@@ -111,6 +112,31 @@ export async function openRouterStream(
     }
   }
 
+  // Bynara fallback — uses the user's 5M token pool on router.bynara.id
+  if (process.env.BYNARA_API_KEY) {
+    for (const model of [BYNARA_MODELS.PRIMARY, BYNARA_MODELS.SECONDARY]) {
+      const ctrl = new AbortController();
+      const connectTimer = setTimeout(() => ctrl.abort(), CONNECT_TIMEOUT_MS);
+      try {
+        const stream = await getBynaraClient().chat.completions.create(
+          {
+            model,
+            messages,
+            stream: true,
+            temperature: opts.temperature ?? 0.7,
+            max_tokens: opts.max_tokens ?? 4000,
+          },
+          { signal: ctrl.signal }
+        );
+        clearTimeout(connectTimer);
+        return stream;
+      } catch (e) {
+        clearTimeout(connectTimer);
+        lastError = e instanceof Error ? e : new Error(String(e));
+      }
+    }
+  }
+
   if (process.env.GROQ_API_KEY) {
     const ctrl = new AbortController();
     const connectTimer = setTimeout(() => ctrl.abort(), CONNECT_TIMEOUT_MS);
@@ -159,6 +185,26 @@ export async function openRouterCompletion(
       return { completion, model };
     } catch (e) {
       lastError = e instanceof Error ? e : new Error(String(e));
+    }
+  }
+
+  if (process.env.BYNARA_API_KEY) {
+    for (const model of [BYNARA_MODELS.PRIMARY, BYNARA_MODELS.SECONDARY]) {
+      try {
+        const completion = await getBynaraClient().chat.completions.create(
+          {
+            model,
+            messages,
+            temperature: opts.temperature ?? 0.4,
+            max_tokens: opts.max_tokens ?? 6000,
+            ...(opts.json ? { response_format: { type: "json_object" as const } } : {}),
+          },
+          { signal: AbortSignal.timeout(COMPLETION_TIMEOUT_MS) }
+        );
+        return { completion, model };
+      } catch (e) {
+        lastError = e instanceof Error ? e : new Error(String(e));
+      }
     }
   }
 
