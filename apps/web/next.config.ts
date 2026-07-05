@@ -20,7 +20,7 @@ const securityHeaders = [
       "worker-src blob: 'self'",
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "font-src 'self' https://fonts.gstatic.com",
-      "img-src 'self' data: blob: https://img.clerk.com https://images.unsplash.com",
+      "img-src 'self' data: blob: https://img.clerk.com https://images.unsplash.com https://*.supabase.co",
       "connect-src 'self' blob: https://*.clerk.accounts.dev https://api.clerk.dev wss://*.clerk.accounts.dev https://openrouter.ai https://api.groq.com https://api.cerebras.ai https://ingest.sentry.io",
       "frame-ancestors 'none'",
     ].join("; "),
@@ -34,6 +34,7 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       { protocol: "https", hostname: "images.unsplash.com" },
       { protocol: "https", hostname: "img.clerk.com" },
+      { protocol: "https", hostname: "*.supabase.co" },
     ],
   },
   turbopack: {

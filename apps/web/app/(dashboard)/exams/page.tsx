@@ -8,27 +8,28 @@ export default async function ExamsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-text">Exams</h1>
           <p className="text-sm text-text-2 mt-0.5">
             {exams.length} saved exam{exams.length !== 1 ? "s" : ""}
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Manual builder — most prominent for manual creation */}
+          <Link
+            href="/exams/questions/new"
+            className="flex items-center gap-2 bg-purple-600 text-white px-4 py-2.5 rounded-lg text-sm font-semibold hover:bg-purple-700 transition-colors"
+          >
+            <PenTool size={16} />
+            Manual Builder
+          </Link>
           <Link
             href="/exams/generate-ai"
             className="flex items-center gap-2 bg-gradient-to-r from-primary to-purple-600 text-white px-4 py-2.5 rounded-lg text-sm font-semibold hover:opacity-90 transition-opacity"
           >
             <Sparkles size={16} />
             AI Generate
-          </Link>
-          <Link
-            href="/exams/questions/new"
-            className="flex items-center gap-2 bg-purple-600 text-white px-4 py-2.5 rounded-lg text-sm font-semibold hover:bg-purple-700 transition-colors"
-          >
-            <PenTool size={16} />
-            Add Question
           </Link>
           <Link
             href="/exams/v2/new"
