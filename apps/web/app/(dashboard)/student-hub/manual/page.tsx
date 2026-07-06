@@ -14,16 +14,13 @@ export default async function ManualEntryPage() {
   const classes = await db.class.findMany({
     where: { schoolId },
     orderBy: [{ level: "asc" }, { name: "asc" }],
-    include: {
-      _count: { select: { students: true } },
-    },
     select: {
       id: true,
       name: true,
       level: true,
       session: true,
       term: true,
-      _count: true,
+      _count: { select: { students: true } },
     },
   });
 
