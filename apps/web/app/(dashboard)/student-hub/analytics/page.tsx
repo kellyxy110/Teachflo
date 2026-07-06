@@ -12,14 +12,13 @@ export default async function AnalyticsPage() {
   const classes = await db.class.findMany({
     where: { schoolId },
     orderBy: [{ level: "asc" }, { name: "asc" }],
-    include: { _count: { select: { students: true, scores: true } } },
     select: {
       id: true,
       name: true,
       level: true,
       term: true,
       session: true,
-      _count: true,
+      _count: { select: { students: true, scores: true } },
     },
   });
 
