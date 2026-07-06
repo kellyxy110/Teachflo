@@ -67,7 +67,7 @@ export function PortalHubClient({
       if (!res.ok) throw new Error(data.error ?? "Connection failed");
 
       setSuccess(`Connected to ${selected.name}${data.schoolName ? ` — ${data.schoolName}` : ""}`);
-      setForm({ username: "", password: "", portalUrl: "", schoolCode: "" });
+      setForm({ username: "", password: "", portalUrl: "", schoolCode: "", sessionToken: "" });
       setSelected(null);
 
       // Refresh connections
