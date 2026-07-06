@@ -168,10 +168,11 @@ export async function stageImportJob(
           incomingTotal: parseNum(parsedData.total),
         };
         if (action !== "CONFLICT") {
+          const previousAction = action;
           action = "CONFLICT";
           conflictCount++;
-          if (action === "CREATE") newCount--;
-          else if (action === "UPDATE") updateCount--;
+          if (previousAction === "CREATE") newCount--;
+          else if (previousAction === "UPDATE") updateCount--;
         }
         conflictData = { ...((conflictData as object) ?? {}), scoreConflict };
       }
