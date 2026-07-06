@@ -25,7 +25,7 @@ export class SchoolCubeConnector extends BasePortalConnector {
     requiresCredentials: true,
     supportedFeatures: ["students", "results", "attendance", "remarks", "subjects", "classes"],
     setupInstructions:
-      "Enter your SchoolCube portal URL (e.g. https://yourschool.schoolcube.com.ng), your username, and password. TeachNexis never stores your password — only a temporary session token.",
+      "SchoolCube uses Cloudflare protection that blocks direct server login. Instead: (1) Open your SchoolCube portal in a new browser tab and log in normally. (2) Open DevTools (F12) → Application → Local Storage → find your portal URL → copy the value of the 'token' or 'auth_token' key. (3) Paste it below. TeachNexis never stores your password.",
   };
 
   private get baseUrl(): string {

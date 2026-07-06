@@ -22,15 +22,20 @@ export async function POST(request: Request) {
 
   const body = await request.json() as {
     portalType: string;
-    username: string;
-    password: string;
+    sessionToken?: string;
+    tokenExpiry?: string;
+    username?: string;
+    password?: string;
     portalUrl?: string;
     schoolCode?: string;
   };
 
-  const { portalType, username, password } = body;
-  if (!portalType || !username || !password) {
-    return Response.json({ error: "portalType, username, and password are required" }, { status: 400 });
+  const { portalType } = body;
+  if (!portalType) {
+    return Response.json({ error: "portalType is required" }, { status: 400 });
+  }
+  if (!body.sessionToken && (!body.username || !body.password)) {
+    return Response.json({ error: "Either sessionToken or username + password is required" }, { status: 400 });
   }
 
   if (!isValidPortalType(portalType)) {
@@ -44,12 +49,23 @@ export async function POST(request: Request) {
   let expiry: Date;
   let schoolInfo: { name?: string } = {};
 
-  try {
-    ({ token, expiry } = await connector.login(username, password));
+  if (body.sessionToken) {
+    // Token-based flow: user logged in via browser (bypasses Cloudflare bot protection).
+    connector.restoreSession(body.sessionToken);
+    token = body.sessionToken;
+    expiry = body.tokenExpiry
+      ? new Date(body.tokenExpiry)
+      : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
     schoolInfo = await connector.fetchSchool().catch(() => ({}));
-  } catch (e) {
-    const msg = e instanceof Error ? e.message : "Connection failed";
-    return Response.json({ error: msg }, { status: 502 });
+  } else {
+    // Credential-based flow: server-side login (works only for portals without bot protection).
+    try {
+      ({ token, expiry } = await connector.login(body.username!, body.password!));
+      schoolInfo = await connector.fetchSchool().catch(() => ({}));
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Connection failed";
+      return Response.json({ error: msg }, { status: 502 });
+    }
   }
 
   await db.portalConnection.upsert({

@@ -40,7 +40,7 @@ export function PortalHubClient({
 }) {
   const [connections, setConnections] = useState(initial);
   const [selected, setSelected] = useState<ConnectorMeta | null>(null);
-  const [form, setForm] = useState({ username: "", password: "", portalUrl: "", schoolCode: "" });
+  const [form, setForm] = useState({ username: "", password: "", portalUrl: "", schoolCode: "", sessionToken: "" });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -53,16 +53,15 @@ export function PortalHubClient({
     setError(null);
     setSuccess(null);
     try {
+      const useTokenFlow = selected.id === "schoolcube";
       const res = await fetch("/api/student-hub/portal/connect", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          portalType: selected.id,
-          username: form.username,
-          password: form.password,
-          portalUrl: form.portalUrl || undefined,
-          schoolCode: form.schoolCode || undefined,
-        }),
+        body: JSON.stringify(
+          useTokenFlow
+            ? { portalType: selected.id, sessionToken: form.sessionToken, portalUrl: form.portalUrl || undefined }
+            : { portalType: selected.id, username: form.username, password: form.password, portalUrl: form.portalUrl || undefined, schoolCode: form.schoolCode || undefined }
+        ),
       });
       const data = await res.json() as { error?: string; connected?: boolean; schoolName?: string; tokenExpiry?: string };
       if (!res.ok) throw new Error(data.error ?? "Connection failed");
@@ -251,35 +250,56 @@ export function PortalHubClient({
           {selected.setupInstructions && (
             <p className="text-xs text-text-2 bg-bg p-3 rounded-lg">{selected.setupInstructions}</p>
           )}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {selected.id === "schoolcube" && (
-              <div className="sm:col-span-2">
+          {selected.id === "schoolcube" ? (
+            <div className="space-y-3">
+              <div>
                 <label className="block text-xs font-medium text-text-2 mb-1">Portal URL</label>
                 <input value={form.portalUrl} onChange={(e) => setForm((f) => ({ ...f, portalUrl: e.target.value }))}
-                  placeholder="https://yourschool.schoolcube.com.ng"
+                  placeholder="https://bolt.schoolcube.net/staff/YOURCODE"
                   className="w-full px-3 py-2 rounded-lg text-sm bg-bg border border-border text-text focus:outline-none focus:ring-2 focus:ring-primary/30" />
               </div>
-            )}
-            {selected.id === "edves" && (
               <div>
-                <label className="block text-xs font-medium text-text-2 mb-1">School Code</label>
-                <input value={form.schoolCode} onChange={(e) => setForm((f) => ({ ...f, schoolCode: e.target.value }))}
-                  placeholder="e.g. SCH001"
+                <label className="block text-xs font-medium text-text-2 mb-1">Session Token</label>
+                <textarea
+                  value={form.sessionToken}
+                  onChange={(e) => setForm((f) => ({ ...f, sessionToken: e.target.value }))}
+                  rows={3}
+                  placeholder="Paste your SchoolCube session token here…"
+                  className="w-full px-3 py-2 rounded-lg text-sm bg-bg border border-border text-text focus:outline-none focus:ring-2 focus:ring-primary/30 font-mono resize-none"
+                />
+              </div>
+              <div className="text-[11px] text-text-2 bg-bg rounded-lg p-3 space-y-1 border border-border">
+                <p className="font-semibold text-text">How to get your token:</p>
+                <ol className="list-decimal list-inside space-y-0.5 pl-1">
+                  <li>Open your SchoolCube portal in a new tab and log in</li>
+                  <li>Press <kbd className="px-1 py-0.5 bg-surface border border-border rounded text-[10px]">F12</kbd> → Application → Local Storage → select your portal URL</li>
+                  <li>Find the key named <code className="bg-surface px-1 rounded">token</code> or <code className="bg-surface px-1 rounded">auth_token</code> and copy its value</li>
+                </ol>
+              </div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {selected.id === "edves" && (
+                <div>
+                  <label className="block text-xs font-medium text-text-2 mb-1">School Code</label>
+                  <input value={form.schoolCode} onChange={(e) => setForm((f) => ({ ...f, schoolCode: e.target.value }))}
+                    placeholder="e.g. SCH001"
+                    className="w-full px-3 py-2 rounded-lg text-sm bg-bg border border-border text-text focus:outline-none focus:ring-2 focus:ring-primary/30" />
+                </div>
+              )}
+              <div>
+                <label className="block text-xs font-medium text-text-2 mb-1">Username</label>
+                <input value={form.username} onChange={(e) => setForm((f) => ({ ...f, username: e.target.value }))}
                   className="w-full px-3 py-2 rounded-lg text-sm bg-bg border border-border text-text focus:outline-none focus:ring-2 focus:ring-primary/30" />
               </div>
-            )}
-            <div>
-              <label className="block text-xs font-medium text-text-2 mb-1">Username</label>
-              <input value={form.username} onChange={(e) => setForm((f) => ({ ...f, username: e.target.value }))}
-                className="w-full px-3 py-2 rounded-lg text-sm bg-bg border border-border text-text focus:outline-none focus:ring-2 focus:ring-primary/30" />
+              <div>
+                <label className="block text-xs font-medium text-text-2 mb-1">Password</label>
+                <input type="password" value={form.password}
+                  onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
+                  className="w-full px-3 py-2 rounded-lg text-sm bg-bg border border-border text-text focus:outline-none focus:ring-2 focus:ring-primary/30" />
+              </div>
             </div>
-            <div>
-              <label className="block text-xs font-medium text-text-2 mb-1">Password</label>
-              <input type="password" value={form.password}
-                onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
-                className="w-full px-3 py-2 rounded-lg text-sm bg-bg border border-border text-text focus:outline-none focus:ring-2 focus:ring-primary/30" />
-            </div>
-          </div>
+          )}
           <p className="text-[11px] text-text-2 flex items-center gap-1.5">
             <Lock size={11} className="shrink-0" />
             Your password is never stored. Only a session token is saved.
@@ -291,7 +311,7 @@ export function PortalHubClient({
             </button>
             <button
               onClick={handleConnect}
-              disabled={loading || !form.username || !form.password}
+              disabled={loading || (selected.id === "schoolcube" ? !form.sessionToken : (!form.username || !form.password))}
               className="flex items-center gap-2 px-5 py-2 rounded-lg text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 transition-colors disabled:opacity-40"
             >
               {loading ? <Loader2 size={14} className="animate-spin" /> : <Link2 size={14} />}
