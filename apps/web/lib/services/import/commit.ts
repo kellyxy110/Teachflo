@@ -193,7 +193,7 @@ export async function commitImportJob(opts: CommitOptions): Promise<CommitResult
     data: {
       status: "COMMITTED",
       committedAt: new Date(),
-      studentsCreated: studentsCreated - studentsUpdated < 0 ? 0 : studentsCreated,
+      newStudents: studentsCreated - studentsUpdated < 0 ? 0 : studentsCreated,
       updatedStudents: studentsUpdated,
       newScores: scoresUpserted,
       errors,
