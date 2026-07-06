@@ -21,11 +21,11 @@ export class SchoolCubeConnector extends BasePortalConnector {
     id: "schoolcube",
     name: "SchoolCube",
     description: "Connect to SchoolCube school management portal",
-    isAvailable: true,
+    isAvailable: false,
     requiresCredentials: true,
     supportedFeatures: ["students", "results", "attendance", "remarks", "subjects", "classes"],
     setupInstructions:
-      "SchoolCube uses Cloudflare protection that blocks direct server login. Instead: (1) Open your SchoolCube portal in a new browser tab and log in normally. (2) Open DevTools (F12) → Application → Local Storage → find your portal URL → copy the value of the 'token' or 'auth_token' key. (3) Paste it below. TeachNexis never stores your password.",
+      "SchoolCube's API is behind Cloudflare Bot Protection which blocks all server-to-server requests from cloud providers. Direct integration is not possible at this time. Use the Excel/CSV import instead: export your result sheet from SchoolCube and upload it via the Import tab.",
   };
 
   private get baseUrl(): string {

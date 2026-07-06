@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Globe, Loader2, CheckCircle, AlertTriangle, RefreshCw, Link2, Lock } from "lucide-react";
+import { Globe, Loader2, CheckCircle, AlertTriangle, RefreshCw, Link2, Lock, Ban } from "lucide-react";
 import type { ConnectorMeta } from "@/lib/services/connectors/base";
 
 interface ActiveConnection {
@@ -207,6 +207,26 @@ export function PortalHubClient({
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {connectors.map((c) => {
             const isConnected = connections.some((conn) => conn.portalType === c.id);
+            if (!c.isAvailable) {
+              return (
+                <div
+                  key={c.id}
+                  title={c.setupInstructions}
+                  className="text-left bg-surface border border-border rounded-xl p-4 opacity-50 cursor-not-allowed select-none"
+                >
+                  <div className="flex items-start justify-between mb-2">
+                    <div className="w-9 h-9 rounded-xl bg-text-2/10 flex items-center justify-center">
+                      <Ban size={16} className="text-text-2" />
+                    </div>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-text-2/10 text-text-2">
+                      Unavailable
+                    </span>
+                  </div>
+                  <p className="font-bold text-text text-sm">{c.name}</p>
+                  <p className="text-xs text-text-2 mt-0.5">Cloudflare blocks server API access. Use Excel/CSV import instead.</p>
+                </div>
+              );
+            }
             return (
               <button
                 key={c.id}
