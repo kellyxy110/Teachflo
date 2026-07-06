@@ -88,7 +88,7 @@ export async function POST(request: Request) {
       schoolId: teacher.schoolId,
       teacherId: teacher.id,
       source: "PORTAL",
-      metadata: { portalType: body.portalType, changesSummary, payload },
+      metadata: JSON.parse(JSON.stringify({ portalType: body.portalType, changesSummary, payload })),
     },
   });
 

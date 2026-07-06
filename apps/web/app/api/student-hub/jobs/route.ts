@@ -46,7 +46,7 @@ export async function POST(request: Request) {
   const teacher = await db.teacher.findUnique({ where: { clerkId: auth.userId } });
   if (!teacher) return Response.json({ error: "Teacher not found" }, { status: 403 });
 
-  const body = await request.json() as { source: string; fileName?: string; metadata?: Record<string, unknown> };
+  const body = await request.json() as { source: string; fileName?: string; metadata?: Record<string, string | number | boolean | null> };
   const validSources = ["EXCEL", "CSV", "PORTAL", "MANUAL", "OCR"] as const;
   if (!validSources.includes(body.source as typeof validSources[number])) {
     return Response.json({ error: "Invalid source" }, { status: 400 });
