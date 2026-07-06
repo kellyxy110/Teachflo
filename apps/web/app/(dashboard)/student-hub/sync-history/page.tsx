@@ -129,7 +129,7 @@ export default async function SyncHistoryPage() {
                         {summary.studentsCreated !== undefined && `${summary.studentsCreated} created`}
                         {summary.studentsUpdated !== undefined && ` · ${summary.studentsUpdated} updated`}
                         {summary.scoresUpserted !== undefined && ` · ${summary.scoresUpserted} scores`}
-                        {summary.error && ` · Error: ${summary.error}`}
+                        {summary.error != null && ` · Error: ${String(summary.error)}`}
                       </p>
                     </div>
                     <div className="text-right">
