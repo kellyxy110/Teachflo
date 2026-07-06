@@ -92,7 +92,7 @@ export async function stageImportJob(
         data: {
           jobId,
           rowIndex,
-          rawData,
+          rawData: JSON.parse(JSON.stringify(rawData)),
           parsedData,
           action: "SKIP",
           status: "SKIPPED",
@@ -195,11 +195,11 @@ export async function stageImportJob(
       data: {
         jobId,
         rowIndex,
-        rawData,
+        rawData: JSON.parse(JSON.stringify(rawData)),
         parsedData: enriched,
         action,
         status: action === "CONFLICT" ? "PENDING" : "PENDING",
-        conflictData: conflictData ?? undefined,
+        conflictData: conflictData != null ? JSON.parse(JSON.stringify(conflictData)) : undefined,
         studentId: existing?.id,
       },
     });

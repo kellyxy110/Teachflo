@@ -32,7 +32,7 @@ export async function GET(request: Request) {
 
   const filename = `${cls.name}_broadsheet_${cls.term}_${cls.session.replace("/", "-")}.xlsx`;
 
-  return new Response(buffer, {
+  return new Response(new Uint8Array(buffer), {
     headers: {
       "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
       "Content-Disposition": `attachment; filename="${filename}"`,
