@@ -164,6 +164,7 @@ model Student {
   learningPaths   LearningPath[]
   attendance      Attendance[]
   healthRecord    HealthRecord?
+  profile         StudentProfile?
 
   @@unique([schoolId, regNumber])
   @@index([classId])
@@ -868,4 +869,185 @@ model DocumentChunk {
   @@index([schoolId])
   @@index([documentId])
   @@map("document_chunks")
+}
+
+// ─────────────────────────────────────────────
+// STUDENT DATA HUB — Import, Sync, Analytics
+// ─────────────────────────────────────────────
+
+enum ImportSource {
+  EXCEL
+  CSV
+  PORTAL
+  MANUAL
+  OCR
+}
+
+enum ImportStatus {
+  PENDING
+  ANALYZING
+  STAGED
+  CONFIRMED
+  COMMITTED
+  FAILED
+  DISCARDED
+}
+
+enum StagingAction {
+  CREATE
+  UPDATE
+  SKIP
+  CONFLICT
+}
+
+enum StagingStatus {
+  PENDING
+  RESOLVED
+  COMMITTED
+  SKIPPED
+}
+
+enum ConflictResolution {
+  KEEP_EXISTING
+  REPLACE
+  MERGE
+  SKIP
+}
+
+enum SyncType {
+  INITIAL
+  INCREMENTAL
+  FULL
+  MANUAL
+}
+
+enum SyncStatus {
+  RUNNING
+  COMPLETED
+  FAILED
+  PARTIAL
+}
+
+model ImportJob {
+  id              String       @id @default(cuid())
+  schoolId        String
+  teacherId       String
+  source          ImportSource
+  fileName        String?
+  status          ImportStatus @default(PENDING)
+  totalRows       Int          @default(0)
+  newStudents     Int          @default(0)
+  updatedStudents Int          @default(0)
+  newScores       Int          @default(0)
+  conflicts       Int          @default(0)
+  errors          String[]
+  metadata        Json?
+  committedAt     DateTime?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  stagingRows ImportStagingRow[]
+
+  @@index([schoolId])
+  @@index([teacherId])
+  @@map("import_jobs")
+}
+
+model ImportStagingRow {
+  id           String              @id @default(cuid())
+  jobId        String
+  job          ImportJob           @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  rowIndex     Int
+  rawData      Json
+  parsedData   Json
+  action       StagingAction       @default(CREATE)
+  status       StagingStatus       @default(PENDING)
+  conflictData Json?
+  resolution   ConflictResolution?
+  error        String?
+  studentId    String?
+
+  @@index([jobId])
+  @@map("import_staging_rows")
+}
+
+model SyncLog {
+  id          String     @id @default(cuid())
+  schoolId    String
+  teacherId   String
+  type        SyncType
+  source      String
+  status      SyncStatus
+  summary     Json
+  startedAt   DateTime   @default(now())
+  completedAt DateTime?
+
+  @@index([schoolId])
+  @@map("sync_logs")
+}
+
+model PortalConnection {
+  id           String    @id @default(cuid())
+  schoolId     String
+  teacherId    String
+  portalType   String
+  displayName  String
+  schoolName   String?
+  sessionToken String?
+  tokenExpiry  DateTime?
+  isActive     Boolean   @default(true)
+  lastSynced   DateTime?
+  syncSettings Json?
+  metadata     Json?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@unique([schoolId, portalType])
+  @@index([schoolId])
+  @@map("portal_connections")
+}
+
+model StudentProfile {
+  id             String    @id @default(cuid())
+  studentId      String    @unique
+  schoolId       String
+  dateOfBirth    DateTime?
+  photoUrl       String?
+  parentName     String?
+  parentPhone    String?
+  parentEmail    String?
+  parentRelation String?
+  address        String?
+  state          String?
+  lga            String?
+  formerSchool   String?
+  admissionDate  DateTime?
+  nationality    String?
+  religion       String?
+  metadata       Json?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@index([schoolId])
+  @@map("student_profiles")
+}
+
+model AnalyticsSnapshot {
+  id         String   @id @default(cuid())
+  schoolId   String
+  classId    String?
+  studentId  String?
+  subject    String?
+  term       Term?
+  session    String
+  type       String
+  data       Json
+  computedAt DateTime @default(now())
+
+  @@index([schoolId])
+  @@index([classId])
+  @@index([studentId])
+  @@map("analytics_snapshots")
 }

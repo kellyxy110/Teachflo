@@ -9,11 +9,12 @@ import {
   LayoutDashboard, GraduationCap, Users, BookOpen, ClipboardList,
   BarChart2, FileText, Library, Settings, PenSquare, Sparkles, Brain,
   FlaskConical, Code2, Upload, TestTube2, ClipboardCheck, HeartPulse,
-  Award, Calculator, Activity, Atom, X, PanelLeftClose, PanelLeftOpen,
+  Award, Calculator, Activity, Atom, X, PanelLeftClose, PanelLeftOpen, Database,
 } from "lucide-react";
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/student-hub", label: "Student Data Hub", icon: Database },
   { href: "/classes", label: "Classes", icon: GraduationCap },
   { href: "/students", label: "Students", icon: Users },
   { href: "/lessons", label: "Lessons", icon: BookOpen },
