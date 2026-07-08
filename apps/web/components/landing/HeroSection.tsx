@@ -1,192 +1,406 @@
 "use client";
-import { useEffect, useRef } from "react";
-import dynamic from "next/dynamic";
+import { useRef, useCallback } from "react";
 import Link from "next/link";
-import { Zap, ChevronDown } from "lucide-react";
-import { motion } from "framer-motion";
+import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
+import { Sparkles, Play, BookOpen, ClipboardList, Users, Brain, Zap, ChevronRight } from "lucide-react";
 
-const ThreeHero = dynamic(
-  () => import("./ThreeHero").then((m) => m.ThreeHero),
-  { ssr: false }
-);
+const SUBJECTS = [
+  { name: "Mathematics SS3", icon: "📐", color: "#3b82f6" },
+  { name: "Physics JS2", icon: "🔬", color: "#8b5cf6" },
+  { name: "English Language", icon: "📚", color: "#10b981" },
+];
+
+const METRIC_CARDS = [
+  { id: "perf", value: "+47%", label: "Student Performance", color: "#10b981", bg: "rgba(16,185,129,0.12)", border: "rgba(16,185,129,0.25)", x: -170, y: -90, delay: 0.2 },
+  { id: "speed", value: "2 sec", label: "Lesson Generated", color: "#3b82f6", bg: "rgba(59,130,246,0.12)", border: "rgba(59,130,246,0.25)", x: 160, y: -110, delay: 0.5 },
+  { id: "tutor", value: "Live", label: "AI Tutor Active", color: "#8b5cf6", bg: "rgba(139,92,246,0.12)", border: "rgba(139,92,246,0.25)", x: 170, y: 80, delay: 0.8 },
+  { id: "attend", value: "Done", label: "Attendance Complete", color: "#f59e0b", bg: "rgba(245,158,11,0.12)", border: "rgba(245,158,11,0.25)", x: -160, y: 100, delay: 1.1 },
+];
+
+function FloatingDashboard({ springX, springY }: { springX: any; springY: any }) {
+  const rotateX = useTransform(springY, [-200, 200], [6, -6]);
+  const rotateY = useTransform(springX, [-200, 200], [-6, 6]);
+
+  return (
+    <div style={{ position: "relative", width: 320, height: 420, margin: "0 auto" }}>
+      {/* Glow behind cards */}
+      <div
+        aria-hidden
+        style={{
+          position: "absolute",
+          inset: -40,
+          background: "radial-gradient(ellipse 70% 60% at 50% 50%, rgba(59,130,246,0.18), rgba(139,92,246,0.12), transparent 70%)",
+          filter: "blur(20px)",
+          pointerEvents: "none",
+        }}
+      />
+
+      {/* Central dashboard card */}
+      <motion.div
+        style={{
+          rotateX,
+          rotateY,
+          transformStyle: "preserve-3d",
+          transformPerspective: 1000,
+          position: "absolute",
+          inset: 0,
+          borderRadius: 20,
+          background: "rgba(255,255,255,0.06)",
+          backdropFilter: "blur(24px)",
+          WebkitBackdropFilter: "blur(24px)",
+          border: "1px solid rgba(255,255,255,0.13)",
+          boxShadow: "0 40px 80px rgba(0,0,0,0.45), 0 0 0 1px rgba(255,255,255,0.06) inset",
+          overflow: "hidden",
+          padding: 24,
+        }}
+        animate={{ y: [0, -14, 0] }}
+        transition={{ duration: 5.5, repeat: Infinity, ease: "easeInOut" }}
+      >
+        {/* Card header */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 18 }}>
+          <div>
+            <div style={{ fontSize: 11, color: "rgba(148,163,184,0.8)", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 2 }}>
+              Teacher Dashboard
+            </div>
+            <div style={{ fontSize: 13, color: "#f1f5f9", fontWeight: 700 }}>Good morning, Mrs. Adaeze</div>
+          </div>
+          <div style={{ display: "flex", gap: 5 }}>
+            {["#3b82f6", "#10b981", "#f59e0b"].map((c) => (
+              <div key={c} style={{ width: 8, height: 8, borderRadius: "50%", background: c }} />
+            ))}
+          </div>
+        </div>
+
+        <div style={{ height: 1, background: "rgba(255,255,255,0.07)", marginBottom: 16 }} />
+
+        {/* Today's classes */}
+        <div style={{ fontSize: 11, color: "rgba(148,163,184,0.7)", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 10 }}>
+          Today's Classes
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 16 }}>
+          {SUBJECTS.map((s) => (
+            <div
+              key={s.name}
+              style={{
+                display: "flex", alignItems: "center", gap: 10,
+                padding: "8px 12px", borderRadius: 10,
+                background: "rgba(255,255,255,0.04)",
+                border: "1px solid rgba(255,255,255,0.07)",
+              }}
+            >
+              <span style={{ fontSize: 14 }}>{s.icon}</span>
+              <span style={{ fontSize: 12, color: "#e2e8f0", fontWeight: 600, flex: 1 }}>{s.name}</span>
+              <ChevronRight size={12} style={{ color: "rgba(148,163,184,0.5)" }} />
+            </div>
+          ))}
+        </div>
+
+        <div style={{ height: 1, background: "rgba(255,255,255,0.07)", marginBottom: 16 }} />
+
+        {/* AI Lesson Ready */}
+        <div
+          style={{
+            padding: "12px 14px", borderRadius: 12,
+            background: "rgba(59,130,246,0.12)",
+            border: "1px solid rgba(59,130,246,0.22)",
+            marginBottom: 16,
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
+            <Sparkles size={12} style={{ color: "#60a5fa" }} />
+            <span style={{ fontSize: 11, color: "#60a5fa", fontWeight: 700, letterSpacing: "0.06em" }}>AI LESSON READY</span>
+          </div>
+          <div style={{ fontSize: 12, color: "#cbd5e1", lineHeight: 1.4 }}>Mathematics: Properties of Quadratic Equations — SS3</div>
+        </div>
+
+        {/* Bottom row */}
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <div
+            style={{
+              flex: 1, padding: "8px 12px", borderRadius: 10, textAlign: "center",
+              background: "linear-gradient(135deg, #3b82f6, #6366f1)",
+              fontSize: 11, fontWeight: 700, color: "#fff", cursor: "pointer",
+            }}
+          >
+            Generate Exam
+          </div>
+          <div
+            style={{
+              flex: 1, padding: "8px 12px", borderRadius: 10, textAlign: "center",
+              background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)",
+              fontSize: 11, fontWeight: 700, color: "#94a3b8", cursor: "pointer",
+            }}
+          >
+            View Note
+          </div>
+        </div>
+      </motion.div>
+
+      {/* Metric cards */}
+      {METRIC_CARDS.map((card) => (
+        <motion.div
+          key={card.id}
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1, y: [0, -8, 0] }}
+          transition={{
+            opacity: { duration: 0.5, delay: card.delay + 0.8 },
+            scale: { duration: 0.4, delay: card.delay + 0.8 },
+            y: { duration: 4 + card.delay * 0.5, delay: card.delay, repeat: Infinity, ease: "easeInOut" },
+          }}
+          style={{
+            position: "absolute",
+            top: "50%",
+            left: "50%",
+            transform: `translate(calc(-50% + ${card.x}px), calc(-50% + ${card.y}px))`,
+            padding: "8px 12px",
+            borderRadius: 12,
+            background: card.bg,
+            border: `1px solid ${card.border}`,
+            backdropFilter: "blur(16px)",
+            WebkitBackdropFilter: "blur(16px)",
+            boxShadow: `0 8px 24px rgba(0,0,0,0.3)`,
+            whiteSpace: "nowrap",
+            zIndex: 20,
+          }}
+        >
+          <div style={{ fontSize: 16, fontWeight: 800, color: card.color, lineHeight: 1 }}>{card.value}</div>
+          <div style={{ fontSize: 10, color: "rgba(148,163,184,0.8)", fontWeight: 600, marginTop: 2 }}>{card.label}</div>
+        </motion.div>
+      ))}
+    </div>
+  );
+}
 
 export function HeroSection() {
-  const titleRef = useRef<HTMLHeadingElement>(null);
+  const rightRef = useRef<HTMLDivElement>(null);
+  const mouseX = useMotionValue(0);
+  const mouseY = useMotionValue(0);
+  const springX = useSpring(mouseX, { stiffness: 60, damping: 20 });
+  const springY = useSpring(mouseY, { stiffness: 60, damping: 20 });
 
-  useEffect(() => {
-    const prefersReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (prefersReduced) return;
+  const handleMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = rightRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    mouseX.set(e.clientX - rect.left - rect.width / 2);
+    mouseY.set(e.clientY - rect.top - rect.height / 2);
+  }, [mouseX, mouseY]);
 
-    (async () => {
-      const { gsap } = await import("gsap");
-      const { ScrollTrigger } = await import("gsap/ScrollTrigger");
-      gsap.registerPlugin(ScrollTrigger);
-      if (!titleRef.current) return;
-
-      // Fade title out only as it scrolls off — scroll-triggered, not auto-playing
-      gsap.to(titleRef.current, {
-        scrollTrigger: {
-          trigger: titleRef.current,
-          start: "top 20%",
-          end: "bottom top",
-          scrub: 1,
-        },
-        y: -40,
-        opacity: 0,
-      });
-    })();
-  }, []);
+  const handleMouseLeave = useCallback(() => {
+    mouseX.set(0);
+    mouseY.set(0);
+  }, [mouseX, mouseY]);
 
   return (
     <section
+      id="hero"
       aria-label="Hero"
-      className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden"
-      style={{ background: "linear-gradient(180deg, #0c1a3e 0%, #122044 60%, #0c1a3e 100%)" }}
+      className="relative overflow-hidden"
+      style={{
+        minHeight: "100vh",
+        background: "linear-gradient(160deg, #050d1f 0%, #0a1628 50%, #06101e 100%)",
+        display: "flex",
+        alignItems: "center",
+      }}
     >
-      {/* Three.js canvas — lazy, client-only */}
-      <ThreeHero />
-
-      {/* Gradient overlays */}
-      <div
-        className="absolute inset-0 pointer-events-none"
-        aria-hidden="true"
-        style={{ background: "radial-gradient(ellipse 80% 60% at 50% 40%, rgba(217,119,6,0.08) 0%, rgba(37,99,235,0.06) 50%, transparent 70%)" }}
-      />
-      <div
-        className="absolute bottom-0 left-0 right-0 h-40 pointer-events-none"
-        aria-hidden="true"
-        style={{ background: "linear-gradient(to bottom, transparent, #fdf8f0)" }}
-      />
-
-      {/* Main content */}
-      <div className="relative z-10 text-center px-6 max-w-4xl mx-auto" ref={titleRef}>
-        {/* Single alignment badge */}
-        <motion.div
-          initial={{ opacity: 0, y: -16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="inline-flex items-center gap-2 mb-8 text-xs font-bold px-4 py-2 rounded-full"
-          style={{
-            background: "rgba(217,119,6,0.12)",
-            border: "1px solid rgba(217,119,6,0.3)",
-            color: "#fbbf24",
-          }}
-        >
-          <Zap size={12} aria-hidden="true" />
-          WAEC · JAMB · JUPEB · JSS1–SS3
-        </motion.div>
-
-        {/* H1 — only H1 on the page */}
-        <motion.h1
-          initial={{ opacity: 0, y: 24 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, delay: 0.1 }}
-          className="text-5xl sm:text-6xl md:text-7xl font-black leading-[1.05] mb-6 tracking-tight"
-          style={{ color: "#f1f5f9" }}
-        >
-          TeachNexis
-          <br />
-          <span className="gradient-text">AI Learning OS</span>
-        </motion.h1>
-
-        {/* Subtitle */}
-        <motion.p
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.22 }}
-          className="text-base sm:text-lg md:text-xl mb-10 max-w-2xl mx-auto leading-relaxed"
-          style={{ color: "#94a3b8" }}
-        >
-          The AI-powered operating system for Nigerian secondary schools.
-          Lesson plans, intelligent exams, and curriculum-grounded AI — built for WAEC, JAMB &amp; JUPEB.
-        </motion.p>
-
-        {/* CTAs — primary + secondary only */}
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.35 }}
-          className="flex flex-wrap items-center justify-center gap-4"
-        >
-          <Link
-            href="/sign-up"
-            className="inline-flex items-center gap-2 px-8 py-4 rounded-2xl font-bold text-white text-base transition-all hover:scale-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
-            style={{
-              background: "linear-gradient(135deg, #d97706, #2563eb)",
-              boxShadow: "0 0 40px rgba(217,119,6,0.35), 0 4px 20px rgba(0,0,0,0.3)",
-            }}
-          >
-            <Zap size={18} aria-hidden="true" />
-            Start Learning Free
-          </Link>
-          <a
-            href="#modes"
-            onClick={(e) => {
-              e.preventDefault();
-              document.getElementById("modes")?.scrollIntoView({ behavior: "smooth" });
-            }}
-            className="inline-flex items-center gap-2 px-8 py-4 rounded-2xl font-semibold text-base transition-all hover:opacity-80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-400"
-            style={{
-              background: "rgba(255,255,255,0.06)",
-              border: "1px solid rgba(255,255,255,0.12)",
-              color: "#e2e8f0",
-            }}
-          >
-            Explore Features
-          </a>
-        </motion.div>
-
-        {/* Trust signals */}
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.6, delay: 0.5 }}
-          className="mt-8 text-sm"
-          style={{ color: "#475569" }}
-        >
-          <span style={{ color: "#10b981" }}>✓</span> No credit card required
-          {" · "}
-          <span style={{ color: "#10b981" }}>✓</span> 7 free AI models
-          {" · "}
-          <span style={{ color: "#10b981" }}>✓</span> Set up in 2 minutes
-        </motion.p>
-
-        {/* Student entry point */}
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.6, delay: 0.65 }}
-          className="mt-3 text-sm"
-          style={{ color: "#334155" }}
-        >
-          Are you a student?{" "}
-          <Link
-            href="/sign-in"
-            className="font-semibold transition-opacity hover:opacity-80"
-            style={{ color: "#10b981" }}
-          >
-            Sign in to your student portal →
-          </Link>
-        </motion.p>
+      {/* Background glow orbs */}
+      <div aria-hidden style={{ position: "absolute", inset: 0, pointerEvents: "none", overflow: "hidden" }}>
+        <div style={{
+          position: "absolute", top: "20%", left: "5%", width: 600, height: 600,
+          background: "radial-gradient(circle, rgba(37,99,235,0.08) 0%, transparent 70%)",
+          filter: "blur(40px)",
+        }} />
+        <div style={{
+          position: "absolute", top: "30%", right: "10%", width: 500, height: 500,
+          background: "radial-gradient(circle, rgba(139,92,246,0.07) 0%, transparent 70%)",
+          filter: "blur(40px)",
+        }} />
+        <div style={{
+          position: "absolute", bottom: "10%", left: "30%", width: 400, height: 400,
+          background: "radial-gradient(circle, rgba(245,158,11,0.05) 0%, transparent 70%)",
+          filter: "blur(40px)",
+        }} />
+        {/* Subtle grid pattern */}
+        <div style={{
+          position: "absolute", inset: 0, opacity: 0.03,
+          backgroundImage: "linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px)",
+          backgroundSize: "60px 60px",
+        }} />
       </div>
 
-      {/* Scroll indicator */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 1.0, duration: 0.6 }}
-        className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1"
-        style={{ color: "#334155" }}
-        aria-hidden="true"
+      <div
+        className="relative z-10 w-full max-w-7xl mx-auto px-6 lg:px-12"
+        style={{
+          paddingTop: 100,
+          paddingBottom: 80,
+          display: "grid",
+          gridTemplateColumns: "1fr 1fr",
+          gap: 64,
+          alignItems: "center",
+        }}
       >
-        <span className="text-xs uppercase tracking-[0.2em]">Explore</span>
+        {/* ── Left: Content ───────────────────────────── */}
+        <div>
+          {/* Badge */}
+          <motion.div
+            initial={{ opacity: 0, y: -12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            style={{
+              display: "inline-flex", alignItems: "center", gap: 8, marginBottom: 28,
+              padding: "6px 14px", borderRadius: 100,
+              background: "rgba(59,130,246,0.1)",
+              border: "1px solid rgba(59,130,246,0.25)",
+              color: "#60a5fa", fontSize: 12, fontWeight: 700,
+            }}
+          >
+            <Sparkles size={12} aria-hidden />
+            AI-Powered Education Platform · Nigerian Schools
+          </motion.div>
+
+          {/* H1 */}
+          <motion.h1
+            initial={{ opacity: 0, y: 24 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7, delay: 0.1 }}
+            style={{
+              fontSize: "clamp(2.6rem, 5vw, 4.2rem)",
+              fontWeight: 900,
+              lineHeight: 1.05,
+              letterSpacing: "-0.03em",
+              marginBottom: 24,
+              color: "#f8fafc",
+            }}
+          >
+            The Future of Teaching
+            <br />
+            <span style={{ color: "#3b82f6" }}>Begins With</span>
+            <br />
+            <span style={{
+              background: "linear-gradient(135deg, #60a5fa, #a78bfa, #f472b6)",
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+              backgroundClip: "text",
+            }}>
+              Intelligence.
+            </span>
+          </motion.h1>
+
+          {/* Body */}
+          <motion.p
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.22 }}
+            style={{ fontSize: 17, lineHeight: 1.7, color: "#94a3b8", marginBottom: 36, maxWidth: 480 }}
+          >
+            TeachNexis transforms how teachers teach, schools manage learning, and students discover knowledge — from lesson planning and curriculum intelligence to AI tutoring, automated assessment, and learning analytics.
+          </motion.p>
+
+          {/* CTAs */}
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.34 }}
+            style={{ display: "flex", flexWrap: "wrap", gap: 12, marginBottom: 36 }}
+          >
+            <Link
+              href="/sign-up"
+              style={{
+                display: "inline-flex", alignItems: "center", gap: 8,
+                padding: "14px 28px", borderRadius: 14,
+                background: "linear-gradient(135deg, #2563eb, #7c3aed)",
+                color: "#fff", fontWeight: 700, fontSize: 15,
+                boxShadow: "0 0 40px rgba(37,99,235,0.35), 0 4px 20px rgba(0,0,0,0.3)",
+                textDecoration: "none",
+                transition: "transform 0.2s, box-shadow 0.2s",
+              }}
+              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.transform = "scale(1.03)"; }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.transform = "scale(1)"; }}
+            >
+              <Zap size={16} aria-hidden /> Get Started Free
+            </Link>
+            <button
+              style={{
+                display: "inline-flex", alignItems: "center", gap: 8,
+                padding: "14px 24px", borderRadius: 14,
+                background: "rgba(255,255,255,0.05)",
+                border: "1px solid rgba(255,255,255,0.12)",
+                color: "#e2e8f0", fontWeight: 600, fontSize: 15, cursor: "pointer",
+                transition: "background 0.2s",
+              }}
+              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.09)"; }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.05)"; }}
+            >
+              <div style={{
+                width: 28, height: 28, borderRadius: "50%",
+                background: "rgba(255,255,255,0.12)",
+                display: "flex", alignItems: "center", justifyContent: "center",
+              }}>
+                <Play size={10} style={{ marginLeft: 2 }} />
+              </div>
+              Watch Demo
+            </button>
+          </motion.div>
+
+          {/* Trust row */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.6, delay: 0.5 }}
+            style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}
+          >
+            <span style={{ fontSize: 12, color: "#475569", fontWeight: 600 }}>Trusted by</span>
+            {["Teachers", "Schools", "Tutors", "Academies", "Learning Centers"].map((label, i) => (
+              <span key={label} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                {i > 0 && <span style={{ color: "#1e293b" }}>·</span>}
+                <span style={{ fontSize: 12, color: "#3b82f6", fontWeight: 600 }}>{label}</span>
+              </span>
+            ))}
+          </motion.div>
+        </div>
+
+        {/* ── Right: Floating Dashboard ────────────────── */}
         <motion.div
-          animate={{ y: [0, 6, 0] }}
-          transition={{ repeat: Infinity, duration: 1.8, ease: "easeInOut" }}
+          ref={rightRef}
+          onMouseMove={handleMouseMove}
+          onMouseLeave={handleMouseLeave}
+          initial={{ opacity: 0, x: 40 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.9, delay: 0.4 }}
+          style={{
+            position: "relative",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            minHeight: 480,
+          }}
         >
-          <ChevronDown size={18} />
+          <FloatingDashboard springX={springX} springY={springY} />
         </motion.div>
-      </motion.div>
+      </div>
+
+      {/* Bottom fade */}
+      <div
+        aria-hidden
+        style={{
+          position: "absolute", bottom: 0, left: 0, right: 0, height: 120,
+          background: "linear-gradient(to bottom, transparent, #050d1f)",
+          pointerEvents: "none",
+        }}
+      />
+
+      {/* Mobile: stack columns */}
+      <style>{`
+        @media (max-width: 768px) {
+          #hero > div > div {
+            grid-template-columns: 1fr !important;
+            gap: 40px !important;
+            padding-top: 90px !important;
+          }
+          #hero [data-floating] {
+            display: none;
+          }
+        }
+      `}</style>
     </section>
   );
 }

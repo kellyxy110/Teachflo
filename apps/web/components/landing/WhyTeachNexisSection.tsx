@@ -1,44 +1,51 @@
 "use client";
 import { motion } from "framer-motion";
-import { Globe, Cpu, Users, ShieldCheck } from "lucide-react";
+import { Sparkles, FlaskConical, Users, BarChart3, BookMarked, MessageSquareText } from "lucide-react";
 
-const PILLARS = [
+const FEATURES = [
   {
-    icon: Globe,
+    icon: Sparkles,
     color: "#3b82f6",
-    glow: "rgba(59,130,246,0.15)",
-    title: "Built for Nigeria",
-    body: "Every topic, question, and lesson plan is grounded in the NERDC curriculum. Aligned with WAEC, JAMB, JUPEB, and NECO — not adapted from foreign content.",
+    title: "AI Lesson Studio",
+    body: "Create complete, curriculum-aligned lesson notes in seconds. Every note follows the Nigerian 8-section format grounded in NERDC, WAEC, and JAMB standards.",
   },
   {
-    icon: Cpu,
+    icon: FlaskConical,
     color: "#8b5cf6",
-    glow: "rgba(139,92,246,0.15)",
-    title: "18 Free AI Models",
-    body: "No API key. No credit card. TeachNexis routes each task — lesson generation, exam creation, tutoring — to the best available free model automatically.",
+    title: "Smart Exam Builder",
+    body: "Generate professional examinations with automatic marking schemes, Bloom's taxonomy tagging, and WAEC-calibre multiple choice distractors.",
   },
   {
     icon: Users,
     color: "#10b981",
-    glow: "rgba(16,185,129,0.15)",
-    title: "Teacher-First Design",
-    body: "Built by a Nigerian developer who understands classroom reality. Digital attendance, health records, report cards, and AI tools that teachers actually want to use.",
+    title: "Student Intelligence",
+    body: "Monitor attendance, grades, behaviour patterns, and learning progress across every class and term from a single dashboard.",
   },
   {
-    icon: ShieldCheck,
+    icon: BookMarked,
     color: "#f59e0b",
-    glow: "rgba(245,158,11,0.15)",
-    title: "Free Forever",
-    body: "The core platform is completely free with no time limit. No trial period, no feature gating, no hidden cost. Schools should not have to pay to teach better.",
+    title: "Curriculum Intelligence",
+    body: "Search 618 curriculum topics instantly. Generate schemes of work, weekly plans, lesson objectives, and assessment ideas aligned to NERDC.",
+  },
+  {
+    icon: MessageSquareText,
+    color: "#ec4899",
+    title: "AI Teaching Assistant",
+    body: "Ask. Generate. Explain. Rewrite. Teach. Your personal AI assistant that understands Nigerian secondary school curriculum inside and out.",
+  },
+  {
+    icon: BarChart3,
+    color: "#06b6d4",
+    title: "School Analytics",
+    body: "Comprehensive performance analytics across classes, subjects, and terms. Export report cards, CA records, and rankings with one click.",
   },
 ];
 
 const card = {
   hidden: { opacity: 0, y: 30 },
   show: (i: number) => ({
-    opacity: 1,
-    y: 0,
-    transition: { duration: 0.5, delay: i * 0.1, ease: "easeOut" },
+    opacity: 1, y: 0,
+    transition: { duration: 0.5, delay: i * 0.08, ease: "easeOut" },
   }),
 };
 
@@ -46,60 +53,89 @@ export function WhyTeachNexisSection() {
   return (
     <section
       id="why"
-      className="py-24 px-6"
-      style={{ background: "linear-gradient(180deg, #fdf8f0 0%, #fef9f0 100%)" }}
+      className="landing-section"
+      style={{ padding: "120px 24px", background: "#ffffff" }}
     >
-      <div className="max-w-6xl mx-auto">
+      <div style={{ maxWidth: 1200, margin: "0 auto" }}>
         {/* Heading */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.5 }}
-          className="text-center mb-16"
+          style={{ textAlign: "center", marginBottom: 72 }}
         >
           <span
-            className="inline-block text-xs font-black uppercase tracking-[0.2em] mb-4 px-3 py-1.5 rounded-full"
-            style={{ background: "rgba(37,99,235,0.08)", color: "#2563eb", border: "1px solid rgba(37,99,235,0.2)" }}
+            style={{
+              display: "inline-block", fontSize: 11, fontWeight: 800,
+              letterSpacing: "0.18em", textTransform: "uppercase",
+              padding: "6px 14px", borderRadius: 100, marginBottom: 20,
+              background: "rgba(37,99,235,0.07)", color: "#2563eb",
+              border: "1px solid rgba(37,99,235,0.18)",
+            }}
           >
             Why TeachNexis
           </span>
-          <h2 className="text-3xl sm:text-4xl md:text-5xl font-black leading-tight mb-4" style={{ color: "#0f172a" }}>
-            Built different.<br />
-            <span className="gradient-text">By design.</span>
+          <h2
+            style={{
+              fontSize: "clamp(2rem, 4vw, 3.2rem)",
+              fontWeight: 900, lineHeight: 1.1,
+              letterSpacing: "-0.03em", marginBottom: 16,
+              color: "#0f172a",
+            }}
+          >
+            One Platform.
+            <br />
+            <span style={{
+              background: "linear-gradient(135deg, #2563eb, #7c3aed)",
+              WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text",
+            }}>
+              Every Classroom. Endless Possibilities.
+            </span>
           </h2>
-          <p className="max-w-xl mx-auto text-base" style={{ color: "#64748b" }}>
-            Most EdTech is built for Western markets and adapted. TeachNexis is built from the ground up for Nigerian secondary schools.
+          <p style={{ maxWidth: 560, margin: "0 auto", fontSize: 17, color: "#64748b", lineHeight: 1.7 }}>
+            Built from the ground up for Nigerian secondary schools — not adapted from foreign EdTech. Every feature understands your curriculum, your students, and your classroom.
           </p>
         </motion.div>
 
-        {/* Pillars grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-          {PILLARS.map((p, i) => (
+        {/* Feature cards */}
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
+            gap: 20,
+          }}
+        >
+          {FEATURES.map((f, i) => (
             <motion.div
-              key={p.title}
+              key={f.title}
               variants={card}
               initial="hidden"
               whileInView="show"
               viewport={{ once: true }}
               custom={i}
-              className="relative rounded-2xl p-6 flex flex-col gap-4"
+              whileHover={{ y: -4, boxShadow: `0 16px 40px ${f.color}18` }}
               style={{
+                padding: "28px 28px 24px",
+                borderRadius: 20,
                 background: "#ffffff",
-                border: `1px solid ${p.color}22`,
-                boxShadow: `0 2px 16px ${p.glow}`,
+                border: `1px solid ${f.color}18`,
+                boxShadow: `0 2px 12px rgba(0,0,0,0.04)`,
+                transition: "box-shadow 0.3s",
+                cursor: "default",
               }}
             >
               <div
-                className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0"
-                style={{ background: `${p.color}12`, border: `1px solid ${p.color}25` }}
+                style={{
+                  width: 48, height: 48, borderRadius: 14, marginBottom: 20,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  background: `${f.color}10`, border: `1px solid ${f.color}22`,
+                }}
               >
-                <p.icon size={20} style={{ color: p.color }} />
+                <f.icon size={22} style={{ color: f.color }} />
               </div>
-              <div>
-                <h3 className="font-bold text-base mb-1.5" style={{ color: "#0f172a" }}>{p.title}</h3>
-                <p className="text-sm leading-relaxed" style={{ color: "#64748b" }}>{p.body}</p>
-              </div>
+              <h3 style={{ fontSize: 16, fontWeight: 800, marginBottom: 10, color: "#0f172a" }}>{f.title}</h3>
+              <p style={{ fontSize: 14, lineHeight: 1.65, color: "#64748b" }}>{f.body}</p>
             </motion.div>
           ))}
         </div>

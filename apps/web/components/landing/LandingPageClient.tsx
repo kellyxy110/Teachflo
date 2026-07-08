@@ -1,16 +1,16 @@
 "use client";
 import { useEffect } from "react";
+import { LandingNav } from "./LandingNav";
 import { HeroSection } from "./HeroSection";
 import { WhyTeachNexisSection } from "./WhyTeachNexisSection";
-import { FeatureGridSection } from "./FeatureGridSection";
-import { CurriculumSection } from "./CurriculumSection";
-import { LearningModesSection } from "./LearningModesSection";
-import { SchoolShowcase } from "./SchoolShowcase";
+import { VideoShowcaseSection } from "./VideoShowcaseSection";
+import { IntelligenceLayerSection } from "./IntelligenceLayerSection";
+import { DashboardShowcaseSection } from "./DashboardShowcaseSection";
+import { StatsSection } from "./StatsSection";
+import { TestimonialsSection } from "./TestimonialsSection";
 import { PricingSection } from "./PricingSection";
 import { FAQSection } from "./FAQSection";
-import { EducationalTickers } from "./EducationalTickers";
-import { PioneerSection } from "./PioneerSection";
-import { LandingNav } from "./LandingNav";
+import { FinalCTASection } from "./FinalCTASection";
 import { LandingFooter } from "./LandingFooter";
 
 export function LandingPageClient() {
@@ -21,61 +21,45 @@ export function LandingPageClient() {
     (async () => {
       const prefersReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-      const { gsap } = await import("gsap");
-      const { ScrollTrigger } = await import("gsap/ScrollTrigger");
-      gsap.registerPlugin(ScrollTrigger);
-
       if (!prefersReduced) {
-        // ── Lenis smooth scrolling ──────────────────────────────────────────
         const { default: Lenis } = await import("lenis");
         lenis = new Lenis({
-          duration: 1.3,
+          duration: 1.2,
           easing: (t: number) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
           smoothWheel: true,
           touchMultiplier: 1.5,
         });
+
+        const { gsap } = await import("gsap");
+        const { ScrollTrigger } = await import("gsap/ScrollTrigger");
+        gsap.registerPlugin(ScrollTrigger);
+
         lenis.on("scroll", ScrollTrigger.update);
         gsap.ticker.add((time: number) => lenis?.raf(time * 1000));
         gsap.ticker.lagSmoothing(0);
 
-        // ── Global section parallax: each major section fades/rises in ────
+        // Subtle scroll-fade for each .landing-section
         const sections = document.querySelectorAll(".landing-section");
         sections.forEach((section) => {
           gsap.fromTo(
             section,
-            { opacity: 0.6, y: 40 },
+            { opacity: 0.7, y: 24 },
             {
-              opacity: 1, y: 0, duration: 1, ease: "power2.out",
-              scrollTrigger: { trigger: section, start: "top 85%", toggleActions: "play none none reverse" },
+              opacity: 1, y: 0, duration: 0.8, ease: "power2.out",
+              scrollTrigger: {
+                trigger: section,
+                start: "top 88%",
+                toggleActions: "play none none reverse",
+              },
             }
           );
         });
-
-        // ── Floating parallax for hero decorative elements ─────────────────
-        gsap.to(".hero-parallax-slow", {
-          y: -80, ease: "none",
-          scrollTrigger: { trigger: "#hero", start: "top top", end: "bottom top", scrub: 1 },
-        });
-        gsap.to(".hero-parallax-fast", {
-          y: -160, ease: "none",
-          scrollTrigger: { trigger: "#hero", start: "top top", end: "bottom top", scrub: 2 },
-        });
-
-        // ── School Showcase parallax ───────────────────────────────────────
-        const showcaseImages = document.querySelectorAll(".showcase-img");
-        showcaseImages.forEach((img, i) => {
-          gsap.to(img, {
-            y: (i % 2 === 0 ? -40 : -20),
-            ease: "none",
-            scrollTrigger: { trigger: img.parentElement, start: "top bottom", end: "bottom top", scrub: 1 + i * 0.3 },
-          });
-        });
       }
 
-      // ── Intersection Observer scroll-reveal (.reveal elements) ────────────
+      // Scroll-reveal for .reveal elements
       observer = new IntersectionObserver(
         (entries) => { entries.forEach((e) => { if (e.isIntersecting) e.target.classList.add("visible"); }); },
-        { threshold: 0.1, rootMargin: "0px 0px -40px 0px" }
+        { threshold: 0.08, rootMargin: "0px 0px -40px 0px" }
       );
       document.querySelectorAll(".reveal").forEach((el) => observer?.observe(el));
     })();
@@ -87,37 +71,29 @@ export function LandingPageClient() {
   }, []);
 
   return (
-    <div className="landing">
+    <div style={{ fontFamily: "inherit" }}>
       <LandingNav />
 
       {/* 1 — Hero */}
-      <div id="hero">
-        <HeroSection />
-      </div>
+      <HeroSection />
 
-      {/* 2 — Why TeachNexis */}
+      {/* 2 — Why TeachNexis / Feature overview */}
       <WhyTeachNexisSection />
 
-      {/* 3 — Educational tickers */}
-      <div className="landing-section">
-        <EducationalTickers />
-      </div>
+      {/* 3 — Live product demo / animated showcase */}
+      <VideoShowcaseSection />
 
-      {/* 4 — Feature grid */}
-      <FeatureGridSection />
+      {/* 4 — Intelligence Layer (12 AI capabilities) */}
+      <IntelligenceLayerSection />
 
-      {/* 5 — Curriculum Intelligence */}
-      <CurriculumSection />
+      {/* 5 — Dashboard showcase (Teacher / Principal / Student / Parent) */}
+      <DashboardShowcaseSection />
 
-      {/* 6 — Learning Modes (existing interactive demo) */}
-      <div className="landing-section" id="modes">
-        <LearningModesSection />
-      </div>
+      {/* 6 — Stats */}
+      <StatsSection />
 
-      {/* 7 — School Showcase */}
-      <div className="landing-section">
-        <SchoolShowcase />
-      </div>
+      {/* 7 — Testimonials */}
+      <TestimonialsSection />
 
       {/* 8 — Pricing */}
       <PricingSection />
@@ -125,8 +101,8 @@ export function LandingPageClient() {
       {/* 9 — FAQ */}
       <FAQSection />
 
-      {/* 10 — Pioneer / Early Access */}
-      <PioneerSection />
+      {/* 10 — Final CTA */}
+      <FinalCTASection />
 
       {/* 11 — Footer */}
       <LandingFooter />
