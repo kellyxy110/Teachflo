@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { safeCurrentUser } from "@/lib/auth";
 import { OnboardingWizard } from "@/components/beta/OnboardingWizard";
 import { ProfileCompletionCard } from "@/components/dashboard/ProfileCompletionCard";
+import { WorkflowSetupCard } from "@/components/dashboard/WorkflowSetupCard";
 import {
   GraduationCap, Users, BookOpen, PenSquare,
   TrendingUp, AlertTriangle, FileText, ArrowRight,
@@ -62,17 +63,19 @@ export default async function DashboardPage() {
   const cacheKey = `dashboard-stats:${teacher.schoolId}`;
 
   const [stats, recentLessons, recentExams] = await Promise.all([
-    withCache<{ classCount: number; studentCount: number; lessonCount: number; homeworkCount: number }>(
+    withCache<{ classCount: number; studentCount: number; lessonCount: number; homeworkCount: number; examCount: number; scoreCount: number }>(
       cacheKey,
       60,
       async () => {
-        const [classCount, studentCount, lessonCount, homeworkCount] = await Promise.all([
+        const [classCount, studentCount, lessonCount, homeworkCount, examCount, scoreCount] = await Promise.all([
           db.class.count({ where: { schoolId: teacher.schoolId } }),
           db.student.count({ where: { schoolId: teacher.schoolId, isActive: true } }),
           db.lesson.count({ where: { schoolId: teacher.schoolId } }),
           db.homework.count({ where: { schoolId: teacher.schoolId, status: "ACTIVE" } }),
+          db.exam.count({ where: { schoolId: teacher.schoolId } }),
+          db.score.count({ where: { schoolId: teacher.schoolId } }),
         ]);
-        return { classCount, studentCount, lessonCount, homeworkCount };
+        return { classCount, studentCount, lessonCount, homeworkCount, examCount, scoreCount };
       },
     ),
     db.lesson.findMany({
@@ -88,7 +91,7 @@ export default async function DashboardPage() {
     }),
   ]);
 
-  const { classCount, studentCount, lessonCount, homeworkCount } = stats;
+  const { classCount, studentCount, lessonCount, homeworkCount, examCount, scoreCount } = stats;
 
   const firstName = teacher.firstName ?? user?.firstName ?? "Teacher";
   const hour = new Date().getHours();
@@ -115,6 +118,15 @@ export default async function DashboardPage() {
           New Exam
         </Link>
       </div>
+
+      {/* Setup workflow — hidden once all steps are done */}
+      <WorkflowSetupCard
+        classCount={classCount}
+        studentCount={studentCount}
+        lessonCount={lessonCount}
+        examCount={examCount}
+        scoreCount={scoreCount}
+      />
 
       {/* Profile completion nudge */}
       <ProfileCompletionCard

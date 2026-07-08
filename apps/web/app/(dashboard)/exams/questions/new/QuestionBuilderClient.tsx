@@ -7,6 +7,7 @@ import {
   Edit3, Eye, Download, CheckCircle, AlertCircle,
   ChevronLeft, ChevronRight, Plus, User, GraduationCap,
   FileText, FileSpreadsheet, BookOpen, Hash, BarChart2, Lightbulb, X,
+  HelpCircle, ChevronDown,
 } from "lucide-react";
 import { GenerateVisualButton } from "@/components/media/GenerateVisualButton";
 import type { ClassLevel, ExamType, Section } from "@prisma/client";
@@ -160,6 +161,7 @@ export function QuestionBuilderClient({ exams }: { exams: ExamOption[] }) {
   const [notice, setNotice] = useState<NoticeData | null>(null);
   const [examId, setExamId] = useState("");
   const [focusedKey, setFocusedKey] = useState<string | null>(null);
+  const [showGuide, setShowGuide] = useState(true);
 
   // key = `${absIdx}:${fieldName}` — used for cursor-aware LaTeX insertion
   const fieldRefs = useRef<Map<string, HTMLTextAreaElement | HTMLInputElement>>(new Map());
@@ -616,6 +618,101 @@ ${body}
   return (
     <div className="space-y-5 max-w-5xl">
 
+      {/* ── How-to Process Guide ── */}
+      <div className="rounded-xl border border-blue-200/70 overflow-hidden bg-blue-50/50 dark:bg-blue-900/10 dark:border-blue-700/30">
+        <button
+          onClick={() => setShowGuide((v) => !v)}
+          className="w-full flex items-center justify-between px-5 py-3.5 text-left hover:bg-blue-50 dark:hover:bg-blue-900/15 transition-colors"
+        >
+          <div className="flex items-center gap-2.5">
+            <HelpCircle size={16} className="text-blue-600 dark:text-blue-400 shrink-0" />
+            <span className="text-sm font-bold text-blue-800 dark:text-blue-300">
+              How to build an exam — 5-step guide
+            </span>
+            {!showGuide && (
+              <span className="text-[10px] bg-blue-600 text-white px-2 py-0.5 rounded-full font-bold">
+                Click to expand
+              </span>
+            )}
+          </div>
+          <ChevronDown
+            size={15}
+            className={`text-blue-600 dark:text-blue-400 transition-transform duration-200 ${showGuide ? "rotate-180" : ""}`}
+          />
+        </button>
+
+        {showGuide && (
+          <div className="px-5 pb-5 space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-5 gap-2">
+              {[
+                {
+                  num: "1",
+                  label: "Exam Details",
+                  desc: "Fill in the title, subject, class, and section at the top of the builder.",
+                  accent: "border-blue-200 bg-white dark:bg-blue-900/15",
+                  numColor: "bg-blue-500",
+                },
+                {
+                  num: "2",
+                  label: "Type Questions",
+                  desc: "Write each question in the 'Question Text' box. Use $math$ for equations.",
+                  accent: "border-indigo-200 bg-white dark:bg-indigo-900/15",
+                  numColor: "bg-indigo-500",
+                },
+                {
+                  num: "3",
+                  label: "Fill Options A–D",
+                  desc: "Type each answer option in the A, B, C, D boxes below the question.",
+                  accent: "border-violet-200 bg-white dark:bg-violet-900/15",
+                  numColor: "bg-violet-500",
+                },
+                {
+                  num: "4",
+                  label: "Click Correct Answer",
+                  desc: "REQUIRED: Click the letter (A, B, C or D) that is the correct answer in the orange box.",
+                  accent: "border-amber-300 bg-amber-50 dark:bg-amber-900/20",
+                  numColor: "bg-amber-500",
+                  important: true,
+                },
+                {
+                  num: "5",
+                  label: "Preview & Export",
+                  desc: "Switch to the Preview tab to see the exam, then Export as Word or Excel.",
+                  accent: "border-green-200 bg-white dark:bg-green-900/15",
+                  numColor: "bg-green-500",
+                },
+              ].map(({ num, label, desc, accent, numColor, important }) => (
+                <div key={num} className={`rounded-xl p-3 border ${accent}`}>
+                  <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+                    <span className={`${numColor} text-white w-5 h-5 rounded-full text-[10px] font-black flex items-center justify-center shrink-0`}>
+                      {num}
+                    </span>
+                    <span className={`text-xs font-bold ${important ? "text-amber-700 dark:text-amber-300" : "text-text"}`}>
+                      {label}
+                    </span>
+                    {important && (
+                      <span className="text-[9px] bg-amber-500 text-white px-1.5 py-0.5 rounded font-black tracking-wide">
+                        REQUIRED
+                      </span>
+                    )}
+                  </div>
+                  <p className={`text-[11px] leading-relaxed ${important ? "text-amber-700/80 dark:text-amber-300/80" : "text-text-2"}`}>
+                    {desc}
+                  </p>
+                </div>
+              ))}
+            </div>
+
+            <div className="flex items-start gap-2.5 p-3 bg-amber-50 border border-amber-200 rounded-lg dark:bg-amber-900/15 dark:border-amber-700/30">
+              <AlertCircle size={14} className="text-amber-600 shrink-0 mt-0.5" />
+              <p className="text-xs text-amber-700 dark:text-amber-300 leading-relaxed">
+                <strong>Most common mistake:</strong> Forgetting to click the correct answer letter in Step 4. Every question must have a correct answer selected before you can export. Look for the <strong>orange box</strong> below each question&apos;s options.
+              </p>
+            </div>
+          </div>
+        )}
+      </div>
+
       {/* Tab bar */}
       <div className="flex items-center bg-surface border border-border rounded-xl p-1.5 gap-1">
         {([
@@ -833,45 +930,70 @@ ${body}
                       <LaTeXToolbar onInsert={makeInsertHandler(absIdx)} />
                     </div>
 
-                    {/* Correct Answer Selector */}
-                    <div className="border-2 border-primary/20 bg-primary/5 rounded-xl p-4">
-                      <div className="flex items-center gap-2 mb-3">
-                        <CheckCircle size={15} className="text-primary shrink-0" />
-                        <p className="text-xs font-bold text-primary uppercase tracking-wider">
-                          Mark the Correct Answer <span className="text-danger">*</span>
+                    {/* Correct Answer Selector — Step 4 */}
+                    <div className={`border-2 rounded-xl p-4 transition-all duration-200 ${
+                      q.correct
+                        ? "border-success/40 bg-success/5 dark:bg-success/5"
+                        : q.stem
+                        ? "border-amber-400 bg-amber-50/80 dark:bg-amber-900/20 dark:border-amber-500/50"
+                        : "border-dashed border-border/60 bg-bg/40"
+                    }`}>
+                      <div className="flex items-center gap-2 mb-3 flex-wrap">
+                        {q.correct
+                          ? <CheckCircle size={15} className="text-success shrink-0" />
+                          : <AlertCircle size={15} className="text-amber-600 dark:text-amber-400 shrink-0" />
+                        }
+                        <p className={`text-xs font-black uppercase tracking-wider ${
+                          q.correct ? "text-success" : "text-amber-700 dark:text-amber-300"
+                        }`}>
+                          {q.correct
+                            ? "Step 4 done — Correct answer selected ✓"
+                            : "Step 4: Click the correct answer letter below"}
+                          {!q.correct && <span className="text-danger ml-1">*</span>}
                         </p>
-                        <span className="text-xs text-muted font-normal normal-case">— click the letter that is correct</span>
+                        {!q.correct && q.stem && (
+                          <span className="ml-auto text-[10px] font-black bg-amber-500 text-white px-2 py-0.5 rounded-full">
+                            Required before export
+                          </span>
+                        )}
                       </div>
 
                       {hasAnyOption ? (
-                        <div className="flex gap-3 flex-wrap">
-                          {LETTERS.map((letter) => {
-                            const optText = getOpt(q, letter).trim();
-                            const isCorrect = q.correct === letter;
-                            return (
-                              <button
-                                key={letter}
-                                type="button"
-                                disabled={!optText}
-                                onClick={() => setSlot(pageIdx, "correct", isCorrect ? "" : letter)}
-                                title={optText ? `Mark Option ${letter}: "${optText.slice(0, 40)}" as correct` : `Fill in Option ${letter} first`}
-                                className={`min-w-[56px] px-5 py-3 rounded-xl text-base font-black border-2 transition-all ${
-                                  !optText
-                                    ? "opacity-25 cursor-not-allowed bg-bg border-border text-muted"
-                                    : isCorrect
-                                      ? "bg-success text-white border-success shadow-lg scale-110 ring-4 ring-success/20"
-                                      : "bg-white border-border text-text-2 hover:border-success hover:text-success hover:bg-success/5 dark:bg-surface"
-                                }`}
-                              >
-                                {letter}
-                              </button>
-                            );
-                          })}
+                        <div>
+                          <p className="text-xs text-amber-700/70 dark:text-amber-300/70 mb-2.5 font-medium">
+                            👇 Click the letter that is the <strong>correct answer</strong>:
+                          </p>
+                          <div className="flex gap-3 flex-wrap">
+                            {LETTERS.map((letter) => {
+                              const optText = getOpt(q, letter).trim();
+                              const isCorrect = q.correct === letter;
+                              return (
+                                <button
+                                  key={letter}
+                                  type="button"
+                                  disabled={!optText}
+                                  onClick={() => setSlot(pageIdx, "correct", isCorrect ? "" : letter)}
+                                  title={optText ? `Mark Option ${letter}: "${optText.slice(0, 40)}" as correct` : `Fill in Option ${letter} first`}
+                                  className={`min-w-[60px] px-5 py-3.5 rounded-xl text-lg font-black border-2 transition-all ${
+                                    !optText
+                                      ? "opacity-20 cursor-not-allowed bg-bg border-border text-muted"
+                                      : isCorrect
+                                        ? "bg-success text-white border-success shadow-lg scale-110 ring-4 ring-success/20"
+                                        : "bg-white border-amber-300 text-amber-700 hover:border-success hover:text-success hover:bg-success/5 dark:bg-surface dark:border-amber-600 dark:text-amber-400"
+                                  }`}
+                                >
+                                  {letter}
+                                </button>
+                              );
+                            })}
+                          </div>
                         </div>
                       ) : (
-                        <p className="text-xs text-muted italic">
-                          Fill in at least one option above first, then click the correct letter here.
-                        </p>
+                        <div className="flex items-center gap-2 py-2">
+                          <span className="text-xs text-amber-600 dark:text-amber-400 font-medium">
+                            ← Fill in options A–D above first, then click the correct letter here.
+                          </span>
+                        </div>
                       )}
 
                       {q.correct ? (

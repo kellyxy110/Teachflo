@@ -49,6 +49,66 @@ const steps: Step[] = [
     ),
   },
   {
+    icon: <LayoutDashboard size={28} className="text-emerald-500" />,
+    label: "Setup Order",
+    title: "Start Here — The Correct Setup Order",
+    subtitle: "Follow these 5 steps in order for the best experience",
+    body: (
+      <div className="space-y-2">
+        <p className="text-xs text-text-2 leading-relaxed mb-3">
+          TeachNexis works best when you set things up in this order. Each step unlocks the next.
+        </p>
+        {[
+          {
+            num: "1",
+            icon: "🏫",
+            name: "Create a Class first",
+            desc: "Go to Classes → New Class. Add your class name (e.g. SS2A) and arm. This is the starting point for everything.",
+            color: "bg-blue-500",
+          },
+          {
+            num: "2",
+            icon: "👩‍🎓",
+            name: "Add Students to the class",
+            desc: "Go to Student Hub → Add Students. Register each student by name and number. Students must be in a class before you can take attendance or enter scores.",
+            color: "bg-violet-500",
+          },
+          {
+            num: "3",
+            icon: "📝",
+            name: "Generate Lesson Notes",
+            desc: "Go to Lessons → New Lesson. Pick your subject and topic — AI writes the full 8-section lesson in under 10 seconds.",
+            color: "bg-amber-500",
+          },
+          {
+            num: "4",
+            icon: "📋",
+            name: "Build or Generate an Exam",
+            desc: "Go to Exams. Use 'AI Generate' for instant questions, or 'Manual Builder' to type your own. For manual: type questions, fill options A–D, then CLICK the correct letter.",
+            color: "bg-purple-500",
+          },
+          {
+            num: "5",
+            icon: "📊",
+            name: "Enter Scores & Generate Reports",
+            desc: "Go to Scores to record CA results. At end of term, go to Report Cards to generate and export term reports.",
+            color: "bg-green-500",
+          },
+        ].map(({ num, icon, name, desc, color }) => (
+          <div key={num} className="flex gap-3 p-3 bg-bg rounded-xl border border-border">
+            <div className={`${color} text-white w-6 h-6 rounded-full text-xs font-black flex items-center justify-center shrink-0 mt-0.5`}>
+              {num}
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-text">{icon} {name}</p>
+              <p className="text-xs text-text-2 mt-0.5 leading-relaxed">{desc}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+    ),
+  },
+  {
     icon: <BookOpen size={28} className="text-amber-500" />,
     label: "Teaching Tools",
     title: "Your Teaching Superpowers",
