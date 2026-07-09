@@ -8,8 +8,9 @@ const SYSTEM_PROMPT = `You are a data import assistant for a Nigerian secondary 
 Given CSV/Excel headers and sample rows, map each column to the correct field.
 
 Available target fields:
-- firstName: Student's first name
-- lastName: Student's last name / surname
+- fullName: Combined full name (when first and last are in one column) — split on first space at import
+- firstName: Student's first name only
+- lastName: Student's last name / surname only
 - regNumber: Registration / admission number
 - gender: Male or Female
 - subject: Subject name (e.g. Mathematics)
@@ -28,16 +29,28 @@ Also detect if possible:
 - session (e.g. 2025/2026)
 
 Nigerian school conventions:
-- "S/N" or "No" = serial number → ignore
+- "S/N" or "No" or "Portal ID" or "ID" = serial/portal number → ignore
 - "Surname" or "Last Name" = lastName
 - "Other Names" or "First Name" or "Given Name" = firstName
-- "Reg No" or "Adm No" or "Admission Number" = regNumber
-- "1st Test" or "First Test" or "CA 1" or "Test 1" = ca1
-- "2nd Test" or "Second Test" or "CA 2" or "Test 2" = ca2
-- "Exam" or "Examination" = exam
+- "Name" or "Student Name" or "Full Name" (single name column) = fullName
+- "Reg No" or "Adm No" or "Admission Number" or "Reg / Admission No" = regNumber
+- "1st Test" or "First Test" or "CA 1" or "Test 1" or any column starting/containing "CA1" or "CA 1" = ca1
+- "2nd Test" or "Second Test" or "CA 2" or "Test 2" or any column starting/containing "CA2" or "CA 2" = ca2
+- "Exam" or "Examination" or any column containing "exam" (case-insensitive) = exam
 - "Total" or "Aggregate" or "Overall" = total
-- "Position" or "Rank" = ignore
-- "Average" = ignore
+- "Position" or "Rank" or "Pos" = ignore
+- "Average" or "Avg" = ignore
+- "CL. WK" or "Class Work" or "Classwork" = ignore (not a standard import field)
+- "Notes" or "Comment" = remark
+- "MidTerm" or "Mid Term" or "Mid-Term" = ignore
+
+IMPORTANT — Suffix patterns: Many Nigerian school spreadsheets use hyphenated column names like "CA1-test4", "Exam-exam", "-midTerm", "CL. WK.-test5". Strip the hyphen-suffix and match the prefix:
+- If prefix contains "CA1" → ca1
+- If prefix contains "CA2" → ca2
+- If prefix contains "exam" (case-insensitive) → exam
+- If prefix contains "CL. WK" or "Class Work" → ignore
+- If prefix contains "Notes" → remark
+- If prefix is "-midTerm" or starts with "-" → ignore
 
 Return ONLY valid JSON matching this structure:
 {
@@ -108,7 +121,7 @@ Map each header to the correct target field. Return JSON only.`;
     }
 
     const validTargets = new Set([
-      "firstName", "lastName", "regNumber", "gender", "subject",
+      "fullName", "firstName", "lastName", "regNumber", "gender", "subject",
       "ca1", "ca2", "exam", "total", "grade", "remark", "ignore",
     ]);
 

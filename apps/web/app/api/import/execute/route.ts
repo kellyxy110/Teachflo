@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 export const maxDuration = 60;
 
 interface ImportRow {
+  fullName?: string;
   firstName?: string;
   lastName?: string;
   regNumber?: string;
@@ -99,11 +100,17 @@ export async function POST(request: Request) {
     const row = rows[i];
     const rowNum = i + 2;
 
-    const firstName = row.firstName?.trim();
-    const lastName = row.lastName?.trim();
+    let firstName = row.firstName?.trim();
+    let lastName = row.lastName?.trim();
+
+    if (!firstName && !lastName && row.fullName?.trim()) {
+      const parts = row.fullName.trim().split(/\s+/);
+      lastName = parts[0];
+      firstName = parts.slice(1).join(" ") || parts[0];
+    }
 
     if (!firstName || !lastName) {
-      errors.push(`Row ${rowNum}: Missing first or last name`);
+      errors.push(`Row ${rowNum}: Missing name — map the Name column to "Full Name (auto-split)" or separate First/Last Name columns`);
       continue;
     }
 

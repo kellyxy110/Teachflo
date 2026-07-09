@@ -41,8 +41,9 @@ interface ImportResult {
 }
 
 const TARGET_FIELDS = [
-  { key: "firstName", label: "First Name", required: true },
-  { key: "lastName", label: "Last Name", required: true },
+  { key: "fullName", label: "Full Name (auto-split)", required: false },
+  { key: "firstName", label: "First Name", required: false },
+  { key: "lastName", label: "Last Name", required: false },
   { key: "regNumber", label: "Reg/Admission No.", required: false },
   { key: "gender", label: "Gender", required: false },
   { key: "subject", label: "Subject", required: false },
@@ -300,8 +301,9 @@ export function ImportClient({
   );
 
   const requiredMet =
-    mappings.some((m) => m.target === "firstName") &&
-    mappings.some((m) => m.target === "lastName");
+    mappings.some((m) => m.target === "fullName") ||
+    (mappings.some((m) => m.target === "firstName") &&
+      mappings.some((m) => m.target === "lastName"));
 
   return (
     <div className="space-y-6">
