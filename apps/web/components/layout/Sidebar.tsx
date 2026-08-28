@@ -2,192 +2,114 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useMobileNav } from "./MobileNavContext";
-import { useSidebarCollapse } from "./SidebarCollapseContext";
+import { ChevronDown, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { Logo } from "@/components/brand/Logo";
+import type { TeacherNavItem } from "@/lib/navigation/teacher";
 import {
-  LayoutDashboard, GraduationCap, Users, BookOpen, ClipboardList,
-  BarChart2, FileText, Library, Settings, PenSquare, Sparkles, Brain,
-  FlaskConical, Code2, Upload, TestTube2, ClipboardCheck, HeartPulse,
-  Award, Calculator, Activity, Atom, X, PanelLeftClose, PanelLeftOpen, Database,
-} from "lucide-react";
+  isTeacherRouteActive,
+  visibleTeacherAccountItems,
+  visibleTeacherNavGroups,
+} from "@/lib/navigation/teacher";
+import type { UserRole } from "@/lib/roles";
+import { useSidebarCollapse } from "./SidebarCollapseContext";
 
-const todayItem = { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard };
-const navGroups = [
-  { label: "Students & records", items: [
-  { href: "/student-hub", label: "Student Data Hub", icon: Database },
-  { href: "/classes", label: "Classes", icon: GraduationCap },
-  { href: "/students", label: "Students", icon: Users },
-  { href: "/attendance", label: "Attendance", icon: ClipboardCheck },
-  { href: "/health", label: "Health Records", icon: HeartPulse },
-  { href: "/scores", label: "Scores", icon: ClipboardList },
-  { href: "/report-cards", label: "Report Cards", icon: Award },
-  ]},
-  { label: "Teaching", items: [
-  { href: "/lessons", label: "Lessons", icon: BookOpen },
-  { href: "/homework", label: "Homework", icon: PenSquare },
-  { href: "/question-bank", label: "Question Bank", icon: ClipboardList },
-  { href: "/exams", label: "Exams", icon: FileText },
-  { href: "/library", label: "Library", icon: Library },
-  ]},
-  { label: "AI & learning tools", items: [
-  { href: "/analytics", label: "Analytics", icon: BarChart2 },
-  { href: "/study-buddy", label: "Study Buddy", icon: Sparkles },
-  { href: "/knowledge-studio", label: "Knowledge Studio", icon: FlaskConical },
-  { href: "/intelligence", label: "Intelligence", icon: Brain },
-  { href: "/code-lab", label: "Code Lab", icon: Code2 },
-  { href: "/math-workspace", label: "Math Workspace", icon: Calculator },
-  { href: "/physics-lab", label: "Physics Lab", icon: Activity },
-  { href: "/chem-lab", label: "Chemistry Lab", icon: Atom },
-  ]},
-  { label: "Administration", items: [
-  { href: "/import", label: "Smart Import", icon: Upload },
-  { href: "/beta", label: "Beta Hub", icon: TestTube2 },
-  ]},
-];
-
-const bottomItems = [
-  { href: "/settings", label: "Settings", icon: Settings },
-];
-
-export function Sidebar() {
-  const pathname = usePathname();
-  const { isOpen, close } = useMobileNav();
-  const { collapsed, toggle } = useSidebarCollapse();
+function NavLink({ navItem, pathname, collapsed }: { navItem: TeacherNavItem; pathname: string; collapsed: boolean }) {
+  const active = isTeacherRouteActive(pathname, navItem.href);
+  const Icon = navItem.icon;
 
   return (
-    <>
-      {/* Mobile backdrop */}
-      {isOpen && (
-        <div
-          className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm md:hidden"
-          onClick={close}
-        />
+    <Link
+      href={navItem.href}
+      aria-current={active ? "page" : undefined}
+      title={collapsed ? navItem.label : undefined}
+      className={`group relative flex min-h-10 items-center rounded-lg text-sm font-medium transition-colors ${
+        collapsed ? "justify-center px-2" : "gap-3 px-3"
+      } ${active ? "bg-primary-50 text-primary" : "text-text-2 hover:bg-border/30 hover:text-text"}`}
+    >
+      {active && <span aria-hidden="true" className="absolute inset-y-2 left-0 w-0.5 rounded-full bg-primary" />}
+      <Icon size={17} aria-hidden="true" className="shrink-0" />
+      {!collapsed && <span className="min-w-0 truncate">{navItem.label}</span>}
+      {collapsed && (
+        <span className="pointer-events-none absolute left-full z-50 ml-3 whitespace-nowrap rounded-md border border-border bg-surface px-2 py-1 text-xs font-medium text-text opacity-0 shadow-lg transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
+          {navItem.label}
+        </span>
       )}
+    </Link>
+  );
+}
 
-      <aside
-        className={`
-          fixed left-0 top-0 h-full bg-surface border-r border-border
-          flex flex-col z-50 transition-all duration-300 ease-out
-          ${collapsed ? "md:w-16" : "md:w-56"}
-          w-64 ${isOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}
-        `}
-      >
-        {/* Logo + collapse toggle */}
-        <div className="px-3 py-4 border-b border-border flex items-center justify-between min-h-[57px]">
-          {!collapsed && (
-            <Link href="/dashboard" className="flex-1 min-w-0">
-              <Logo variant="dark" size="sm" />
-            </Link>
-          )}
-          {collapsed && (
-            <Link href="/dashboard" className="mx-auto">
-              <Logo variant="dark" size="sm" iconOnly />
-            </Link>
-          )}
+export function Sidebar({ role }: { role: UserRole | null }) {
+  const pathname = usePathname();
+  const { collapsed, toggle } = useSidebarCollapse();
+  const groups = visibleTeacherNavGroups(role);
+  const accountItems = visibleTeacherAccountItems(role);
 
-          {/* Desktop collapse toggle */}
-          <button
-            onClick={toggle}
-            className="hidden md:flex items-center justify-center w-7 h-7 rounded-lg text-muted hover:text-text hover:bg-border/30 transition-colors shrink-0"
-            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-            title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-          >
-            {collapsed ? <PanelLeftOpen size={15} /> : <PanelLeftClose size={15} />}
-          </button>
+  return (
+    <aside
+      aria-label="Teacher navigation"
+      className={`fixed inset-y-0 left-0 z-40 hidden flex-col border-r border-border bg-surface transition-[width] duration-200 md:flex ${collapsed ? "w-16" : "w-60"}`}
+    >
+      <div className="flex min-h-14 items-center justify-between border-b border-border px-3">
+        <Link href="/dashboard" aria-label="TeachNexis dashboard" className={collapsed ? "mx-auto" : "min-w-0 flex-1"}>
+          <Logo variant="dark" size="sm" iconOnly={collapsed} />
+        </Link>
+        <button
+          type="button"
+          onClick={toggle}
+          className="ml-2 inline-flex size-9 shrink-0 items-center justify-center rounded-lg text-text-2 transition-colors hover:bg-border/30 hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          aria-label={collapsed ? "Expand navigation" : "Collapse navigation"}
+          aria-expanded={!collapsed}
+        >
+          {collapsed ? <PanelLeftOpen size={17} aria-hidden="true" /> : <PanelLeftClose size={17} aria-hidden="true" />}
+        </button>
+      </div>
 
-          {/* Mobile close */}
-          <button
-            onClick={close}
-            className="p-1.5 rounded-lg text-muted hover:text-text hover:bg-border/20 transition-colors md:hidden"
-            aria-label="Close menu"
-          >
-            <X size={18} />
-          </button>
-        </div>
+      <nav className="tnx-scrollbar flex-1 overflow-y-auto overflow-x-hidden px-2 py-3">
+        {collapsed ? (
+          <div className="space-y-3">
+            {groups.map((group) => (
+              <div key={group.id} className="space-y-1 border-b border-border/70 pb-3 last:border-0">
+                <span className="sr-only">{group.label}</span>
+                {group.items.map((navItem) => <NavLink key={navItem.href} navItem={navItem} pathname={pathname} collapsed />)}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {groups.map((group) => {
+              const active = group.items.some((navItem) => isTeacherRouteActive(pathname, navItem.href));
+              if (group.collapsible) {
+                return (
+                  <details key={group.id} open={active || undefined} className="group/tools">
+                    <summary className="flex min-h-9 cursor-pointer list-none items-center justify-between rounded-lg px-3 text-[11px] font-bold uppercase tracking-[0.12em] text-muted transition-colors hover:bg-border/20 hover:text-text-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary [&::-webkit-details-marker]:hidden">
+                      <span>{group.label}</span>
+                      <ChevronDown size={14} aria-hidden="true" className="transition-transform group-open/tools:rotate-180" />
+                    </summary>
+                    <div className="mt-1 space-y-1">
+                      {group.items.map((navItem) => <NavLink key={navItem.href} navItem={navItem} pathname={pathname} collapsed={false} />)}
+                    </div>
+                  </details>
+                );
+              }
 
-        {/* Main nav */}
-        <nav className="flex-1 px-2 py-3 space-y-0.5 overflow-y-auto overflow-x-hidden">
-          {[{ label: "Today", items: [todayItem] }, ...navGroups].map((group) => {
-            const groupActive = group.items.some(({ href }) => pathname === href || pathname.startsWith(href + "/"));
-            return (
-            <details key={group.label} open={group.label === "Today" || groupActive} className="group/section">
-              <summary className="mb-1 flex cursor-pointer list-none items-center justify-between rounded-md px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary [&::-webkit-details-marker]:hidden">
-                {!collapsed && <span>{group.label}</span>}
-                {!collapsed && <span aria-hidden="true" className="text-xs transition-transform group-open/section:rotate-180">⌄</span>}
-              </summary>
-              {group.items.map(({ href, label, icon: Icon }) => {
-            const active = pathname === href || pathname.startsWith(href + "/");
-            return (
-              <Link
-                key={href}
-                href={href}
-                title={collapsed ? label : undefined}
-                className={`
-                  flex items-center gap-3 rounded-lg text-sm font-medium
-                  transition-colors duration-150 group relative
-                  ${collapsed ? "px-0 py-2.5 justify-center" : "px-3 py-2.5"}
-                  ${active
-                    ? "bg-primary-50 text-primary border-l-2 border-primary -ml-[2px] pl-[14px]"
-                    : "text-text-2 hover:bg-border/20 hover:text-text"
-                  }
-                `}
-              >
-                <Icon size={16} className="shrink-0" />
-                {!collapsed && <span className="truncate">{label}</span>}
+              return (
+                <section key={group.id} aria-labelledby={`teacher-nav-${group.id}`}>
+                  <h2 id={`teacher-nav-${group.id}`} className="mb-1 px-3 text-[11px] font-bold uppercase tracking-[0.12em] text-muted">
+                    {group.label}
+                  </h2>
+                  <div className="space-y-1">
+                    {group.items.map((navItem) => <NavLink key={navItem.href} navItem={navItem} pathname={pathname} collapsed={false} />)}
+                  </div>
+                </section>
+              );
+            })}
+          </div>
+        )}
+      </nav>
 
-                {/* Tooltip when collapsed */}
-                {collapsed && (
-                  <span className="
-                    absolute left-full ml-3 px-2 py-1 rounded-md text-xs font-medium
-                    bg-popover text-text border border-border shadow-lg
-                    opacity-0 group-hover:opacity-100 pointer-events-none
-                    whitespace-nowrap z-50 transition-opacity duration-150
-                  ">
-                    {label}
-                  </span>
-                )}
-              </Link>
-            );
-              })}
-            </details>
-            );
-          })}
-        </nav>
-
-        {/* Bottom nav */}
-        <div className="px-2 py-3 border-t border-border space-y-0.5">
-          {bottomItems.map(({ href, label, icon: Icon }) => {
-            const active = pathname === href;
-            return (
-              <Link
-                key={href}
-                href={href}
-                title={collapsed ? label : undefined}
-                className={`
-                  flex items-center gap-3 rounded-lg text-sm font-medium
-                  transition-colors duration-150 group relative
-                  ${collapsed ? "px-0 py-2.5 justify-center" : "px-3 py-2.5"}
-                  ${active ? "bg-primary-50 text-primary" : "text-text-2 hover:bg-border/20 hover:text-text"}
-                `}
-              >
-                <Icon size={16} className="shrink-0" />
-                {!collapsed && <span>{label}</span>}
-                {collapsed && (
-                  <span className="
-                    absolute left-full ml-3 px-2 py-1 rounded-md text-xs font-medium
-                    bg-popover text-text border border-border shadow-lg
-                    opacity-0 group-hover:opacity-100 pointer-events-none
-                    whitespace-nowrap z-50 transition-opacity duration-150
-                  ">
-                    {label}
-                  </span>
-                )}
-              </Link>
-            );
-          })}
-        </div>
-      </aside>
-    </>
+      <div className="border-t border-border p-2">
+        {accountItems.map((navItem) => <NavLink key={navItem.href} navItem={navItem} pathname={pathname} collapsed={collapsed} />)}
+      </div>
+    </aside>
   );
 }

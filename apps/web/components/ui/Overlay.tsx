@@ -6,7 +6,7 @@ import { X } from "lucide-react";
 import { IconButton } from "./Button";
 import { cn } from "./cn";
 
-function NativeOverlay({ open, onClose, title, description, children, className }: { open: boolean; onClose: () => void; title: string; description?: string; children: ReactNode; className?: string }) {
+function NativeOverlay({ open, onClose, title, description, children, className, contentClassName }: { open: boolean; onClose: () => void; title: string; description?: string; children: ReactNode; className?: string; contentClassName?: string }) {
   const ref = useRef<HTMLDialogElement>(null);
   const titleId = useId();
   const descriptionId = useId();
@@ -26,7 +26,7 @@ function NativeOverlay({ open, onClose, title, description, children, className 
         </div>
         <IconButton onClick={onClose} aria-label={`Close ${title}`} className="-mr-2 -mt-2 shrink-0"><X size={18} /></IconButton>
       </div>
-      <div className="p-4">{children}</div>
+      <div className={cn("p-4", contentClassName)}>{children}</div>
     </dialog>
   );
 }

@@ -268,7 +268,7 @@ export function ExcelImportClient({ exams }: { exams: ExamOption[] }) {
 
       {/* Import button */}
       {questions.length > 0 && !imported && (
-        <div className="sticky bottom-16 md:bottom-0 z-10">
+        <div className="sticky bottom-[calc(var(--teacher-mobile-nav-height)+env(safe-area-inset-bottom,0px))] z-10 md:bottom-0">
           <button
             onClick={handleImport}
             disabled={!examId || saving}

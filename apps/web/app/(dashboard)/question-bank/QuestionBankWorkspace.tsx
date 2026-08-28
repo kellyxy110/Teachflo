@@ -187,7 +187,7 @@ export function QuestionBankWorkspace({
       </div>
 
       {selected.length > 0 && (
-        <div className="sticky bottom-4 z-20 flex flex-col gap-3 rounded-xl border border-primary/25 bg-surface p-3 shadow-[var(--shadow-overlay)] sm:flex-row sm:items-center sm:justify-between" role="region" aria-label="Question selection actions">
+        <div className="sticky bottom-[calc(var(--teacher-mobile-nav-height)+env(safe-area-inset-bottom,0px)+0.5rem)] z-20 flex flex-col gap-3 rounded-xl border border-primary/25 bg-surface p-3 shadow-[var(--shadow-overlay)] sm:flex-row sm:items-center sm:justify-between md:bottom-4" role="region" aria-label="Question selection actions">
           <p className="text-sm font-semibold text-text">{selected.length} question{selected.length === 1 ? "" : "s"} selected</p>
           <div className="flex gap-2">
             <Button variant="quiet" onClick={clearSelection} className="flex-1 sm:flex-none"><X size={16} /> Clear selection</Button>

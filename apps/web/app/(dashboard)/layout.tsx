@@ -4,6 +4,7 @@ import { MobileNavProvider } from "@/components/layout/MobileNavContext";
 import { SidebarCollapseProvider } from "@/components/layout/SidebarCollapseContext";
 import { DashboardShell } from "@/components/layout/DashboardShell";
 import { db } from "@/lib/db";
+import { getRoleFromMetadata } from "@/lib/roles";
 
 export const dynamic = "force-dynamic";
 
@@ -28,7 +29,7 @@ export default async function DashboardLayout({
   return (
     <MobileNavProvider>
       <SidebarCollapseProvider>
-        <DashboardShell>{children}</DashboardShell>
+        <DashboardShell role={getRoleFromMetadata(meta) ?? "teacher"}>{children}</DashboardShell>
       </SidebarCollapseProvider>
     </MobileNavProvider>
   );
