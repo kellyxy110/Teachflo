@@ -1,263 +1,60 @@
-import { redirect } from "next/navigation";
-import { safeCurrentUser } from "@/lib/auth";
-import { OnboardingWizard } from "@/components/beta/OnboardingWizard";
-import { ProfileCompletionCard } from "@/components/dashboard/ProfileCompletionCard";
-import { WorkflowSetupCard } from "@/components/dashboard/WorkflowSetupCard";
-import {
-  GraduationCap, Users, BookOpen, PenSquare,
-  TrendingUp, AlertTriangle, FileText, ArrowRight,
-  Sparkles, Code2,
-} from "lucide-react";
 import Link from "next/link";
+import { redirect } from "next/navigation";
+import { ArrowRight, BookOpen, CalendarDays, CheckCircle2, ClipboardCheck, Clock3, FilePlus2, FileText, Import, ListChecks, Plus } from "lucide-react";
+import { safeCurrentUser, getCurrentTeacher } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { getCurrentTeacher } from "@/lib/auth";
 import { withCache } from "@/lib/cache";
+import { listGradingQueue } from "@/lib/services/assessments/grading";
 import { ButtonLink } from "@/components/ui/Button";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { SectionHeader } from "@/components/ui/SectionHeader";
+import { ActivityRow, DataList } from "@/components/ui/DataList";
+import { MetricStrip } from "@/components/ui/MetricStrip";
 import { EmptyState } from "@/components/ui/States";
-import { StatusBadge } from "@/components/ui/Status";
+import { StatusBadge, type StatusTone } from "@/components/ui/Status";
 
-function StatCard({
-  icon: Icon, label, value, sub, href,
-  color = "text-primary", bg = "bg-primary-50",
-}: {
-  icon: React.ElementType; label: string; value: string | number;
-  sub?: string; href: string; color?: string; bg?: string;
-}) {
-  return (
-    <Link href={href} className="bg-surface rounded-xl border border-border p-4 md:p-5 hover:border-primary/40 hover:shadow-md transition-all group cursor-pointer active:scale-[0.98]">
-      <div className="flex items-start justify-between">
-        <div className="min-w-0">
-          <p className="text-xs md:text-sm text-text-2 font-medium truncate">{label}</p>
-          <p className="text-2xl md:text-3xl font-bold text-text mt-1">{value}</p>
-          {sub && <p className="text-[11px] md:text-xs text-muted mt-1 truncate">{sub}</p>}
-        </div>
-        <div className={`${bg} p-2 md:p-2.5 rounded-lg group-hover:scale-110 transition-transform shrink-0`}>
-          <Icon size={18} className={color} />
-        </div>
-      </div>
-    </Link>
-  );
+type DashboardItem = { id: string; title: string; description: string; href: string; date?: Date | null; tone?: StatusTone; status?: string; icon?: "lesson" | "assessment" | "import" | "grading" | "homework" };
+
+function dayRange(date: Date) { const start = new Date(date); start.setHours(0, 0, 0, 0); const end = new Date(start); end.setDate(end.getDate() + 1); return { start, end }; }
+function formatDate(date: Date | null | undefined) { return date ? date.toLocaleDateString("en-NG", { day: "numeric", month: "short" }) : ""; }
+function itemIcon(kind: DashboardItem["icon"]) {
+  if (kind === "lesson") return <BookOpen size={18} className="text-primary" />;
+  if (kind === "assessment") return <FileText size={18} className="text-primary" />;
+  if (kind === "import") return <Import size={18} className="text-primary" />;
+  if (kind === "grading") return <ClipboardCheck size={18} className="text-warning" />;
+  return <CalendarDays size={18} className="text-text-2" />;
 }
-
-function QuickAction({
-  icon: Icon, label, href, color, bg,
-}: {
-  icon: React.ElementType; label: string; href: string; color: string; bg: string;
-}) {
-  return (
-    <Link
-      href={href}
-      className="flex flex-col items-center gap-2 p-4 rounded-xl bg-surface border border-border hover:border-primary/30 hover:shadow-md transition-all active:scale-[0.97] group"
-    >
-      <div className={`${bg} p-3 rounded-xl group-hover:scale-110 transition-transform`}>
-        <Icon size={22} className={color} />
-      </div>
-      <span className="text-xs font-semibold text-text text-center leading-tight">{label}</span>
-    </Link>
-  );
+function DashboardRow({ item }: { item: DashboardItem }) {
+  return <Link href={item.href} className="group flex min-h-14 items-center gap-3 rounded-lg px-2 py-2.5 transition-colors hover:bg-bg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"><div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary-50" aria-hidden="true">{itemIcon(item.icon)}</div><div className="min-w-0 flex-1"><p className="truncate text-sm font-medium text-text">{item.title}</p><p className="truncate text-xs text-text-2">{item.description}</p></div>{item.status && <StatusBadge tone={item.tone ?? "neutral"} className="hidden shrink-0 sm:inline-flex">{item.status}</StatusBadge>}{item.date && <time dateTime={item.date.toISOString()} className="shrink-0 text-xs text-muted">{formatDate(item.date)}</time>}<ArrowRight size={15} className="shrink-0 text-muted transition-transform group-hover:translate-x-0.5" aria-hidden="true" /></Link>;
+}
+function QuickCreate() {
+  const actions = [{ label: "Lesson", href: "/lessons/new", icon: BookOpen }, { label: "Homework", href: "/homework", icon: ListChecks }, { label: "Assessment", href: "/exams/new", icon: FileText }, { label: "Question", href: "/question-bank", icon: FilePlus2 }, { label: "Import questions", href: "/question-bank/import", icon: Import }];
+  return <div className="flex flex-wrap gap-2">{actions.map(({ label, href, icon: Icon }) => <ButtonLink key={href} href={href} variant="secondary" size="sm"><Icon size={15} aria-hidden="true" />{label}</ButtonLink>)}</div>;
 }
 
 export default async function DashboardPage() {
   const user = await safeCurrentUser();
   const teacher = await getCurrentTeacher();
-
   if (!teacher) redirect("/onboarding");
-
-  const cacheKey = `dashboard-stats:${teacher.schoolId}`;
-
-  const [stats, recentLessons, recentExams] = await Promise.all([
-    withCache<{ classCount: number; studentCount: number; lessonCount: number; homeworkCount: number; examCount: number; scoreCount: number }>(
-      cacheKey,
-      60,
-      async () => {
-        const [classCount, studentCount, lessonCount, homeworkCount, examCount, scoreCount] = await Promise.all([
-          db.class.count({ where: { schoolId: teacher.schoolId } }),
-          db.student.count({ where: { schoolId: teacher.schoolId, isActive: true } }),
-          db.lesson.count({ where: { schoolId: teacher.schoolId } }),
-          db.homework.count({ where: { schoolId: teacher.schoolId, status: "ACTIVE" } }),
-          db.exam.count({ where: { schoolId: teacher.schoolId } }),
-          db.score.count({ where: { schoolId: teacher.schoolId } }),
-        ]);
-        return { classCount, studentCount, lessonCount, homeworkCount, examCount, scoreCount };
-      },
-    ),
-    db.lesson.findMany({
-      where: { schoolId: teacher.schoolId },
-      orderBy: { createdAt: "desc" },
-      take: 5,
-    }),
-    db.exam.findMany({
-      where: { schoolId: teacher.schoolId },
-      orderBy: { createdAt: "desc" },
-      take: 3,
-      include: { _count: { select: { questions: true } } },
-    }),
+  const now = new Date(); const { start: todayStart, end: todayEnd } = dayRange(now); const upcomingEnd = new Date(todayEnd); upcomingEnd.setDate(upcomingEnd.getDate() + 14);
+  const stats = await withCache(`dashboard-pulse:${teacher.id}`, 60, async () => { const [classCount, studentCount, lessonCount, assessmentCount] = await Promise.all([db.class.count({ where: { schoolId: teacher.schoolId } }), db.student.count({ where: { schoolId: teacher.schoolId, isActive: true } }), db.lesson.count({ where: { teacherId: teacher.id } }), db.exam.count({ where: { teacherId: teacher.id } })]); return { classCount, studentCount, lessonCount, assessmentCount }; });
+  const [gradingQueue, todayHomework, todayExams, upcomingHomework, upcomingExams, recentLessons, recentExams, importJobs] = await Promise.all([
+    listGradingQueue({ id: teacher.id, schoolId: teacher.schoolId }),
+    db.homework.findMany({ where: { teacherId: teacher.id, dueDate: { gte: todayStart, lt: todayEnd }, status: "ACTIVE" }, orderBy: { dueDate: "asc" }, take: 8 }),
+    db.exam.findMany({ where: { teacherId: teacher.id, OR: [{ opensAt: { gte: todayStart, lt: todayEnd } }, { closesAt: { gte: todayStart, lt: todayEnd } }] }, orderBy: [{ opensAt: "asc" }, { closesAt: "asc" }], take: 8 }),
+    db.homework.findMany({ where: { teacherId: teacher.id, dueDate: { gte: todayEnd, lt: upcomingEnd }, status: "ACTIVE" }, orderBy: { dueDate: "asc" }, take: 10 }),
+    db.exam.findMany({ where: { teacherId: teacher.id, OR: [{ opensAt: { gte: todayEnd, lt: upcomingEnd } }, { closesAt: { gte: todayEnd, lt: upcomingEnd } }] }, orderBy: [{ opensAt: "asc" }, { closesAt: "asc" }], take: 10 }),
+    db.lesson.findMany({ where: { teacherId: teacher.id }, orderBy: { updatedAt: "desc" }, take: 4 }),
+    db.exam.findMany({ where: { teacherId: teacher.id }, orderBy: { updatedAt: "desc" }, take: 4 }),
+    db.importJob.findMany({ where: { teacherId: teacher.id, schoolId: teacher.schoolId }, include: { stagingRows: { select: { parsedData: true, status: true } } }, orderBy: { updatedAt: "desc" }, take: 12 }),
   ]);
-
-  const { classCount, studentCount, lessonCount, homeworkCount, examCount, scoreCount } = stats;
-
-  const firstName = teacher.firstName ?? user?.firstName ?? "Teacher";
-  const hour = new Date().getHours();
-  const greeting =
-    hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
-
-  return (
-    <div className="space-y-5 md:space-y-6 max-w-5xl">
-      <OnboardingWizard />
-
-      <PageHeader
-        title={`${greeting}, ${firstName}`}
-        description={teacher.school.name}
-        status={<StatusBadge tone="info">Teacher workspace</StatusBadge>}
-        primaryAction={<ButtonLink href="/exams/new" className="w-full sm:w-auto"><FileText size={16} />New Exam</ButtonLink>}
-      />
-
-      {/* Setup workflow — hidden once all steps are done */}
-      <WorkflowSetupCard
-        classCount={classCount}
-        studentCount={studentCount}
-        lessonCount={lessonCount}
-        examCount={examCount}
-        scoreCount={scoreCount}
-      />
-
-      {/* Profile completion nudge */}
-      <ProfileCompletionCard
-        firstName={teacher.firstName}
-        qualification={teacher.qualification ?? null}
-        trcnNumber={teacher.trcnNumber ?? null}
-        trcnStatus={teacher.trcnStatus ?? null}
-        yearsOfExp={teacher.yearsOfExp ?? null}
-        bio={teacher.bio ?? null}
-        subjects={teacher.subjects}
-        photoUrl={teacher.photoUrl ?? null}
-        phone={teacher.phone ?? null}
-      />
-
-      {/* Quick Actions — prominent on mobile */}
-      <div>
-        <h3 className="text-sm font-semibold text-text-2 mb-3">Quick Actions</h3>
-        <div className="grid grid-cols-4 gap-2 md:gap-3">
-          <QuickAction icon={BookOpen} label="Lesson Planner" href="/lessons/new" color="text-primary" bg="bg-primary-50" />
-          <QuickAction icon={FileText} label="New Exam" href="/exams/new" color="text-waec" bg="bg-purple-50 dark:bg-purple-500/10" />
-          <QuickAction icon={Sparkles} label="Study Buddy" href="/study-buddy" color="text-warning" bg="bg-warning-50" />
-          <QuickAction icon={Code2} label="Code Lab" href="/code-lab" color="text-success" bg="bg-success-50" />
-        </div>
-      </div>
-
-      {/* Stats grid */}
-      <div className="grid grid-cols-2 gap-3 md:gap-4 lg:grid-cols-4">
-        <StatCard icon={GraduationCap} label="Classes" value={classCount}
-          href="/classes"
-          sub={classCount === 0 ? "Add your first class" : `${classCount} active`}
-          color="text-primary" bg="bg-primary-50" />
-        <StatCard icon={Users} label="Students" value={studentCount}
-          href="/students"
-          sub={studentCount === 0 ? "No students yet" : `across ${classCount} classes`}
-          color="text-success" bg="bg-success-50" />
-        <StatCard icon={BookOpen} label="Lessons" value={lessonCount}
-          href="/lessons"
-          sub="This term" color="text-warning" bg="bg-warning-50" />
-        <StatCard icon={PenSquare} label="Homework" value={homeworkCount}
-          href="/homework"
-          sub={homeworkCount === 0 ? "All clear" : "assignments open"}
-          color="text-danger" bg="bg-danger-50" />
-      </div>
-
-      {/* Recent Activity + Performance — stacked on mobile, side by side on desktop */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <div className="bg-surface rounded-xl border border-border p-4 md:p-5">
-          <div className="flex items-center justify-between mb-3 md:mb-4">
-            <h3 className="font-semibold text-text text-sm md:text-base">Recent Lessons</h3>
-            <Link href="/lessons"
-              className="text-xs text-primary hover:underline flex items-center gap-1">
-              View all <ArrowRight size={12} />
-            </Link>
-          </div>
-          {recentLessons.length === 0 ? (
-            <EmptyState
-              icon={<BookOpen size={32} />}
-              title="No lessons yet"
-              description="Create your first lesson plan for an upcoming class."
-              action={<ButtonLink href="/lessons/new" size="sm" variant="secondary">Generate lesson plan</ButtonLink>}
-              className="border-0 py-6 shadow-none"
-            />
-          ) : (
-            <div className="space-y-1">
-              {recentLessons.map((l) => (
-                <Link key={l.id} href={`/lessons/${l.id}`} className="flex items-center justify-between py-2.5 border-b border-border last:border-0 hover:bg-bg/50 rounded-lg px-2 -mx-2 transition-colors active:bg-bg/80">
-                  <div className="min-w-0 flex-1 mr-2">
-                    <p className="text-sm font-medium text-text truncate">{l.topic}</p>
-                    <p className="text-xs text-muted">{l.subject} · {l.classLevel}</p>
-                  </div>
-                  <ArrowRight size={14} className="text-muted shrink-0" />
-                </Link>
-              ))}
-            </div>
-          )}
-        </div>
-
-        <div className="bg-surface rounded-xl border border-border p-4 md:p-5">
-          <div className="flex items-center justify-between mb-3 md:mb-4">
-            <h3 className="font-semibold text-text text-sm md:text-base">Performance</h3>
-            <Link href="/analytics"
-              className="text-xs text-primary hover:underline flex items-center gap-1">
-              Full analytics <ArrowRight size={12} />
-            </Link>
-          </div>
-          <div className="space-y-2 md:space-y-3">
-            <Link href="/scores" className="flex items-center gap-3 p-3 bg-bg rounded-lg hover:bg-bg/80 transition-colors active:bg-bg/60">
-              <div className="bg-success-50 p-2 rounded-lg shrink-0">
-                <TrendingUp size={16} className="text-success" />
-              </div>
-              <div className="min-w-0">
-                <p className="text-sm font-medium text-text">School Average</p>
-                <p className="text-xs text-muted truncate">
-                  {studentCount > 0 ? "Enter scores to see performance" : "Add students to get started"}
-                </p>
-              </div>
-            </Link>
-            <Link href="/analytics" className="flex items-center gap-3 p-3 bg-bg rounded-lg hover:bg-bg/80 transition-colors active:bg-bg/60">
-              <div className="bg-warning-50 p-2 rounded-lg shrink-0">
-                <AlertTriangle size={16} className="text-warning" />
-              </div>
-              <div className="min-w-0">
-                <p className="text-sm font-medium text-text">At-Risk Students</p>
-                <p className="text-xs text-muted truncate">No at-risk students identified yet</p>
-              </div>
-            </Link>
-          </div>
-        </div>
-      </div>
-
-      {/* Recent Exams */}
-      {recentExams.length > 0 && (
-        <div className="bg-surface rounded-xl border border-border p-4 md:p-5">
-          <div className="flex items-center justify-between mb-3 md:mb-4">
-            <h3 className="font-semibold text-text text-sm md:text-base">Recent Exams</h3>
-            <Link href="/exams"
-              className="text-xs text-primary hover:underline flex items-center gap-1">
-              View all <ArrowRight size={12} />
-            </Link>
-          </div>
-          <div className="space-y-1">
-            {recentExams.map((exam) => (
-              <Link key={exam.id} href={`/exams/${exam.id}`} className="flex items-center justify-between py-2.5 border-b border-border last:border-0 hover:bg-bg/50 rounded-lg px-2 -mx-2 transition-colors active:bg-bg/80">
-                <div className="min-w-0 flex-1 mr-2">
-                  <p className="text-sm font-medium text-text truncate">{exam.title}</p>
-                  <p className="text-xs text-muted">
-                    {exam.subject} · {exam.classLevel} · {exam._count.questions}q
-                  </p>
-                </div>
-                <StatusBadge tone={exam.examType === "SCHOOL_TEST" || exam.examType === "SCHOOL_EXAM" ? "neutral" : "info"} className="shrink-0">
-                  {exam.examType.replace("_", " ")}
-                </StatusBadge>
-              </Link>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  );
+  const pendingGrading: DashboardItem[] = gradingQueue.filter((entry) => entry.pending > 0).map((entry) => ({ id: `grading-${entry.id}`, title: `${entry.pending} response${entry.pending === 1 ? "" : "s"} need marking`, description: `${entry.title} · ${entry.student}`, href: `/grading/${entry.id}`, tone: "warning", status: "Needs review", icon: "grading" }));
+  const heldResults: DashboardItem[] = gradingQueue.filter((entry) => entry.pending === 0 && entry.status === "READY_TO_RELEASE").map((entry) => ({ id: `release-${entry.id}`, title: "Result ready to release", description: `${entry.title} · ${entry.student}`, href: `/grading/${entry.id}`, tone: "info", status: "Release", icon: "grading" }));
+  const pendingImports: DashboardItem[] = importJobs.filter((job) => Boolean((job.metadata as { questionImport?: unknown } | null)?.questionImport)).map((job) => ({ job, unresolved: job.stagingRows.filter((row) => row.status !== "COMMITTED" && row.status !== "SKIPPED").length })).filter(({ unresolved }) => unresolved > 0).map(({ job, unresolved }) => ({ id: `import-${job.id}`, title: `${unresolved} question${unresolved === 1 ? "" : "s"} to review`, description: job.fileName ?? "Question import", href: `/question-bank/import?jobId=${job.id}`, tone: "info", status: "Review", icon: "import" }));
+  const attention = [...pendingGrading, ...heldResults, ...pendingImports];
+  const todayItems: DashboardItem[] = [...todayHomework.map((homework) => ({ id: homework.id, title: homework.title, description: `${homework.subject} · homework due today`, href: "/homework", date: homework.dueDate, icon: "homework" as const })), ...todayExams.map((exam) => ({ id: exam.id, title: exam.title, description: `${exam.subject} · ${exam.lifecycle.toLowerCase()} assessment`, href: `/exams/${exam.id}`, date: exam.opensAt ?? exam.closesAt, status: exam.lifecycle === "PUBLISHED" ? "Published" : "Draft", tone: exam.lifecycle === "PUBLISHED" ? "success" as const : "neutral" as const, icon: "assessment" as const }))];
+  const upcoming: DashboardItem[] = [...upcomingHomework.map((homework) => ({ id: `hw-${homework.id}`, title: homework.title, description: `${homework.subject} · homework`, href: "/homework", date: homework.dueDate, icon: "homework" as const })), ...upcomingExams.map((exam) => ({ id: `exam-${exam.id}`, title: exam.title, description: `${exam.subject} · assessment`, href: `/exams/${exam.id}`, date: exam.opensAt ?? exam.closesAt, icon: "assessment" as const }))].sort((a, b) => (a.date?.getTime() ?? 0) - (b.date?.getTime() ?? 0));
+  const continueItems: DashboardItem[] = [...recentLessons.map((lesson) => ({ id: `lesson-${lesson.id}`, title: lesson.topic, description: `${lesson.subject} · ${lesson.classLevel} · lesson`, href: `/lessons/${lesson.id}`, date: lesson.updatedAt, icon: "lesson" as const })), ...recentExams.map((exam) => ({ id: `assessment-${exam.id}`, title: exam.title, description: `${exam.subject} · assessment`, href: `/exams/${exam.id}`, date: exam.updatedAt, icon: "assessment" as const }))].sort((a, b) => (b.date?.getTime() ?? 0) - (a.date?.getTime() ?? 0)).slice(0, 6);
+  const firstName = teacher.firstName || user?.firstName || "Teacher"; const greeting = now.getHours() < 12 ? "Good morning" : now.getHours() < 17 ? "Good afternoon" : "Good evening"; const dateLabel = now.toLocaleDateString("en-NG", { weekday: "short", day: "numeric", month: "short", year: "numeric" });
+  return <div className="mx-auto max-w-6xl space-y-7 pb-4"><PageHeader title={`${greeting}, ${firstName}`} description={`${teacher.school.name} · ${dateLabel}`} primaryAction={<ButtonLink href="/exams/new" className="w-full sm:w-auto"><Plus size={16} aria-hidden="true" />Quick create</ButtonLink>} /><section aria-labelledby="attention-heading"><SectionHeader title={<span id="attention-heading">Attention needed</span>} description="Only work with a clear next action appears here." /><div className="mt-3 rounded-xl border border-border bg-surface p-2">{attention.length === 0 ? <div className="flex items-center gap-3 px-3 py-4 text-sm text-text-2"><CheckCircle2 size={18} className="text-success" aria-hidden="true" />You’re clear — no unresolved work needs action right now.</div> : <DataList label="Teacher attention items">{attention.map((item) => <ActivityRow key={item.id} title={<Link href={item.href} className="hover:text-primary">{item.title}</Link>} description={item.description} leading={<span className="flex size-8 items-center justify-center rounded-lg bg-warning-50">{itemIcon(item.icon)}</span>} meta={item.status} />)}</DataList>}</div></section><div className="grid gap-7 lg:grid-cols-[minmax(0,1.25fr)_minmax(18rem,0.75fr)]"><section aria-labelledby="today-heading"><SectionHeader title={<span id="today-heading">Today</span>} description="Dated teaching work for today." /><div className="mt-3 rounded-xl border border-border bg-surface p-2">{todayItems.length ? <DataList label="Today’s teaching work">{todayItems.map((item) => <DashboardRow key={item.id} item={item} />)}</DataList> : <EmptyState icon={<CalendarDays size={28} />} title="No dated work today" description="Lessons are not shown here until a schedule or due date is recorded." className="border-0 py-7 shadow-none" />}</div></section><section aria-labelledby="continue-heading"><SectionHeader title={<span id="continue-heading">Continue working</span>} description="Your most recently updated work." /><div className="mt-3 rounded-xl border border-border bg-surface p-2">{continueItems.length ? <DataList label="Recent teacher work">{continueItems.map((item) => <DashboardRow key={item.id} item={item} />)}</DataList> : <EmptyState icon={<Clock3 size={28} />} title="Nothing to resume" description="Your recent lessons and assessments will appear here." className="border-0 py-7 shadow-none" />}</div></section></div><section aria-labelledby="upcoming-heading"><SectionHeader title={<span id="upcoming-heading">Upcoming</span>} description="Homework and assessments with recorded dates in the next 14 days." /><div className="mt-3 rounded-xl border border-border bg-surface p-2">{upcoming.length ? <DataList label="Upcoming teaching work">{upcoming.map((item) => <DashboardRow key={item.id} item={item} />)}</DataList> : <EmptyState icon={<CalendarDays size={28} />} title="No upcoming dated work" description="Add due dates or assessment windows to see them here." className="border-0 py-7 shadow-none" />}</div></section><section aria-labelledby="quick-create-heading"><SectionHeader title={<span id="quick-create-heading">Quick create</span>} description="Start a common teaching workflow." /><div className="mt-3"><QuickCreate /></div></section><section aria-labelledby="pulse-heading"><SectionHeader title={<span id="pulse-heading">Teaching pulse</span>} description="Factual counts from your current school workspace." /><MetricStrip className="mt-3" items={[{ label: "Active classes", value: stats.classCount, detail: "School roster" }, { label: "Active students", value: stats.studentCount, detail: "School roster" }, { label: "Your lessons", value: stats.lessonCount, detail: "Created by you" }, { label: "Your assessments", value: stats.assessmentCount, detail: "Created by you" }]} /></section><p className="text-xs text-muted">Dashboard signals are drawn from current records. No timetable, mastery, risk, or performance estimate is inferred.</p></div>;
 }
