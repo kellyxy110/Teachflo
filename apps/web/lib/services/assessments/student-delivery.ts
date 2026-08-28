@@ -82,9 +82,28 @@ export async function startStudentAttempt(examId: string, student: StudentActor,
 }
 
 export async function getStudentAttemptDelivery(attemptId: string, student: StudentActor) {
-  const attempt = await db.examAttempt.findFirst({
-    where: { id: attemptId, studentId: student.id, schoolId: student.schoolId },
-    include: { publication: { include: { items: { orderBy: { order: "asc" }, include: { questionVersion: true } } } }, responses: true },
+  const attempt = await db.$transaction(async (tx) => {
+    const current = await tx.examAttempt.findFirst({
+      where: { id: attemptId, studentId: student.id, schoolId: student.schoolId },
+      include: { publication: { include: { items: { orderBy: { order: "asc" }, include: { questionVersion: true } } } }, responses: true },
+    });
+    if (!current || !current.publication) return current;
+    if (current.status !== AttemptStatus.IN_PROGRESS || !current.deadlineAt || new Date() < current.deadlineAt) return current;
+
+    // Expiry is server-authoritative. Finalise exactly once while preserving all saved responses.
+    const totalScore = current.responses.reduce((sum, response) => sum + (response.score ?? 0), 0);
+    const maxScore = current.publication.items.reduce((sum, item) => sum + item.marks, 0);
+    return tx.examAttempt.update({
+      where: { id: current.id },
+      data: {
+        status: AttemptStatus.SUBMITTED,
+        totalScore,
+        maxScore,
+        percentage: maxScore ? (totalScore / maxScore) * 100 : 0,
+        submittedAt: current.submittedAt ?? new Date(),
+      },
+      include: { publication: { include: { items: { orderBy: { order: "asc" }, include: { questionVersion: true } } } }, responses: true },
+    });
   });
   if (!attempt || !attempt.publication) throw new Error("Attempt not found.");
   if (attempt.publication.examId !== attempt.examId) throw new Error("Attempt publication is invalid.");
