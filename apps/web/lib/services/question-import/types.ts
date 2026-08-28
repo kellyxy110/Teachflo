@@ -10,6 +10,7 @@ export type QuestionImportCandidate = {
   questionType: ImportedQuestionType | null;
   options: string[];
   answer: string | null;
+  solutionSteps: string[];
   marks: number | null;
   explanation: string | null;
   section: string | null;

@@ -1,4 +1,4 @@
-import { ImportSource, ImportStatus, Prisma, QuestionSourceKind, QuestionType, Section, StagingAction, StagingStatus } from "@prisma/client";
+import { ImportSource, ImportStatus, Prisma, QuestionLifecycle, QuestionSourceKind, QuestionType, Section, StagingAction, StagingStatus } from "@prisma/client";
 import { db } from "@/lib/db";
 import { parseCsvQuestions } from "./csv";
 import { parseDocxQuestions } from "./docx";
@@ -75,26 +75,62 @@ function toQuestionType(value: unknown): QuestionType {
   return value as QuestionType;
 }
 
-export async function commitApprovedQuestionCandidates(actor: Actor, jobId: string) {
+export interface QuestionImportCommitResult {
+  questionIds: string[];
+  importedCount: number;
+  alreadyImportedCount: number;
+  conflictCount: number;
+  skippedCount: number;
+}
+
+export async function commitApprovedQuestionCandidates(actor: Actor, jobId: string): Promise<QuestionImportCommitResult> {
   const job = await db.importJob.findUnique({ where: { id: jobId }, include: { stagingRows: true } });
   if (!job || job.schoolId !== actor.schoolId || job.teacherId !== actor.teacherId) throw new Error("Question import job not found.");
   const committed: string[] = [];
+  let importedCount = 0;
+  let alreadyImportedCount = 0;
+  let conflictCount = 0;
+  let skippedCount = 0;
   for (const row of job.stagingRows) {
     const candidate = row.parsedData as Record<string, unknown>;
-    if (candidate.approved !== true || candidate.status !== "READY" || row.status !== StagingStatus.RESOLVED) continue;
+    if (candidate.approved !== true || candidate.status !== "READY") { skippedCount += 1; continue; }
+
+    const importedQuestionId = typeof candidate.importedQuestionId === "string" ? candidate.importedQuestionId : null;
+    const importedVersionId = typeof candidate.importedQuestionVersionId === "string" ? candidate.importedQuestionVersionId : null;
+    if (importedQuestionId && importedVersionId) {
+      const recovered = await db.$transaction(async (tx) => {
+        const question = await tx.question.findFirst({ where: { id: importedQuestionId, schoolId: actor.schoolId, createdByTeacherId: actor.teacherId, sourceKind: QuestionSourceKind.IMPORTED } });
+        const version = await tx.questionVersion.findFirst({ where: { id: importedVersionId, questionId: importedQuestionId, version: 1 } });
+        if (!question || !version) return false;
+        if (question.lifecycle !== QuestionLifecycle.APPROVED) {
+          await tx.question.update({ where: { id: question.id }, data: { lifecycle: QuestionLifecycle.APPROVED } });
+        }
+        await tx.importStagingRow.update({ where: { id: row.id }, data: { status: StagingStatus.COMMITTED, action: StagingAction.CREATE, conflictData: Prisma.DbNull, error: null } });
+        return true;
+      });
+      if (!recovered) throw new Error("Previously imported question evidence is incomplete.");
+      committed.push(importedQuestionId);
+      alreadyImportedCount += 1;
+      continue;
+    }
+
+    if (row.status !== StagingStatus.RESOLVED) { skippedCount += 1; continue; }
     const existing = await db.question.findFirst({ where: { schoolId: actor.schoolId, stem: String(candidate.stem ?? "") } });
-    if (existing) { await db.importStagingRow.update({ where: { id: row.id }, data: { action: StagingAction.CONFLICT, status: StagingStatus.PENDING, conflictData: json({ reason: "POSSIBLE_DUPLICATE", questionId: existing.id }) } }); continue; }
+    if (existing) { await db.importStagingRow.update({ where: { id: row.id }, data: { action: StagingAction.CONFLICT, status: StagingStatus.PENDING, conflictData: json({ reason: "POSSIBLE_DUPLICATE", questionId: existing.id }) } }); conflictCount += 1; continue; }
     const created = await db.$transaction(async (tx) => {
       const claim = await tx.importStagingRow.updateMany({ where: { id: row.id, status: StagingStatus.RESOLVED }, data: { status: StagingStatus.COMMITTED } });
       if (claim.count !== 1) return null;
-      const question = await tx.question.create({ data: { schoolId: actor.schoolId, createdByTeacherId: actor.teacherId, lifecycle: "APPROVED", sourceKind: QuestionSourceKind.IMPORTED, visibility: "PRIVATE", section: Section.A, number: row.rowIndex + 1, type: toQuestionType(candidate.questionType), stem: String(candidate.stem ?? ""), optionA: String((candidate.options as string[] | undefined)?.[0] ?? "") || null, optionB: String((candidate.options as string[] | undefined)?.[1] ?? "") || null, optionC: String((candidate.options as string[] | undefined)?.[2] ?? "") || null, optionD: String((candidate.options as string[] | undefined)?.[3] ?? "") || null, correctOption: candidate.answer ? String(candidate.answer) : null, defaultMarks: typeof candidate.marks === "number" ? candidate.marks : null, solution: String(candidate.answer ?? ""), explanation: String(candidate.explanation ?? ""), difficulty: "medium", questionSource: String(job.fileName ?? "import") } });
-      const version = await tx.questionVersion.create({ data: { questionId: question.id, version: 1, payload: json({ stem: question.stem, options: [question.optionA, question.optionB, question.optionC, question.optionD], answer: question.correctOption, marks: question.defaultMarks, explanation: question.explanation, sourceFingerprint: candidate.sourceFingerprint, duplicateFingerprint: candidate.duplicateFingerprint }) } });
+      const solutionSteps = Array.isArray(candidate.solutionSteps) ? candidate.solutionSteps.filter((step): step is string => typeof step === "string" && Boolean(step.trim())) : [];
+      const solution = solutionSteps.join("\n\n");
+      const question = await tx.question.create({ data: { schoolId: actor.schoolId, createdByTeacherId: actor.teacherId, lifecycle: QuestionLifecycle.APPROVED, sourceKind: QuestionSourceKind.IMPORTED, visibility: "PRIVATE", section: Section.A, number: row.rowIndex + 1, type: toQuestionType(candidate.questionType), stem: String(candidate.stem ?? ""), optionA: String((candidate.options as string[] | undefined)?.[0] ?? "") || null, optionB: String((candidate.options as string[] | undefined)?.[1] ?? "") || null, optionC: String((candidate.options as string[] | undefined)?.[2] ?? "") || null, optionD: String((candidate.options as string[] | undefined)?.[3] ?? "") || null, correctOption: candidate.answer ? String(candidate.answer) : null, defaultMarks: typeof candidate.marks === "number" ? candidate.marks : null, solution, explanation: String(candidate.explanation ?? ""), difficulty: "medium", questionSource: String(job.fileName ?? "import") } });
+      const version = await tx.questionVersion.create({ data: { questionId: question.id, version: 1, payload: json({ stem: question.stem, options: [question.optionA, question.optionB, question.optionC, question.optionD], answer: question.correctOption, solution, solutionSteps, marks: question.defaultMarks, explanation: question.explanation, sourceFingerprint: candidate.sourceFingerprint, duplicateFingerprint: candidate.duplicateFingerprint }) } });
       await tx.importStagingRow.update({ where: { id: row.id }, data: { parsedData: json({ ...candidate, importedQuestionId: question.id, importedQuestionVersionId: version.id }) } });
       return { question, version };
     });
     if (!created) continue;
     committed.push(created.question.id);
+    importedCount += 1;
   }
   await db.importJob.update({ where: { id: jobId }, data: { status: ImportStatus.COMMITTED, committedAt: new Date(), metadata: json({ ...(job.metadata as object ?? {}), questionImport: { ...((job.metadata as Record<string, unknown> | null)?.questionImport as object ?? {}), committedQuestionIds: committed } }) } });
-  return committed;
+  return { questionIds: committed, importedCount, alreadyImportedCount, conflictCount, skippedCount };
 }

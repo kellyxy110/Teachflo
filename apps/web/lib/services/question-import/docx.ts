@@ -47,7 +47,7 @@ export function parseDocxQuestions(name: string, buffer: Buffer, mime?: string):
     const rowWarnings = [...warningList];
     if (!starts(group[0])) rowWarnings.push("Question boundary requires Teacher confirmation.");
     if (row) rowWarnings.push("Table-derived content requires Teacher review.");
-    return { sourceLocation: { file: name, paragraph: index + 1 }, rawSource: { paragraphs: group, tableRow: row ?? null, packageValidated: true }, stem, questionType: options.length >= 2 ? "MCQ" as const : null, options, answer: null, marks: null, explanation: null, section: null, subject: null, topic: null, warnings: rowWarnings, errors: [], duplicateFingerprint: candidateFingerprint([stem, ...options]), sourceFingerprint: fingerprint, stemConversionState: "NEEDS_REVIEW" as const, status: "NEEDS_REVIEW" as const };
+    return { sourceLocation: { file: name, paragraph: index + 1 }, rawSource: { paragraphs: group, tableRow: row ?? null, packageValidated: true }, stem, questionType: options.length >= 2 ? "MCQ" as const : null, options, answer: null, solutionSteps: [], marks: null, explanation: null, section: null, subject: null, topic: null, warnings: rowWarnings, errors: [], duplicateFingerprint: candidateFingerprint([stem, ...options]), sourceFingerprint: fingerprint, stemConversionState: "NEEDS_REVIEW" as const, status: "NEEDS_REVIEW" as const };
   });
   return { sourceFingerprint: fingerprint, format: "DOCX", candidates: candidates.filter((c) => c.stem), warnings: warningList, errors: [] };
 }

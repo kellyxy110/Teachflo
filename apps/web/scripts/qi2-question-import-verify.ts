@@ -5,11 +5,14 @@ import { parseDocxQuestions } from "../lib/services/question-import/docx";
 import { parseXlsxQuestions } from "../lib/services/question-import/xlsx";
 import { validateQuestionImportFile } from "../lib/services/question-import/validation";
 
-const csv = Buffer.from("Question,Type,Option A,Correct Answer,Marks\nSolve x=1,MCQ,x=1,x=1,1\nAmbiguous,Unknown,a,,1\n");
+const csv = Buffer.from('Question,Type,Option A,Correct Answer,Solution Steps,Explanation,Marks\nSolve x=1,MCQ,x=1,x=1,"Step 1: Subtract 1",A concise teaching note,1\nAmbiguous,Unknown,a,,,,1\n');
 const parsedCsv = parseCsvQuestions("questions.csv", csv, "text/csv");
 assert.equal(parsedCsv.candidates.length, 2);
 assert.equal(parsedCsv.candidates[0].status, "READY");
 assert.equal(parsedCsv.candidates[1].status, "NEEDS_REVIEW");
+assert.deepEqual(parsedCsv.candidates[0].solutionSteps, ["Subtract 1"]);
+assert.equal(parsedCsv.candidates[0].answer, "x=1");
+assert.equal(parsedCsv.candidates[0].explanation, "A concise teaching note");
 assert.equal(parsedCsv.sourceFingerprint, validateQuestionImportFile("questions.csv", csv, "CSV").fingerprint);
 console.log("CSV_VALIDATION:PASS");
 console.log("CSV_PARSING:PASS");

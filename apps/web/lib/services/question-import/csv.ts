@@ -5,7 +5,8 @@ import { QUESTION_TYPES, type CandidateStatus, type ImportedQuestionType, type Q
 const aliases: Record<string, string[]> = {
   stem: ["question", "question text", "stem", "prompt"], type: ["type", "question type", "question_type"],
   answer: ["answer", "correct answer", "correct_answer", "key"], marks: ["marks", "mark", "score"],
-  explanation: ["explanation", "solution", "feedback"], section: ["section", "part"], subject: ["subject"], topic: ["topic"],
+  solutionSteps: ["solution steps", "step by step solution", "step-by-step solution", "solution", "working"],
+  explanation: ["explanation", "feedback", "teacher notes", "teacher note"], section: ["section", "part"], subject: ["subject"], topic: ["topic"],
   optionA: ["option a", "option_a", "a"], optionB: ["option b", "option_b", "b"], optionC: ["option c", "option_c", "c"], optionD: ["option d", "option_d", "d"],
 };
 
@@ -15,6 +16,13 @@ function parseType(value: string): ImportedQuestionType | null {
   const normalized = key(value).replace(/[ _-]/g, "").toUpperCase();
   const match = QUESTION_TYPES.find((type) => type.replace("_", "") === normalized);
   return match ?? null;
+}
+
+function parseSolutionSteps(value: unknown): string[] {
+  const raw = typeof value === "string" ? value.trim() : "";
+  if (!raw) return [];
+  const lines = raw.split(/\r?\n/).map((line) => normalizeText(line)).filter(Boolean);
+  return (lines.length ? lines : [normalizeText(raw)]).map((line) => line.replace(/^step\s+\d+\s*[:.)-]?\s*/i, "")).filter(Boolean);
 }
 
 export function parseCsvQuestions(name: string, buffer: Buffer, mime?: string): QuestionImportParseResult {
@@ -39,7 +47,7 @@ export function parseCsvQuestions(name: string, buffer: Buffer, mime?: string): 
     const marks = marksText && Number.isFinite(Number(marksText)) ? Number(marksText) : null;
     const normalizedAnswer = answer || null;
     const candidateStatus: CandidateStatus = status as CandidateStatus;
-    return { sourceLocation: { file: name, row: index + 2 }, rawSource: row, stem, questionType: type, options, answer: normalizedAnswer, marks, explanation: columns.explanation ? normalizeText(row[columns.explanation]) || null : null, section: columns.section ? normalizeText(row[columns.section]) || null : null, subject: columns.subject ? normalizeText(row[columns.subject]) || null : null, topic: columns.topic ? normalizeText(row[columns.topic]) || null : null, warnings: rowWarnings, errors: stem ? [] : [`Row ${index + 2}: question text is missing.`], duplicateFingerprint: candidateFingerprint([stem, ...options, normalizedAnswer ?? ""]), sourceFingerprint: fingerprint, stemConversionState: "PRESERVED" as const, status: candidateStatus };
+    return { sourceLocation: { file: name, row: index + 2 }, rawSource: row, stem, questionType: type, options, answer: normalizedAnswer, solutionSteps: parseSolutionSteps(columns.solutionSteps ? row[columns.solutionSteps] : ""), marks, explanation: columns.explanation ? normalizeText(row[columns.explanation]) || null : null, section: columns.section ? normalizeText(row[columns.section]) || null : null, subject: columns.subject ? normalizeText(row[columns.subject]) || null : null, topic: columns.topic ? normalizeText(row[columns.topic]) || null : null, warnings: rowWarnings, errors: stem ? [] : [`Row ${index + 2}: question text is missing.`], duplicateFingerprint: candidateFingerprint([stem, ...options, normalizedAnswer ?? ""]), sourceFingerprint: fingerprint, stemConversionState: "PRESERVED" as const, status: candidateStatus };
   });
   if (parsed.data.length > QUESTION_IMPORT_MAX_CANDIDATES) warnings.push(`Only the first ${QUESTION_IMPORT_MAX_CANDIDATES} rows were staged; remaining rows require a bounded continuation.`);
   return { sourceFingerprint: fingerprint, format: "CSV", candidates, warnings, errors };
