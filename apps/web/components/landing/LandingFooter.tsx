@@ -183,19 +183,16 @@ export function LandingFooter() {
           <div className="text-xs" style={{ color: "#334155" }}>
             © {new Date().getFullYear()} TeachNexis. All rights reserved.
           </div>
-          <div className="flex items-center gap-1 text-xs" style={{ color: "#334155" }}>
-            Built by{" "}
-            <a
-              href="https://kellyxy.vercel.app"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="font-bold transition-all hover:opacity-80 flex items-center gap-1"
-              style={{ color: "#60a5fa" }}
-            >
-              KellyxyHub <ExternalLink size={10} />
+          <div className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-xs" style={{ color: "#64748b" }}>
+            <span>A</span>
+            <a href="https://nexishub.vercel.app" target="_blank" rel="noopener noreferrer" className="font-semibold transition-all hover:opacity-80 inline-flex items-center gap-1" style={{ color: "#93c5fd" }}>
+              NexisHub product <ExternalLink size={10} aria-hidden="true" />
             </a>
-            {" · "}
-            <span>Powered by 18 AI models</span>
+            <span aria-hidden="true">·</span>
+            <span>Powered by</span>
+            <a href="https://sitenexis.com" target="_blank" rel="noopener noreferrer" className="font-semibold transition-all hover:opacity-80 inline-flex items-center gap-1" style={{ color: "#93c5fd" }}>
+              SiteNexis <ExternalLink size={10} aria-hidden="true" />
+            </a>
           </div>
           <div className="flex items-center gap-4 text-xs" style={{ color: "#334155" }}>
             <span className="flex items-center gap-1">
@@ -203,21 +200,6 @@ export function LandingFooter() {
               WAEC · JAMB · JUPEB aligned
             </span>
             <span className="hidden md:inline">·</span>
-            <a
-              href="https://sitenexis.vercel.app"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hidden md:flex items-center gap-1.5 hover:opacity-80 transition-opacity"
-              style={{ color: "#475569" }}
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 32 32" className="shrink-0">
-                <rect width="32" height="32" rx="6" fill="#0A1628"/>
-                <polygon points="16,3 29,10.5 24.5,26 7.5,26 3,10.5" fill="rgba(0,200,255,0.12)" stroke="#00C8FF" strokeWidth="1.5" strokeLinejoin="round"/>
-                <polygon points="16,8.5 23.5,13 21,21.5 11,21.5 8.5,13" fill="rgba(11,206,188,0.2)" stroke="rgba(11,206,188,0.6)" strokeWidth="0.8" strokeLinejoin="round"/>
-              </svg>
-              Content quality verified by{" "}
-              <span className="font-semibold" style={{ color: "#60a5fa" }}>SiteNexis</span>
-            </a>
           </div>
         </div>
       </div>

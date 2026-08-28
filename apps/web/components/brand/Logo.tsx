@@ -1,86 +1,37 @@
 "use client";
 
+import Image from "next/image";
+
+type LogoFormat = "horizontal" | "stacked" | "mark";
+type LogoTheme = "light" | "dark";
 interface LogoProps {
-  /** "light" = white wordmark for dark backgrounds; "dark" = slate wordmark for white backgrounds */
-  variant?: "light" | "dark";
+  /** Legacy light/dark values are retained for existing callers. */
+  variant?: LogoFormat | LogoTheme;
+  theme?: LogoTheme;
   size?: "sm" | "md" | "lg";
   iconOnly?: boolean;
   wordmarkOnly?: boolean;
+  className?: string;
 }
-
-const ICON_SIZES = { sm: 26, md: 34, lg: 44 };
-const TEXT_SIZES = { sm: 13, md: 17, lg: 22 };
-const ICON_INNER = { sm: 14, md: 18, lg: 24 };
+const DIMENSIONS = { sm: { width: 122, height: 31, mark: 31 }, md: { width: 156, height: 39, mark: 39 }, lg: { width: 205, height: 51, mark: 51 } } as const;
 
 export function Logo({
   variant = "dark",
+  theme,
   size = "md",
   iconOnly = false,
   wordmarkOnly = false,
+  className,
 }: LogoProps) {
-  const iconSize = ICON_SIZES[size];
-  const textSize = TEXT_SIZES[size];
-  const innerSize = ICON_INNER[size];
-  const radius = Math.round(iconSize * 0.26);
-  const teachColor = variant === "light" ? "rgba(255,255,255,0.92)" : "#1e293b";
-
-  return (
-    <div style={{ display: "inline-flex", alignItems: "center", gap: 9, lineHeight: 1, userSelect: "none" }}>
-      {!wordmarkOnly && (
-        <div
-          aria-hidden="true"
-          style={{
-            width: iconSize,
-            height: iconSize,
-            borderRadius: radius,
-            background: "linear-gradient(135deg, #3b82f6 0%, #7c3aed 100%)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            flexShrink: 0,
-            boxShadow: "0 2px 8px rgba(59,130,246,0.35)",
-          }}
-        >
-          {/* Stylised "T" letterform */}
-          <svg
-            width={innerSize}
-            height={innerSize}
-            viewBox="0 0 20 20"
-            fill="none"
-            aria-hidden="true"
-          >
-            {/* Crossbar */}
-            <rect x="1.5" y="2" width="17" height="4" rx="2" fill="white" />
-            {/* Stem */}
-            <rect x="8" y="6" width="4" height="12" rx="2" fill="white" />
-            {/* Accent dot — suggests neural/AI connection */}
-            <circle cx="16.5" cy="15.5" r="2" fill="rgba(255,255,255,0.55)" />
-          </svg>
-        </div>
-      )}
-      {!iconOnly && (
-        <span
-          style={{
-            fontSize: textSize,
-            fontWeight: 700,
-            letterSpacing: "-0.025em",
-            lineHeight: 1,
-            fontFamily: "inherit",
-          }}
-        >
-          <span style={{ color: teachColor }}>Teach</span>
-          <span
-            style={{
-              background: "linear-gradient(90deg, #3b82f6 0%, #7c3aed 100%)",
-              WebkitBackgroundClip: "text",
-              WebkitTextFillColor: "transparent",
-              backgroundClip: "text",
-            }}
-          >
-            Nexis
-          </span>
-        </span>
-      )}
-    </div>
-  );
+  const format: LogoFormat = variant === "stacked" || variant === "mark" || variant === "horizontal" ? variant : "horizontal";
+  const resolvedTheme: LogoTheme = theme ?? (variant === "light" ? "light" : "dark");
+  const dimensions = DIMENSIONS[size];
+  const markOnly = iconOnly || format === "mark";
+  const src = markOnly
+    ? `/brand/teachnexis/teachnexis-mark${resolvedTheme === "light" ? "-dark" : ""}.svg`
+    : format === "stacked" ? "/brand/teachnexis/teachnexis-logo-stacked.svg" : `/brand/teachnexis/teachnexis-logo-horizontal${resolvedTheme === "light" ? "-dark" : ""}.svg`;
+  if (wordmarkOnly) return <span className={className} style={{ display: "inline-flex", fontWeight: 700, letterSpacing: "-0.025em", lineHeight: 1 }}><span style={{ color: resolvedTheme === "light" ? "#fff" : "#0F172A" }}>Teach</span><span style={{ color: resolvedTheme === "light" ? "#5EEAD4" : "#14B8A6" }}>Nexis</span></span>;
+  const width = markOnly ? dimensions.mark : dimensions.width;
+  const height = markOnly ? dimensions.mark : format === "stacked" ? Math.round(dimensions.width * 0.83) : dimensions.height;
+  return <Image src={src} alt="TeachNexis" width={width} height={height} className={className} priority={size === "lg"} unoptimized />;
 }

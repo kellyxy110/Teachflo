@@ -56,11 +56,11 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: [
+      { url: "/brand/teachnexis/favicon.svg", type: "image/svg+xml" },
       { url: "/icon.svg", type: "image/svg+xml" },
-      { url: "/icon.png", type: "image/png", sizes: "512x512" },
       { url: "/favicon.ico", sizes: "any" },
     ],
-    apple: { url: "/icon.png", sizes: "180x180", type: "image/png" },
+    apple: { url: "/brand/teachnexis/app-icon.svg", type: "image/svg+xml" },
     shortcut: "/favicon.ico",
   },
   robots: {
@@ -98,13 +98,8 @@ export default function RootLayout({
     },
     author: {
       "@type": "Organization",
-      name: "KellyxyHub",
-      url: "https://kellyxy.vercel.app",
-      founder: {
-        "@type": "Person",
-        name: "Ekeleme Kelechi David",
-        url: "https://kellyxy.vercel.app",
-      },
+      name: "NexisHub",
+      url: "https://nexishub.vercel.app",
     },
     audience: {
       "@type": "EducationalAudience",

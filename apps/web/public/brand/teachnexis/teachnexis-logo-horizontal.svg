@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 140" fill="none">
+  <title>TeachNexis</title>
+  <g transform="translate(0 10) scale(.72)"><path d="M18 24v62c27 1 46 10 62 25V45C62 31 43 23 18 24Z" fill="#0F172A"/><path d="M142 24v62c-27 1-46 10-62 25V45c18-14 37-22 62-21Z" fill="#14B8A6"/><path d="M18 86c27 1 46 10 62 25M142 86c-27 1-46 10-62 25" stroke="#fff" stroke-width="5" stroke-linecap="round"/><path d="M84 38h14v14H84zM104 22h14v14h-14zM124 8h12v12h-12zM108 48h12v12h-12zM132 36h12v12h-12zM100 66h14v14h-14z" fill="#22D3EE"/><path d="M124 58h10v10h-10zM136 74h10v10h-10z" fill="#F59E0B"/></g>
+  <text x="150" y="84" font-family="Inter, Arial, sans-serif" font-size="58" font-weight="700" letter-spacing="-2"><tspan fill="#0F172A">Teach</tspan><tspan fill="#14B8A6">Nexis</tspan></text>
+</svg>

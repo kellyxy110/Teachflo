@@ -1,115 +1,25 @@
-"use client";
-import { useEffect } from "react";
+import Link from "next/link";
+import { ArrowRight, Check, ClipboardCheck, GraduationCap, Layers3, ShieldCheck, Sparkles, UsersRound } from "lucide-react";
 import { LandingNav } from "./LandingNav";
-import { HeroSection } from "./HeroSection";
-import { WhyTeachNexisSection } from "./WhyTeachNexisSection";
-import { WorkflowStorySection } from "./WorkflowStorySection";
-import { VideoShowcaseSection } from "./VideoShowcaseSection";
-import { IntelligenceLayerSection } from "./IntelligenceLayerSection";
-import { DashboardShowcaseSection } from "./DashboardShowcaseSection";
-import { StatsSection } from "./StatsSection";
-import { TestimonialsSection } from "./TestimonialsSection";
-import { PricingSection } from "./PricingSection";
-import { FAQSection } from "./FAQSection";
-import { FinalCTASection } from "./FinalCTASection";
 import { LandingFooter } from "./LandingFooter";
 
+const workflow = [["01", "Plan", "Build lessons and homework around the classes you actually teach."], ["02", "Record", "Keep students, attendance, scores and reports in one school workspace."], ["03", "Assess", "Reuse questions, schedule assessments and keep every version accountable."], ["04", "Improve", "Grade deliberately, release results on your terms and act on what you learn."]];
+const faqs = [["Who is TeachNexis for?", "TeachNexis is built first for teachers and schools that need one place for teaching, records and assessment. Students get a focused space for assigned learning and assessments."], ["Can I manage students and scores?", "Yes. Teachers can work with classes, student records, attendance, scores, imports and reports within their school workspace."], ["Can I create timed tests and exams?", "Yes. Assessments can use reusable questions, opening and closing times, durations, server-enforced deadlines, grading and controlled result release."], ["Does it support Maths and science notation?", "Yes. The question and assessment experience supports rendered mathematical and scientific notation, including structured responses."], ["Does TeachNexis use AI?", "AI is used as assistance inside selected teacher workflows. Teachers remain in control of content, publishing, grading and results."]];
+
+function SectionIntro({ eyebrow, title, children }: { eyebrow: string; title: string; children: React.ReactNode }) { return <div className="max-w-2xl"><p className="text-sm font-semibold uppercase tracking-[0.16em] text-amber-700">{eyebrow}</p><h2 className="mt-3 text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl">{title}</h2><p className="mt-4 text-lg leading-8 text-slate-600">{children}</p></div>; }
+
 export function LandingPageClient() {
-  useEffect(() => {
-    let lenis: import("lenis").default | null = null;
-    let observer: IntersectionObserver | null = null;
-
-    (async () => {
-      const prefersReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-
-      if (!prefersReduced) {
-        const { default: Lenis } = await import("lenis");
-        lenis = new Lenis({
-          duration: 1.2,
-          easing: (t: number) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
-          smoothWheel: true,
-          touchMultiplier: 1.5,
-        });
-
-        const { gsap } = await import("gsap");
-        const { ScrollTrigger } = await import("gsap/ScrollTrigger");
-        gsap.registerPlugin(ScrollTrigger);
-
-        lenis.on("scroll", ScrollTrigger.update);
-        gsap.ticker.add((time: number) => lenis?.raf(time * 1000));
-        gsap.ticker.lagSmoothing(0);
-
-        // Subtle scroll-fade for each .landing-section
-        const sections = document.querySelectorAll(".landing-section");
-        sections.forEach((section) => {
-          gsap.fromTo(
-            section,
-            { opacity: 0.7, y: 24 },
-            {
-              opacity: 1, y: 0, duration: 0.8, ease: "power2.out",
-              scrollTrigger: {
-                trigger: section,
-                start: "top 88%",
-                toggleActions: "play none none reverse",
-              },
-            }
-          );
-        });
-      }
-
-      // Scroll-reveal for .reveal elements
-      observer = new IntersectionObserver(
-        (entries) => { entries.forEach((e) => { if (e.isIntersecting) e.target.classList.add("visible"); }); },
-        { threshold: 0.08, rootMargin: "0px 0px -40px 0px" }
-      );
-      document.querySelectorAll(".reveal").forEach((el) => observer?.observe(el));
-    })();
-
-    return () => {
-      lenis?.destroy();
-      observer?.disconnect();
-    };
-  }, []);
-
-  return (
-    <div style={{ fontFamily: "inherit" }}>
-      <LandingNav />
-
-      {/* 1 — Hero */}
-      <HeroSection />
-
-      {/* 2 — Why TeachNexis / Feature overview */}
-      <WhyTeachNexisSection />
-
-      {/* Connected product narrative */}
-      <WorkflowStorySection />
-
-      {/* 3 — Live product demo / animated showcase */}
-      <VideoShowcaseSection />
-
-      {/* 4 — Intelligence Layer (12 AI capabilities) */}
-      <IntelligenceLayerSection />
-
-      {/* 5 — Dashboard showcase (Teacher / Principal / Student / Parent) */}
-      <DashboardShowcaseSection />
-
-      {/* 6 — Stats */}
-      <StatsSection />
-
-      {/* 7 — Testimonials */}
-      <TestimonialsSection />
-
-      {/* 8 — Pricing */}
-      <PricingSection />
-
-      {/* 9 — FAQ */}
-      <FAQSection />
-
-      {/* 10 — Final CTA */}
-      <FinalCTASection />
-
-      {/* 11 — Footer */}
-      <LandingFooter />
-    </div>
-  );
+  return <div className="landing min-h-screen overflow-hidden bg-[#fdf8f0] text-slate-950"><LandingNav /><main>
+    <section id="hero" className="border-b border-slate-200/80 bg-[#fdf8f0] pt-28 sm:pt-36"><div className="mx-auto grid max-w-7xl items-center gap-14 px-6 pb-20 sm:px-10 lg:grid-cols-[1.05fr_.95fr] lg:px-16 lg:pb-28"><div><p className="inline-flex items-center gap-2 text-sm font-semibold text-amber-700"><span className="h-2 w-2 rounded-full bg-amber-600" />Built for the work teachers do every day</p><h1 className="mt-6 max-w-3xl text-5xl font-semibold leading-[1.05] tracking-[-0.04em] text-slate-950 sm:text-6xl lg:text-7xl">One calm workspace for teaching, assessment and progress.</h1><p className="mt-7 max-w-xl text-lg leading-8 text-slate-600 sm:text-xl">TeachNexis brings lessons, classes, student records, reusable questions and timed assessments into one connected school workspace.</p><div className="mt-9 flex flex-wrap items-center gap-3"><Link href="/sign-up" className="inline-flex min-h-12 items-center gap-2 rounded-lg bg-slate-950 px-5 text-sm font-semibold text-white transition hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600">Start teaching <ArrowRight size={16} /></Link><a href="#workspace" className="inline-flex min-h-12 items-center rounded-lg border border-slate-300 px-5 text-sm font-semibold text-slate-700 transition hover:border-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600">See how it works</a></div><p className="mt-5 text-sm text-slate-500">For teachers and schools · Student access included</p></div><div aria-label="TeachNexis workflow preview" className="relative rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_24px_70px_rgba(15,23,42,.10)] sm:p-7"><div className="flex items-center justify-between border-b border-slate-100 pb-4"><div><p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">Today</p><p className="mt-1 text-lg font-semibold">Your teaching workspace</p></div><span className="rounded-md bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">Teacher view</span></div><div className="grid gap-3 pt-5 sm:grid-cols-2"><div className="rounded-xl bg-slate-950 p-4 text-white sm:col-span-2"><p className="text-xs text-slate-300">Attention needed</p><p className="mt-2 text-lg font-semibold">Review an assessment and finish today&apos;s attendance.</p><p className="mt-3 text-sm text-slate-300">Two clear next actions, in context.</p></div><div className="rounded-xl border border-slate-200 p-4"><GraduationCap className="text-blue-600" size={20} /><p className="mt-5 text-sm font-semibold">Lessons & homework</p><p className="mt-1 text-xs leading-5 text-slate-500">Plan, revisit and reuse your teaching work.</p></div><div className="rounded-xl border border-slate-200 p-4"><ClipboardCheck className="text-amber-600" size={20} /><p className="mt-5 text-sm font-semibold">Assessments</p><p className="mt-1 text-xs leading-5 text-slate-500">Build, schedule, grade and release.</p></div></div></div></div></section>
+    <section id="problem" className="bg-white px-6 py-20 sm:px-10 lg:px-16"><div className="mx-auto grid max-w-7xl gap-12 lg:grid-cols-[.8fr_1.2fr]"><SectionIntro eyebrow="The teaching problem" title="The work is connected. Your tools should be too.">Planning in one place, attendance in another, assessments somewhere else. TeachNexis gives the daily workflow a clear centre.</SectionIntro><div className="grid gap-3 sm:grid-cols-2">{[["Too many handoffs", "Moving between disconnected tools makes simple classroom work harder to finish."], ["Too little context", "A score, lesson or question is more useful when it stays connected to its class and purpose."], ["Unclear next steps", "A teacher workspace should make unfinished work visible without inventing urgency."], ["No room for subject detail", "Maths and science need notation, structured working and careful review—not text-only forms."]].map(([title, body], i) => <div key={title} className={`border-l-2 p-5 ${["border-amber-500", "border-blue-600", "border-emerald-600", "border-slate-400"][i]}`}><p className="font-semibold">{title}</p><p className="mt-2 text-sm leading-6 text-slate-600">{body}</p></div>)}</div></div></section>
+    <section id="workspace" className="bg-slate-950 px-6 py-20 text-white sm:px-10 lg:px-16"><div className="mx-auto max-w-7xl"><SectionIntro eyebrow="One teacher workspace" title="Plan → teach → record → assess → improve"><span className="text-slate-300">A practical rhythm for the school day, with the teacher in control at every step.</span></SectionIntro><div className="mt-12 grid border-t border-white/15 sm:grid-cols-2 lg:grid-cols-4">{workflow.map(([number, title, body]) => <div key={number} className="border-b border-white/15 py-7 sm:border-r sm:px-6 lg:border-b-0 lg:first:pl-0 lg:last:border-r-0"><p className="text-sm text-amber-300">{number}</p><h3 className="mt-8 text-xl font-semibold">{title}</h3><p className="mt-3 text-sm leading-6 text-slate-300">{body}</p></div>)}</div></div></section>
+    <section id="features" className="bg-[#fdf8f0] px-6 py-20 sm:px-10 lg:px-16"><div className="mx-auto max-w-7xl space-y-20"><div className="grid items-center gap-10 lg:grid-cols-2"><SectionIntro eyebrow="Plan & teach" title="Start with the classes in front of you.">Create and revisit lessons, homework and teaching content with class and subject context close by.</SectionIntro><div className="grid grid-cols-2 gap-3"><div className="bg-white p-5"><GraduationCap size={22} className="text-blue-600" /><p className="mt-8 font-semibold">Classes</p><p className="mt-2 text-sm text-slate-500">A home for the work around each class.</p></div><div className="mt-8 bg-white p-5"><Layers3 size={22} className="text-amber-600" /><p className="mt-8 font-semibold">Lessons</p><p className="mt-2 text-sm text-slate-500">Draft, use and revisit.</p></div></div></div><div id="records" className="grid items-center gap-10 border-t border-slate-200 pt-20 lg:grid-cols-2"><div className="order-2 grid grid-cols-2 gap-3 lg:order-1"><div className="bg-white p-5"><UsersRound size={22} className="text-emerald-600" /><p className="mt-8 font-semibold">Students</p><p className="mt-2 text-sm text-slate-500">Records that stay school-scoped.</p></div><div className="mt-8 bg-white p-5"><Check size={22} className="text-blue-600" /><p className="mt-8 font-semibold">Attendance & scores</p><p className="mt-2 text-sm text-slate-500">Enter, import and review.</p></div></div><div className="order-1 lg:order-2"><SectionIntro eyebrow="Students & records" title="Know what is complete, and what is next.">Students, attendance, scores, imports and reports live in the same operational picture—without pretending to know more than the data says.</SectionIntro></div></div></div></section>
+    <section id="assessment" className="bg-white px-6 py-20 sm:px-10 lg:px-16"><div className="mx-auto max-w-7xl"><div className="grid gap-12 lg:grid-cols-[.8fr_1.2fr]"><SectionIntro eyebrow="Assessment" title="From question bank to released result.">Build assessments from reusable questions, set a schedule, deliver a focused attempt, then grade and release results with clear control.</SectionIntro><div className="space-y-3">{[["01", "Build and schedule", "Select approved questions, configure marks, opening/closing times and duration."], ["02", "Deliver with confidence", "Students see availability and a server-owned timer; saved work resumes safely."], ["03", "Grade and release", "Deterministic grading and teacher-controlled result release keep the final word with the school."]].map(([n, t, b]) => <div key={n} className="flex gap-4 border-t border-slate-200 py-5"><span className="text-sm font-semibold text-blue-600">{n}</span><div><p className="font-semibold">{t}</p><p className="mt-1 text-sm text-slate-600">{b}</p></div></div>)}</div></div></div></section>
+    <section id="student" className="bg-blue-50 px-6 py-20 sm:px-10 lg:px-16"><div className="mx-auto grid max-w-7xl gap-12 lg:grid-cols-2"><SectionIntro eyebrow="Student experience" title="A focused place to learn and show working.">Students get clear assessment instructions, readable questions, saved responses, structured mathematical input and results only when the teacher releases them.</SectionIntro><div className="flex items-center gap-4 border-l-2 border-blue-600 pl-6"><Sparkles className="text-blue-600" size={24} /><p className="text-lg font-medium leading-8 text-slate-700">Less dashboard noise. More attention on the question in front of you.</p></div></div></section>
+    <section id="stem" className="bg-slate-900 px-6 py-20 text-white sm:px-10 lg:px-16"><div className="mx-auto grid max-w-7xl gap-12 lg:grid-cols-2"><SectionIntro eyebrow="STEM" title="Built for subjects with notation, not just words."><span className="text-slate-300">Fractions, powers, roots, Greek symbols, equations and structured working render clearly across question authoring and assessment delivery.</span></SectionIntro><div className="rounded-xl border border-white/15 bg-white/5 p-6 font-mono text-lg text-slate-200"><p>v = u + at</p><p className="mt-5">x = <span className="border-b border-slate-400 px-2">−b ± √(b² − 4ac)</span> / 2a</p><p className="mt-5">2H₂ + O₂ → 2H₂O</p></div></div></section>
+    <section id="trust" className="bg-[#fdf8f0] px-6 py-20 sm:px-10 lg:px-16"><div className="mx-auto max-w-7xl"><SectionIntro eyebrow="Trust & control" title="Useful intelligence, clear boundaries.">TeachNexis helps with the work, but it does not quietly take decisions away from teachers or schools.</SectionIntro><div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">{[[ShieldCheck, "School-scoped data", "Work stays within the right school and role."], [ClipboardCheck, "Teacher-controlled publishing", "Review before questions and assessments become canonical."], [Layers3, "Immutable assessment snapshots", "Published questions and versions remain stable."], [Check, "Factual results", "Release scores and answers according to policy."]].map(([Icon, title, body]) => <div key={title as string} className="border-t border-slate-300 pt-4"><Icon size={20} className="text-amber-700" /><p className="mt-5 font-semibold">{title as string}</p><p className="mt-2 text-sm leading-6 text-slate-600">{body as string}</p></div>)}</div></div></section>
+    <section id="ai" className="bg-white px-6 py-20 sm:px-10 lg:px-16"><div className="mx-auto grid max-w-7xl gap-10 lg:grid-cols-2"><SectionIntro eyebrow="AI in context" title="Assistance where it helps—not AI theatre.">Use existing AI-assisted lesson and content workflows when they are useful. Teachers review the result; TeachNexis does not claim autonomous grading, predictive risk or verified mastery.</SectionIntro><div className="border-l-2 border-slate-900 p-6"><p className="text-sm font-semibold uppercase tracking-[0.14em] text-slate-500">Teacher remains the authority</p><p className="mt-4 text-2xl font-semibold tracking-tight">The product gets out of the way when a human decision is needed.</p></div></div></section>
+    <section id="faq" className="bg-[#fdf8f0] px-6 py-20 sm:px-10 lg:px-16"><div className="mx-auto max-w-3xl"><SectionIntro eyebrow="Questions" title="Start with what matters at school.">Straight answers for teachers and school teams evaluating TeachNexis.</SectionIntro><div className="mt-10 divide-y divide-slate-300 border-y border-slate-300">{faqs.map(([q, a]) => <details key={q} className="group py-5"><summary className="cursor-pointer list-none pr-8 text-lg font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600">{q}<span className="float-right text-slate-400 transition group-open:rotate-45">+</span></summary><p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600">{a}</p></details>)}</div></div></section>
+    <section className="bg-slate-950 px-6 py-20 text-white sm:px-10 lg:px-16"><div className="mx-auto flex max-w-7xl flex-col items-start justify-between gap-8 sm:flex-row sm:items-end"><div><p className="text-sm font-semibold uppercase tracking-[0.16em] text-amber-300">Ready when you are</p><h2 className="mt-3 max-w-2xl text-4xl font-semibold tracking-tight sm:text-5xl">Make the school day easier to hold together.</h2></div><Link href="/sign-up" className="inline-flex min-h-12 items-center gap-2 rounded-lg bg-white px-5 text-sm font-semibold text-slate-950 hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300">Get started <ArrowRight size={16} /></Link></div></section>
+  </main><LandingFooter /></div>;
 }
