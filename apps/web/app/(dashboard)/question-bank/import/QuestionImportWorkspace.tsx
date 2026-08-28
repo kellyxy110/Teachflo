@@ -1,76 +1,31 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { MathText } from "@/components/ui/MathText";
 import type { QuestionImportCandidate } from "@/lib/services/question-import/types";
 
-type Candidate = QuestionImportCandidate & { reviewRevision?: number; approved?: boolean };
+type Candidate = QuestionImportCandidate & { reviewRevision?: number; approved?: boolean; rejected?: boolean };
 type Row = { id: string; rowIndex: number; candidate: Candidate; stagingStatus: string };
+type Filter = "ALL" | "READY" | "NEEDS_REVIEW" | "ERROR" | "POSSIBLE_DUPLICATE" | "ACCEPTED" | "REJECTED";
+const filters: Filter[] = ["ALL", "READY", "NEEDS_REVIEW", "ERROR", "POSSIBLE_DUPLICATE", "ACCEPTED", "REJECTED"];
+function statusLabel(row: Row) { if (row.candidate.rejected) return "REJECTED"; if (row.candidate.approved) return "ACCEPTED"; return row.candidate.status; }
 
 export function QuestionImportWorkspace() {
-  const [rows, setRows] = useState<Row[]>([]);
-  const [drafts, setDrafts] = useState<Record<string, string>>({});
-  const [jobId, setJobId] = useState("");
-  const [fileName, setFileName] = useState("");
-  const [message, setMessage] = useState("");
-  const [busy, setBusy] = useState(false);
-
-  async function upload(file?: File) {
-    if (!file) return;
-    setBusy(true); setFileName(file.name); setMessage("");
-    try {
-      const form = new FormData(); form.append("file", file);
-      const response = await fetch("/api/question-import/stage", { method: "POST", body: form });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error ?? "Upload failed.");
-      const loaded = (data.rows ?? []) as Row[];
-      setJobId(data.jobId); setRows(loaded); setDrafts(Object.fromEntries(loaded.map((row) => [row.id, row.candidate.stem])));
-      setMessage(data.duplicate ? "This file was already staged. Its existing questions are shown below." : "Questions staged. Review each question before accepting it.");
-    } catch (error) { setMessage(error instanceof Error ? error.message : "Upload failed."); }
-    finally { setBusy(false); }
-  }
-
-  async function saveChanges(row: Row) {
-    const stem = drafts[row.id] ?? row.candidate.stem;
-    try {
-      const response = await fetch("/api/question-import/review", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ rowId: row.id, expectedRevision: Number(row.candidate.reviewRevision ?? 1), patch: { ...row.candidate, stem, status: "READY", errors: [] } }) });
-      const data = await response.json(); if (!response.ok) throw new Error(data.error ?? "Could not save changes.");
-      setRows((all) => all.map((item) => item.id === row.id ? { ...item, candidate: data, stagingStatus: "RESOLVED" } : item));
-      setMessage(`Question ${row.rowIndex + 1} changes saved.`);
-    } catch (error) { setMessage(error instanceof Error ? error.message : "Could not save changes."); }
-  }
-
-  async function accept(row: Row) {
-    try {
-      const response = await fetch("/api/question-import/review", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ rowId: row.id, expectedRevision: Number(row.candidate.reviewRevision ?? 1), approve: true }) });
-      const data = await response.json(); if (!response.ok) throw new Error(data.error ?? "Could not accept question.");
-      setRows((all) => all.map((item) => item.id === row.id ? { ...item, candidate: data, stagingStatus: "RESOLVED" } : item));
-      setMessage(`Question ${row.rowIndex + 1} accepted.`);
-    } catch (error) { setMessage(error instanceof Error ? error.message : "Could not accept question."); }
-  }
-
-  async function commit() {
-    if (!jobId) return;
-    setBusy(true);
-    try {
-      const response = await fetch("/api/question-import/commit", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ jobId }) });
-      const data = await response.json(); if (!response.ok) throw new Error(data.error ?? "Import failed.");
-      setMessage(`${data.questionIds?.length ?? 0} accepted question(s) imported into Question Bank.`);
-    } catch (error) { setMessage(error instanceof Error ? error.message : "Import failed."); }
-    finally { setBusy(false); }
-  }
-
+  const [rows, setRows] = useState<Row[]>([]); const [drafts, setDrafts] = useState<Record<string, Candidate>>({}); const [jobId, setJobId] = useState(""); const [fileName, setFileName] = useState(""); const [message, setMessage] = useState(""); const [busy, setBusy] = useState(false); const [filter, setFilter] = useState<Filter>("ALL"); const [query, setQuery] = useState(""); const [activeId, setActiveId] = useState(""); const [selected, setSelected] = useState<Set<string>>(new Set());
+  const counts = useMemo(() => filters.reduce<Record<string, number>>((acc, key) => { acc[key] = key === "ALL" ? rows.length : rows.filter((row) => statusLabel(row) === key).length; return acc; }, {}), [rows]);
+  const visible = useMemo(() => rows.filter((row) => { const text = `${row.candidate.stem} ${row.candidate.subject ?? ""} ${row.candidate.topic ?? ""}`.toLowerCase(); return (filter === "ALL" || statusLabel(row) === filter) && (!query || text.includes(query.toLowerCase())); }), [filter, query, rows]);
+  const active = rows.find((row) => row.id === activeId) ?? visible[0]; const draft = active ? (drafts[active.id] ?? active.candidate) : undefined;
+  async function upload(file?: File) { if (!file) return; setBusy(true); setFileName(file.name); setMessage(""); try { const form = new FormData(); form.append("file", file); const response = await fetch("/api/question-import/stage", { method: "POST", body: form }); const data = await response.json(); if (!response.ok) throw new Error(data.error ?? "Upload failed."); const loaded = (data.rows ?? []) as Row[]; setJobId(data.jobId); setRows(loaded); setActiveId(loaded[0]?.id ?? ""); setDrafts(Object.fromEntries(loaded.map((row) => [row.id, row.candidate]))); setMessage(data.duplicate ? "This file was already staged; review its existing candidates." : "Questions staged. Review and accept only valid candidates."); } catch (error) { setMessage(error instanceof Error ? error.message : "Upload failed."); } finally { setBusy(false); } }
+  function updateDraft(field: keyof Candidate, value: string) { if (!active || !draft) return; setDrafts((all) => ({ ...all, [active.id]: { ...draft, [field]: value } })); }
+  async function review(row: Row, action: "save" | "accept" | "reject") { const value = drafts[row.id] ?? row.candidate; try { const body = action === "accept" ? { rowId: row.id, expectedRevision: Number(row.candidate.reviewRevision ?? 1), approve: true } : { rowId: row.id, expectedRevision: Number(row.candidate.reviewRevision ?? 1), patch: { ...value, status: action === "reject" ? "NEEDS_REVIEW" : "READY", approved: false, rejected: action === "reject", errors: action === "save" ? [] : value.errors } }; const response = await fetch("/api/question-import/review", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }); const data = await response.json(); if (!response.ok) throw new Error(data.error ?? "Review action failed."); setRows((all) => all.map((item) => item.id === row.id ? { ...item, candidate: data, stagingStatus: "RESOLVED" } : item)); setDrafts((all) => ({ ...all, [row.id]: data })); setMessage(action === "accept" ? `Question ${row.rowIndex + 1} accepted.` : action === "reject" ? `Question ${row.rowIndex + 1} rejected.` : `Question ${row.rowIndex + 1} changes saved.`); } catch (error) { setMessage(error instanceof Error ? error.message : "Review action failed."); } }
+  async function bulkAccept() { const ready = rows.filter((row) => row.candidate.status === "READY" && !row.candidate.approved && !row.candidate.rejected); if (!ready.length || !window.confirm(`Accept ${ready.length} READY question(s)?`)) return; for (const row of ready) await review(row, "accept"); }
+  async function bulkReject() { const targets = rows.filter((row) => selected.has(row.id) && !row.candidate.approved); if (!targets.length || !window.confirm(`Reject ${targets.length} selected question(s)?`)) return; for (const row of targets) await review(row, "reject"); setSelected(new Set()); }
+  async function commit() { if (!jobId) return; setBusy(true); try { const response = await fetch("/api/question-import/commit", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ jobId }) }); const data = await response.json(); if (!response.ok) throw new Error(data.error ?? "Import failed."); setMessage(`${data.questionIds?.length ?? 0} accepted question(s) imported into Question Bank.`); } catch (error) { setMessage(error instanceof Error ? error.message : "Import failed."); } finally { setBusy(false); } }
+  const activeIndex = active ? visible.findIndex((row) => row.id === active.id) : -1; const move = (delta: number) => { const next = visible[activeIndex + delta]; if (next) setActiveId(next.id); };
   return <div className="space-y-5">
-    <label className="inline-flex min-h-11 cursor-pointer items-center rounded-lg bg-primary px-4 text-sm font-semibold text-white">{busy ? "Processing…" : "Upload CSV, XLSX or DOCX"}<input className="sr-only" type="file" accept=".csv,.xlsx,.docx" onChange={(event) => upload(event.target.files?.[0])} /></label>
-    {fileName && <p className="text-sm text-text-2">Selected file: <span className="font-medium text-text">{fileName}</span></p>}
-    {message && <p role="status" className="rounded-lg border border-border bg-surface p-3 text-sm text-text-2">{message}</p>}
-    <div className="space-y-4">{rows.map((row) => <article key={row.id} className="rounded-xl border border-border bg-surface p-4">
-      <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-text-2">Question {row.rowIndex + 1} · {row.candidate.status}</p>
-      <textarea aria-label={`Question ${row.rowIndex + 1}`} value={drafts[row.id] ?? row.candidate.stem} onChange={(event) => setDrafts((all) => ({ ...all, [row.id]: event.target.value }))} rows={3} className="w-full rounded-lg border border-border bg-canvas p-3 text-sm" />
-      <div className="mt-3 rounded-lg bg-canvas p-3"><MathText text={drafts[row.id] ?? row.candidate.stem} /></div>
-      {row.candidate.warnings?.length ? <p className="mt-2 text-xs text-amber-700">{row.candidate.warnings.join(" ")}</p> : null}
-      <div className="mt-3 flex flex-wrap gap-2"><button type="button" onClick={() => saveChanges(row)} disabled={row.candidate.status === "ERROR"} className="min-h-10 rounded-lg border border-border px-3 text-sm font-semibold text-text disabled:opacity-50">Save changes</button><button type="button" onClick={() => accept(row)} disabled={row.candidate.status !== "READY"} className="min-h-10 rounded-lg bg-primary px-3 text-sm font-semibold text-white disabled:opacity-50">{row.candidate.approved ? "Accepted" : "Accept question"}</button></div>
-    </article>)}</div>
-    {rows.length > 0 && <button type="button" onClick={commit} disabled={busy || !rows.some((row) => row.candidate.approved)} className="min-h-11 rounded-lg border border-border px-4 text-sm font-semibold text-text disabled:opacity-50">Import accepted questions</button>}
+    <div className="rounded-xl border border-border bg-surface p-4"><div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-sm font-semibold text-text">Upload questions for review</h2><p className="mt-1 text-xs text-text-2">CSV, XLSX and DOCX · Upload → Review → Accept → Question Bank</p></div><div className="flex flex-wrap gap-2"><a href="/api/question-import/template" className="min-h-10 rounded-lg border border-border px-3 py-2 text-sm font-semibold text-text">Download TeachNexis template</a><label className="inline-flex min-h-10 cursor-pointer items-center rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-white">{busy ? "Processing…" : "Choose file"}<input className="sr-only" type="file" accept=".csv,.xlsx,.docx" onChange={(event) => upload(event.target.files?.[0])} /></label></div></div></div>
+    {fileName && <p className="text-sm text-text-2">Selected file: <span className="font-medium text-text">{fileName}</span></p>}{message && <p role="status" className="rounded-lg border border-border bg-surface p-3 text-sm text-text-2">{message}</p>}
+    {rows.length > 0 && <section aria-label="Question review workspace" className="overflow-hidden rounded-xl border border-border bg-surface"><div className="border-b border-border p-3"><div className="flex flex-wrap gap-2" role="tablist" aria-label="Candidate status filter">{filters.map((key) => <button key={key} type="button" role="tab" aria-selected={filter === key} onClick={() => setFilter(key)} className={`min-h-9 rounded-full border px-3 text-xs font-semibold ${filter === key ? "border-primary bg-primary text-white" : "border-border text-text-2"}`}>{key.replaceAll("_", " ")} ({counts[key]})</button>)}</div><label className="mt-3 block"><span className="sr-only">Search candidates</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search questions, subject or topic" className="w-full rounded-lg border border-border bg-canvas px-3 py-2 text-sm" /></label></div><div className="grid min-h-[28rem] md:grid-cols-[minmax(14rem,0.8fr)_minmax(0,1.5fr)]"><div className="max-h-[34rem] divide-y divide-border overflow-y-auto">{visible.map((row) => <div key={row.id} className={`flex gap-2 p-3 ${active?.id === row.id ? "bg-canvas" : ""}`}><input type="checkbox" aria-label={`Select question ${row.rowIndex + 1}`} checked={selected.has(row.id)} onChange={(event) => setSelected((all) => { const next = new Set(all); event.target.checked ? next.add(row.id) : next.delete(row.id); return next; })} /><button type="button" onClick={() => setActiveId(row.id)} className="min-w-0 flex-1 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary"><div className="flex items-center justify-between gap-2"><span className="text-xs font-semibold text-text">Question {row.rowIndex + 1}</span><span className="text-[10px] font-bold uppercase text-text-2">{statusLabel(row).replaceAll("_", " ")}</span></div><p className="mt-1 line-clamp-2 text-sm text-text-2">{row.candidate.stem}</p></button></div>)}{visible.length === 0 && <p className="p-4 text-sm text-text-2">No candidates match this filter.</p>}</div>{active && draft && <div className="space-y-4 border-t border-border p-4 md:border-l md:border-t-0"><div className="flex flex-wrap items-center justify-between gap-2"><div><p className="text-xs font-semibold uppercase tracking-wide text-text-2">Question {active.rowIndex + 1} · {statusLabel(active).replaceAll("_", " ")}</p><p className="mt-1 text-xs text-text-2">{active.candidate.sourceLocation?.page ? `Page ${active.candidate.sourceLocation.page}` : "Source location recorded"}</p></div><div className="flex gap-2"><button type="button" onClick={() => move(-1)} disabled={activeIndex <= 0} className="min-h-9 rounded border border-border px-2 text-xs">Previous</button><button type="button" onClick={() => move(1)} disabled={activeIndex < 0 || activeIndex >= visible.length - 1} className="min-h-9 rounded border border-border px-2 text-xs">Next</button></div></div><label className="block text-sm font-medium text-text">Question text<textarea value={String(draft.stem ?? "")} onChange={(event) => updateDraft("stem", event.target.value)} rows={5} className="mt-1 w-full rounded-lg border border-border bg-canvas p-3 text-sm" /></label><div className="rounded-lg bg-canvas p-3"><p className="mb-2 text-xs font-semibold text-text-2">Rendered preview</p><MathText text={String(draft.stem ?? "")} /></div>{active.candidate.status === "POSSIBLE_DUPLICATE" && <p className="rounded bg-amber-50 p-2 text-xs text-amber-800" role="alert">Possible duplicate: compare this imported question with the existing Question Bank entry before accepting. Existing versions are never overwritten automatically.</p>}<div className="grid gap-3 sm:grid-cols-2"><label className="text-sm font-medium">Type<select value={String(draft.questionType ?? "MCQ")} onChange={(event) => updateDraft("questionType", event.target.value)} className="mt-1 min-h-10 w-full rounded border border-border bg-canvas px-2"><option>MCQ</option><option>SHORT_ANSWER</option><option>ESSAY</option><option>STRUCTURED</option><option>CALCULATION</option></select></label><label className="text-sm font-medium">Marks<input type="number" min="0" value={String(draft.marks ?? "")} onChange={(event) => updateDraft("marks", event.target.value)} className="mt-1 min-h-10 w-full rounded border border-border bg-canvas px-2" /></label></div><label className="block text-sm font-medium">Answer<input value={String(draft.answer ?? "")} onChange={(event) => updateDraft("answer", event.target.value)} className="mt-1 min-h-10 w-full rounded border border-border bg-canvas px-2" /></label><label className="block text-sm font-medium">Explanation<textarea value={String(draft.explanation ?? "")} onChange={(event) => updateDraft("explanation", event.target.value)} rows={2} className="mt-1 w-full rounded border border-border bg-canvas p-2" /></label>{active.candidate.warnings?.length ? <p className="rounded bg-amber-50 p-2 text-xs text-amber-800" role="alert">Warnings: {active.candidate.warnings.join(" ")}</p> : null}{active.candidate.errors?.length ? <p className="rounded bg-red-50 p-2 text-xs text-red-800" role="alert">Errors: {active.candidate.errors.join(" ")}</p> : null}<div className="flex flex-wrap gap-2"><button type="button" onClick={() => review(active, "save")} disabled={active.candidate.status === "ERROR"} className="min-h-10 rounded-lg border border-border px-3 text-sm font-semibold">Save changes</button><button type="button" onClick={() => review(active, "accept")} disabled={active.candidate.status !== "READY" || Boolean(active.candidate.approved)} className="min-h-10 rounded-lg bg-primary px-3 text-sm font-semibold text-white">{active.candidate.approved ? "Accepted" : "Accept question"}</button><button type="button" onClick={() => review(active, "reject")} className="min-h-10 rounded-lg border border-red-200 px-3 text-sm font-semibold text-red-700">Reject</button></div></div>}</div></section>}
+    {rows.length > 0 && <div className="flex flex-wrap gap-2"><button type="button" onClick={bulkAccept} disabled={!rows.some((row) => row.candidate.status === "READY" && !row.candidate.approved)} className="min-h-11 rounded-lg border border-border px-4 text-sm font-semibold disabled:opacity-50">Accept all READY</button><button type="button" onClick={bulkReject} disabled={!selected.size} className="min-h-11 rounded-lg border border-red-200 px-4 text-sm font-semibold text-red-700 disabled:opacity-50">Reject selected</button><button type="button" onClick={commit} disabled={busy || !rows.some((row) => row.candidate.approved)} className="min-h-11 rounded-lg bg-primary px-4 text-sm font-semibold text-white disabled:opacity-50">Import accepted questions</button></div>}
   </div>;
 }
