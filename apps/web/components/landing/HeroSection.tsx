@@ -1,8 +1,8 @@
 "use client";
 import { useRef, useCallback } from "react";
 import Link from "next/link";
-import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
-import { Sparkles, Play, BookOpen, ClipboardList, Users, Brain, Zap, ChevronRight } from "lucide-react";
+import { motion, useMotionValue, useSpring, useTransform, type MotionValue } from "framer-motion";
+import { Sparkles, Play, Zap, ChevronRight } from "lucide-react";
 
 const SUBJECTS = [
   { name: "Mathematics SS3", icon: "📐", color: "#3b82f6" },
@@ -17,7 +17,7 @@ const METRIC_CARDS = [
   { id: "attend", value: "Done", label: "Attendance Complete", color: "#f59e0b", bg: "rgba(245,158,11,0.12)", border: "rgba(245,158,11,0.25)", x: -160, y: 100, delay: 1.1 },
 ];
 
-function FloatingDashboard({ springX, springY }: { springX: any; springY: any }) {
+function FloatingDashboard({ springX, springY }: { springX: MotionValue<number>; springY: MotionValue<number> }) {
   const rotateX = useTransform(springY, [-200, 200], [6, -6]);
   const rotateY = useTransform(springX, [-200, 200], [-6, 6]);
 
@@ -75,7 +75,7 @@ function FloatingDashboard({ springX, springY }: { springX: any; springY: any })
 
         {/* Today's classes */}
         <div style={{ fontSize: 11, color: "rgba(148,163,184,0.7)", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 10 }}>
-          Today's Classes
+          Today&apos;s Classes
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 16 }}>
           {SUBJECTS.map((s) => (
@@ -271,9 +271,9 @@ export function HeroSection() {
               color: "#f8fafc",
             }}
           >
-            The Future of Teaching
+            One workspace for
             <br />
-            <span style={{ color: "#3b82f6" }}>Begins With</span>
+            <span style={{ color: "#3b82f6" }}>better teaching</span>
             <br />
             <span style={{
               background: "linear-gradient(135deg, #60a5fa, #a78bfa, #f472b6)",
@@ -281,7 +281,7 @@ export function HeroSection() {
               WebkitTextFillColor: "transparent",
               backgroundClip: "text",
             }}>
-              Intelligence.
+              and learning.
             </span>
           </motion.h1>
 
@@ -292,7 +292,7 @@ export function HeroSection() {
             transition={{ duration: 0.6, delay: 0.22 }}
             style={{ fontSize: 17, lineHeight: 1.7, color: "#94a3b8", marginBottom: 36, maxWidth: 480 }}
           >
-            TeachNexis transforms how teachers teach, schools manage learning, and students discover knowledge — from lesson planning and curriculum intelligence to AI tutoring, automated assessment, and learning analytics.
+            TeachNexis connects lesson preparation, classroom records, reusable assessment content and student practice in one teacher-led workspace for Nigerian schools.
           </motion.p>
 
           {/* CTAs */}

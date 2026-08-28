@@ -1,18 +1,18 @@
-import { FileText } from "lucide-react";
 import { ExamGeneratorClient } from "./ExamGeneratorClient";
+import { PageHeader } from "@/components/ui/PageHeader";
 
 export default function NewExamPage() {
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
-      <div>
-        <div className="flex items-center gap-2 mb-1">
-          <FileText size={20} className="text-primary" />
-          <h1 className="text-2xl font-bold text-text">AI Exam Generator</h1>
-        </div>
-        <p className="text-sm text-text-2">
-          Generate full WAEC/JAMB/JUPEB-standard exam papers with MCQ, theory, and distractor analysis in under 60 seconds.
-        </p>
-      </div>
+    <div className="mx-auto max-w-5xl space-y-6">
+      <PageHeader
+        breadcrumb={[
+          { label: "Teaching" },
+          { label: "Assessments", href: "/exams" },
+          { label: "Create" },
+        ]}
+        title="Create Assessment"
+        description="Configure an assessment, generate a structured draft, review every question, then save it to TeachNexis. AI output remains a teacher-reviewed draft until you save it."
+      />
       <ExamGeneratorClient />
     </div>
   );

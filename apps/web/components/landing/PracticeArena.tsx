@@ -306,7 +306,7 @@ function QuizBattle() {
     setSelected(i);
     if (i === q.answer) setScore((s) => ({ ...s, you: s.you + 1 }));
     // AI answers after 1.2s (80% correct)
-    const aiCorrect = Math.random() < 0.8;
+    const aiCorrect = ((qIdx + i) % 5) !== 0;
     const aiPick = aiCorrect ? q.answer : (q.answer + 1) % 4;
     setTimeout(() => {
       setAiAnswer(aiPick);

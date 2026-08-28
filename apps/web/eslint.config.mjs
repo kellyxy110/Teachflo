@@ -12,6 +12,10 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Generated browser reports and design exports are not application source.
+    "playwright-report/**",
+    "test-results/**",
+    "brag-output/**",
   ]),
 ]);
 

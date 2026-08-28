@@ -106,7 +106,7 @@ export function LessonEditorClient({
 
   // Load version history on mount
   useEffect(() => {
-    setHistory(loadHistory(lessonId));
+    queueMicrotask(() => setHistory(loadHistory(lessonId)));
   }, [lessonId]);
 
   // Autosave: debounced 1.5 seconds after last change

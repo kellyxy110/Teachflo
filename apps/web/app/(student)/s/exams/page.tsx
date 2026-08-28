@@ -1,22 +1,11 @@
 import { requireStudent } from "@/lib/auth";
-import { db } from "@/lib/db";
+import { listStudentAssessments } from "@/lib/services/assessments/student-delivery";
 import Link from "next/link";
 import { FileText, CheckCircle, Clock, ArrowRight } from "lucide-react";
 
 export default async function StudentExamsPage() {
   const student = await requireStudent();
-
-  const exams = await db.exam.findMany({
-    where: { classId: student.classId, schoolId: student.schoolId },
-    include: {
-      _count: { select: { questions: true } },
-      attempts: {
-        where: { studentId: student.id },
-        select: { id: true, status: true, percentage: true, grade: true },
-      },
-    },
-    orderBy: { createdAt: "desc" },
-  });
+  const exams = await listStudentAssessments({ id: student.id, schoolId: student.schoolId, classId: student.classId });
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
@@ -33,7 +22,7 @@ export default async function StudentExamsPage() {
       ) : (
         <div className="space-y-3">
           {exams.map((exam) => {
-            const attempt = exam.attempts[0];
+            const attempt = exam.attempt;
             const completed = attempt?.status === "GRADED" || attempt?.status === "SUBMITTED";
 
             return (
@@ -49,7 +38,7 @@ export default async function StudentExamsPage() {
                   <p className="text-sm font-semibold text-text truncate">{exam.title}</p>
                   <div className="flex items-center gap-3 mt-1">
                     <span className="text-xs text-text-2">{exam.subject}</span>
-                    <span className="text-xs text-text-2">{exam._count.questions} questions</span>
+                    <span className="text-xs text-text-2">{exam.questionCount} questions</span>
                     {exam.duration && (
                       <span className="text-xs text-text-2 flex items-center gap-1">
                         <Clock size={10} /> {exam.duration} min
@@ -59,17 +48,10 @@ export default async function StudentExamsPage() {
                 </div>
                 {completed && attempt ? (
                   <div className="text-right shrink-0">
-                    <p className="text-lg font-bold text-text">{Math.round(attempt.percentage ?? 0)}%</p>
-                    <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
-                      (attempt.percentage ?? 0) >= 70 ? "bg-green-500/10 text-green-500"
-                      : (attempt.percentage ?? 0) >= 50 ? "bg-amber-500/10 text-amber-500"
-                      : "bg-red-500/10 text-red-500"
-                    }`}>
-                      {attempt.grade ?? "—"}
-                    </span>
+                    <p className="text-xs font-semibold text-text-2">Submitted</p>
                   </div>
                 ) : (
-                  <ArrowRight size={16} className="text-text-2 group-hover:text-primary transition-colors shrink-0" />
+                  <span className="flex items-center gap-2 text-xs font-semibold text-text-2"><span>{exam.state === "SCHEDULED" ? "Upcoming" : exam.state === "CLOSED" ? "Closed" : attempt ? "Resume" : "Start"}</span><ArrowRight size={16} className="group-hover:text-primary transition-colors shrink-0" /></span>
                 )}
               </Link>
             );

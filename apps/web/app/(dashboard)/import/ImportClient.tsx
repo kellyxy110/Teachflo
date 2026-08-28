@@ -1,11 +1,15 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import {
   Upload, FileSpreadsheet, CheckCircle, XCircle, ArrowRight,
   ArrowLeft, Loader2, AlertTriangle, Users, ClipboardList,
   Sparkles, Eye, Camera,
 } from "lucide-react";
+import {
+  splitFullName, FULL_NAME_FORMAT_LABELS, DEFAULT_FULL_NAME_FORMAT, type FullNameFormat,
+} from "@/lib/services/import/name-format";
+import { normalizeKey, type SubjectSuggestion } from "@/lib/services/import/subject-normalize-shared";
 
 type Step = "upload" | "mapping" | "preview" | "importing" | "done";
 
@@ -38,6 +42,11 @@ interface ImportResult {
   studentsUpdated: number;
   scoresCreated: number;
   errors: string[];
+}
+
+interface ValidationIssue {
+  type: "error" | "warning";
+  message: string;
 }
 
 const TARGET_FIELDS = [
@@ -77,9 +86,58 @@ export function ImportClient({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [importResult, setImportResult] = useState<ImportResult | null>(null);
+  const [validationIssues, setValidationIssues] = useState<ValidationIssue[]>([]);
+  // Full-name split direction — never a silent hardcoded assumption. Default
+  // is only ever a pre-selected suggestion; the teacher confirms it below.
+  const [fullNameFormat, setFullNameFormat] = useState<FullNameFormat>(DEFAULT_FULL_NAME_FORMAT);
+  const [fullNameFormatConfirmed, setFullNameFormatConfirmed] = useState(false);
+  // Subject Registry confirmation: raw value -> teacher-confirmed canonical name.
+  const [subjectSuggestions, setSubjectSuggestions] = useState<SubjectSuggestion[]>([]);
+  const [subjectOverrides, setSubjectOverrides] = useState<Record<string, string>>({});
+  const [loadingSubjects, setLoadingSubjects] = useState(false);
+  const [subjectMappingsConfirmed, setSubjectMappingsConfirmed] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const imgRef = useRef<HTMLInputElement>(null);
   const [ocrPreview, setOcrPreview] = useState<string | null>(null);
+
+  // As soon as a "Subject" column is mapped, fetch canonicalization suggestions
+  // (school-confirmed aliases > built-in synonyms > as-entered) so the teacher
+  // can review/edit them before staging — never applied silently.
+  useEffect(() => {
+    const subjectCol = mappings.find((m) => m.target === "subject")?.source;
+    if (step !== "mapping" || !subjectCol) return;
+    const values = rawData.map((r) => r[subjectCol]).filter((v): v is string => !!v?.trim());
+    if (values.length === 0) return;
+
+    let cancelled = false;
+    // Standard fetch-in-effect loading indicator — not a synchronization hazard,
+    // the rule just can't distinguish this from the cascading-render case it targets.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setLoadingSubjects(true);
+    fetch("/api/subjects/suggest", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ values }),
+    })
+      .then((res) => (res.ok ? res.json() : { suggestions: [] }))
+      .then((data: { suggestions: SubjectSuggestion[] }) => {
+        if (cancelled) return;
+        setSubjectSuggestions(data.suggestions);
+        setSubjectMappingsConfirmed(false);
+        setSubjectOverrides((prev) => {
+          const next = { ...prev };
+          for (const s of data.suggestions) {
+            const key = normalizeKey(s.raw);
+            if (!(key in next)) next[key] = s.suggested;
+          }
+          return next;
+        });
+      })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setLoadingSubjects(false); });
+
+    return () => { cancelled = true; };
+  }, [step, mappings, rawData]);
 
   const parseFile = useCallback(async (f: File) => {
     const ext = f.name.split(".").pop()?.toLowerCase();
@@ -133,7 +191,7 @@ export function ImportClient({
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             headers,
-            sampleRows: rows.slice(0, 5),
+            sampleRows: rows.slice(0, 3),
             fileName: f.name,
             totalRows: rows.length,
           }),
@@ -219,7 +277,7 @@ export function ImportClient({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           headers: result.headers,
-          sampleRows: result.rows.slice(0, 5),
+          sampleRows: result.rows.slice(0, 3),
           fileName: f.name,
           totalRows: result.rows.length,
         }),
@@ -254,6 +312,61 @@ export function ImportClient({
     );
   }, []);
 
+  // This system commits directly to production on "Import" with no staging/preview
+  // diff — unlike the newer Student Hub importer, nothing here catches typo'd scores,
+  // out-of-range values, or duplicate rows before they're written. Mirrors the checks
+  // already in ImportHubClient.tsx's runClientValidation.
+  const runClientValidation = useCallback((): ValidationIssue[] => {
+    const issues: ValidationIssue[] = [];
+
+    const fnCol = mappings.find((m) => m.target === "firstName")?.source;
+    const lnCol = mappings.find((m) => m.target === "lastName")?.source;
+    const fullCol = mappings.find((m) => m.target === "fullName")?.source;
+
+    const nameKeys = rawData
+      .map((r) => {
+        if (fullCol) return r[fullCol]?.trim().toLowerCase() ?? "";
+        return `${r[fnCol ?? ""] ?? ""}|${r[lnCol ?? ""] ?? ""}`.trim().toLowerCase();
+      })
+      .filter((n) => n && n !== "|");
+    const uniqNames = new Set(nameKeys);
+    if (uniqNames.size < nameKeys.length) {
+      issues.push({ type: "warning", message: `${nameKeys.length - uniqNames.size} duplicate student name(s) in this file` });
+    }
+
+    const regCol = mappings.find((m) => m.target === "regNumber")?.source;
+    if (regCol) {
+      const regs = rawData.map((r) => r[regCol] ?? "").filter((r) => r.trim());
+      if (new Set(regs).size < regs.length) {
+        issues.push({ type: "warning", message: "Duplicate admission numbers detected" });
+      }
+    }
+
+    for (const field of ["ca1", "ca2", "exam", "total"] as const) {
+      const col = mappings.find((m) => m.target === field)?.source;
+      if (!col) continue;
+      const invalid = rawData.filter((r) => r[col]?.trim() && isNaN(parseFloat(r[col]))).length;
+      if (invalid > 0) {
+        issues.push({ type: "error", message: `${invalid} row(s) have a non-numeric ${field.toUpperCase()} value — those scores will import blank` });
+      }
+      const outOfRange = rawData.filter((r) => {
+        const v = parseFloat(r[col] ?? "");
+        return !isNaN(v) && (v < 0 || v > 100);
+      }).length;
+      if (outOfRange > 0) {
+        issues.push({ type: "warning", message: `${outOfRange} row(s) have ${field.toUpperCase()} outside 0–100` });
+      }
+    }
+
+    if (fullCol && !fullNameFormatConfirmed) {
+      issues.push({ type: "error", message: "Confirm how the Full Name column should be interpreted" });
+    }
+    if (subjectSuggestions.some((s) => normalizeKey(s.raw) !== normalizeKey(subjectOverrides[normalizeKey(s.raw)] ?? s.suggested)) && !subjectMappingsConfirmed) {
+      issues.push({ type: "error", message: "Confirm the subject mappings that will be learned for this school" });
+    }
+    return issues;
+  }, [mappings, rawData, fullNameFormatConfirmed, subjectSuggestions, subjectOverrides, subjectMappingsConfirmed]);
+
   const executeImport = useCallback(async () => {
     setStep("importing");
     setError(null);
@@ -278,7 +391,10 @@ export function ImportClient({
           term,
           session,
           schoolId,
-          teacherId,
+          fullNameFormat,
+          fullNameFormatConfirmed,
+          subjectCanonicalMap: subjectOverrides,
+          subjectMappingsConfirmed,
         }),
       });
 
@@ -294,7 +410,7 @@ export function ImportClient({
       setError(e instanceof Error ? e.message : "Import failed");
       setStep("preview");
     }
-  }, [mappings, rawData, classId, subject, term, session, schoolId, teacherId]);
+  }, [mappings, rawData, classId, subject, term, session, schoolId, fullNameFormat, fullNameFormatConfirmed, subjectOverrides, subjectMappingsConfirmed]);
 
   const hasScoreColumns = mappings.some((m) =>
     ["ca1", "ca2", "exam", "total", "grade"].includes(m.target)
@@ -468,6 +584,96 @@ export function ImportClient({
             </div>
           </div>
 
+          {/* Full Name split direction — explicit, teacher-confirmed, never guessed */}
+          {mappings.some((m) => m.target === "fullName") && (() => {
+            const fullNameCol = mappings.find((m) => m.target === "fullName")!.source;
+            const samples = rawData.slice(0, 3).map((r) => r[fullNameCol]).filter(Boolean);
+            return (
+              <div className="bg-surface border border-border rounded-xl p-5 space-y-3">
+                <h3 className="font-bold text-text text-sm">Full Name Format</h3>
+                <p className="text-xs text-text-2">
+                  A single &ldquo;Full Name&rdquo; column is ambiguous — confirm how names should split.
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  {(Object.keys(FULL_NAME_FORMAT_LABELS) as FullNameFormat[]).map((fmt) => (
+                    <button
+                      key={fmt}
+                      onClick={() => { setFullNameFormat(fmt); setFullNameFormatConfirmed(true); }}
+                      className={`p-3 rounded-lg border text-left text-xs transition-colors ${
+                        fullNameFormat === fmt ? "border-primary bg-primary/5 ring-1 ring-primary" : "border-border hover:border-primary/30"
+                      }`}
+                    >
+                      {FULL_NAME_FORMAT_LABELS[fmt]}
+                    </button>
+                  ))}
+                </div>
+                {samples.length > 0 && (
+                  <div className="bg-bg rounded-lg border border-border p-3 space-y-1">
+                    <p className="text-[11px] font-semibold text-text-2 uppercase tracking-wide">Preview</p>
+                    {samples.map((s, i) => {
+                      const split = splitFullName(s, fullNameFormat);
+                      return (
+                        <p key={i} className="text-xs text-text font-mono">
+                          &ldquo;{s}&rdquo; → First: <strong>{split.firstName}</strong> · Last: <strong>{split.lastName}</strong>
+                        </p>
+                      );
+                    })}
+                    {fullNameFormat === "KEEP_WHOLE" && (
+                      <p className="text-[11px] text-amber-600 dark:text-amber-400 pt-1">
+                        The original name is preserved, but a best-effort split still populates First/Last Name — full non-split storage isn&apos;t supported everywhere in the app yet.
+                      </p>
+                    )}
+                  </div>
+                )}
+                <label className="flex items-start gap-2 text-xs text-text-2 cursor-pointer">
+                  <input type="checkbox" checked={fullNameFormatConfirmed} onChange={(e) => setFullNameFormatConfirmed(e.target.checked)} className="mt-0.5" />
+                  I confirm this interpretation for every Full Name value in this import.
+                </label>
+              </div>
+            );
+          })()}
+
+          {/* Subject Registry confirmation — suggestions only, never applied silently */}
+          {mappings.some((m) => m.target === "subject") && subjectSuggestions.length > 0 && (
+            <div className="bg-surface border border-border rounded-xl p-5 space-y-3">
+              <div className="flex items-center gap-2">
+                <h3 className="font-bold text-text text-sm">Confirm Subject Names</h3>
+                {loadingSubjects && <Loader2 size={13} className="animate-spin text-text-2" />}
+              </div>
+              <p className="text-xs text-text-2">
+                Review how each subject value in this file will be recorded. Different spellings of the same subject (e.g. &ldquo;Maths&rdquo; and &ldquo;Mathematics&rdquo;) should map to one canonical name.
+              </p>
+              <div className="grid gap-2">
+                {subjectSuggestions.map((s) => {
+                  const key = normalizeKey(s.raw);
+                  return (
+                    <div key={s.raw} className="flex items-center gap-3 px-3 py-2 rounded-lg bg-bg border border-border">
+                      <span className="text-sm font-mono text-text flex-1 truncate">{s.raw}</span>
+                      <ArrowRight size={14} className="text-text-2 shrink-0" />
+                      <input
+                        value={subjectOverrides[key] ?? s.suggested}
+                        onChange={(e) => setSubjectOverrides((prev) => ({ ...prev, [key]: e.target.value }))}
+                        className="w-48 px-2 py-1.5 rounded-lg text-sm bg-surface border border-border text-text focus:outline-none focus:ring-2 focus:ring-primary/30"
+                      />
+                      {s.source === "SCHOOL_ALIAS" && (
+                        <span className="text-[10px] text-primary bg-primary/10 px-1.5 py-0.5 rounded shrink-0">Learned</span>
+                      )}
+                      {s.source === "BUILT_IN" && (
+                        <span className="text-[10px] text-text-2 bg-bg border border-border px-1.5 py-0.5 rounded shrink-0">Suggested</span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+              {subjectSuggestions.some((s) => normalizeKey(s.raw) !== normalizeKey(subjectOverrides[normalizeKey(s.raw)] ?? s.suggested)) && (
+                <label className="flex items-start gap-2 text-xs text-text-2 cursor-pointer">
+                  <input type="checkbox" checked={subjectMappingsConfirmed} onChange={(e) => setSubjectMappingsConfirmed(e.target.checked)} className="mt-0.5" />
+                  I confirm these canonical subject names and allow TeachNexis to reuse them for this school.
+                </label>
+              )}
+            </div>
+          )}
+
           {/* Class / Subject / Term config */}
           <div className="bg-surface border border-border rounded-xl p-5 space-y-4">
             <h3 className="font-bold text-text text-sm">Import Settings</h3>
@@ -525,15 +731,37 @@ export function ImportClient({
             </div>
           </div>
 
+          {validationIssues.length > 0 && (
+            <div className="bg-surface border border-amber-500/20 rounded-xl p-4 space-y-2">
+              <p className="text-xs font-bold text-amber-600 dark:text-amber-400">Validation Issues</p>
+              {validationIssues.map((issue, i) => (
+                <div key={i} className={`flex items-start gap-2 text-xs ${issue.type === "error" ? "text-red-500" : "text-amber-600 dark:text-amber-400"}`}>
+                  {issue.type === "error"
+                    ? <XCircle size={13} className="shrink-0 mt-0.5" />
+                    : <AlertTriangle size={13} className="shrink-0 mt-0.5" />}
+                  {issue.message}
+                </div>
+              ))}
+              {validationIssues.some((i) => i.type === "error") && (
+                <p className="text-xs text-red-500 font-medium pt-1 border-t border-red-500/20 mt-2">Fix the mapping above before continuing.</p>
+              )}
+            </div>
+          )}
+
           <div className="flex items-center gap-3">
             <button
-              onClick={() => { setStep("upload"); setFile(null); setAnalysis(null); }}
+              onClick={() => { setStep("upload"); setFile(null); setAnalysis(null); setValidationIssues([]); setSubjectSuggestions([]); setSubjectOverrides({}); setFullNameFormatConfirmed(false); setSubjectMappingsConfirmed(false); }}
               className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm text-text-2 border border-border hover:bg-bg transition-colors"
             >
               <ArrowLeft size={14} /> Back
             </button>
             <button
-              onClick={() => setStep("preview")}
+              onClick={() => {
+                const issues = runClientValidation();
+                setValidationIssues(issues);
+                if (issues.some((i) => i.type === "error")) return;
+                setStep("preview");
+              }}
               disabled={!requiredMet || (hasScoreColumns && !subject)}
               className="flex items-center gap-2 px-5 py-2 rounded-lg text-sm font-bold text-white bg-primary hover:bg-primary/90 transition-colors disabled:opacity-40"
             >
@@ -665,6 +893,12 @@ export function ImportClient({
               setMappings([]);
               setImportResult(null);
               setError(null);
+              setValidationIssues([]);
+              setSubjectSuggestions([]);
+              setSubjectOverrides({});
+              setFullNameFormat(DEFAULT_FULL_NAME_FORMAT);
+              setFullNameFormatConfirmed(false);
+              setSubjectMappingsConfirmed(false);
             }}
             className="px-5 py-2 rounded-lg text-sm font-bold text-white bg-primary hover:bg-primary/90 transition-colors mt-2"
           >

@@ -6,12 +6,17 @@
     "dev": "next dev --port 3000",
     "build": "prisma generate && next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test:f1-auth-state": "tsx scripts/f1-auth-state.ts",
+    "test:f1-runtime": "playwright test e2e/f1-foundation.spec.ts"
+    ,"test:f8b-lifecycle": "tsx scripts/f8b-lifecycle-verify.ts"
+    ,"db:f8b-backfill": "tsx scripts/f8b-lifecycle-backfill.ts"
   },
   "dependencies": {
     "@clerk/nextjs": "^6.0.0",
     "@prisma/client": "^5.0.0",
     "@sentry/nextjs": "^10.59.0",
+    "@supabase/ssr": "0.12.5",
     "@supabase/supabase-js": "^2.110.0",
     "@tanstack/react-query": "^5.0.0",
     "@teachflow/ai-prompts": "workspace:*",
@@ -41,6 +46,7 @@
     "schema": "../../packages/database/prisma/schema.prisma"
   },
   "devDependencies": {
+    "@playwright/test": "^1.62.1",
     "@tailwindcss/postcss": "^4",
     "@types/katex": "^0.16.8",
     "@types/node": "^20",
@@ -53,6 +59,7 @@
     "eslint-config-next": "16.2.7",
     "prisma": "^5.0.0",
     "tailwindcss": "^4",
+    "tsx": "^4.23.12",
     "typescript": "^5"
   }
 }

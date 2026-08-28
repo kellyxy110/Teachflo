@@ -41,6 +41,7 @@ export function ExamDetailClient({
   const [openSection, setOpenSection] = useState<string>("A");
   const [exportOpen, setExportOpen] = useState(false);
   const exportRef = useRef<HTMLDivElement>(null);
+  const exportButtonRef = useRef<HTMLButtonElement>(null);
 
   const sections = [
     { key: "A", label: "Section A — Multiple Choice", questions: sectionA },
@@ -58,8 +59,18 @@ export function ExamDetailClient({
         setExportOpen(false);
       }
     }
+    function handleEscape(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        setExportOpen(false);
+        exportButtonRef.current?.focus();
+      }
+    }
     document.addEventListener("mousedown", handleOutside);
-    return () => document.removeEventListener("mousedown", handleOutside);
+    document.addEventListener("keydown", handleEscape);
+    return () => {
+      document.removeEventListener("mousedown", handleOutside);
+      document.removeEventListener("keydown", handleEscape);
+    };
   }, [exportOpen]);
 
   const EXPORT_OPTIONS = [
@@ -115,7 +126,9 @@ export function ExamDetailClient({
       {/* Toolbar */}
       <div className="flex items-center gap-3 no-print flex-wrap">
         <button
+          type="button"
           onClick={() => setShowAnswers((v) => !v)}
+          aria-pressed={showAnswers}
           className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border transition-colors ${
             showAnswers
               ? "bg-success/10 text-success border-success/30"
@@ -126,6 +139,7 @@ export function ExamDetailClient({
         </button>
 
         <button
+          type="button"
           onClick={() => window.print()}
           className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border border-border bg-surface text-text-2 hover:border-primary/40 transition-colors"
         >
@@ -135,7 +149,12 @@ export function ExamDetailClient({
         {/* Export dropdown */}
         <div ref={exportRef} className="relative">
           <button
+            ref={exportButtonRef}
+            type="button"
             onClick={() => setExportOpen((v) => !v)}
+            aria-expanded={exportOpen}
+            aria-haspopup="menu"
+            aria-controls="assessment-export-menu"
             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border transition-colors ${
               exportOpen
                 ? "bg-primary/10 text-primary border-primary/30"
@@ -148,7 +167,7 @@ export function ExamDetailClient({
           </button>
 
           {exportOpen && (
-            <div className="absolute right-0 top-full mt-1.5 w-72 bg-surface border border-border rounded-xl shadow-xl z-50 overflow-hidden">
+            <div id="assessment-export-menu" role="menu" className="absolute right-0 top-full z-50 mt-1.5 w-[min(18rem,calc(100vw-2rem))] overflow-hidden rounded-xl border border-border bg-surface shadow-xl">
               <div className="px-3 pt-2.5 pb-1">
                 <p className="text-[10px] font-bold text-muted uppercase tracking-wider">
                   Export {allQuestions.length} questions
@@ -157,6 +176,8 @@ export function ExamDetailClient({
               <div className="py-1">
                 {EXPORT_OPTIONS.map(({ icon, label, desc, action }) => (
                   <button
+                    type="button"
+                    role="menuitem"
                     key={label}
                     onClick={() => { action(); setExportOpen(false); }}
                     className="w-full flex items-start gap-3 px-3 py-2.5 hover:bg-bg transition-colors text-left"
@@ -197,7 +218,10 @@ export function ExamDetailClient({
             return (
               <div key={key}>
                 <button
+                  type="button"
                   onClick={() => setOpenSection(isOpen ? "" : key)}
+                  aria-expanded={isOpen}
+                  aria-controls={`assessment-section-${key}`}
                   className="w-full flex items-center justify-between px-6 py-4 hover:bg-bg transition-colors no-print"
                 >
                   <span className="font-semibold text-text">
@@ -210,7 +234,7 @@ export function ExamDetailClient({
                 </button>
 
                 {isOpen && (
-                  <div className="px-6 pb-8 space-y-6 pt-2">
+                  <div id={`assessment-section-${key}`} className="px-6 pb-8 space-y-6 pt-2">
                     {questions.map((q) => (
                       <QuestionBlock key={q.id} q={q} showAnswers={showAnswers} />
                     ))}

@@ -207,3 +207,69 @@ Tightly coupling server actions to downstream side effects (analytics ingestion,
 - In-process bus is non-durable: events are lost on cold start. Acceptable for current use cases (analytics, soft notifications). Durable queue will be added when any handler requires at-least-once delivery.
 
 ---
+
+## Decision #011 — Reviewed Additive SQL Migrations for Import Reconciliation
+
+**Date:** 2026-08-24
+**Status:** Accepted
+
+**Decision:**
+Import reconciliation schema changes are delivered as reviewed additive SQL
+migrations and are applied only to an explicitly selected development or staging
+database. `prisma generate` is permitted locally; `prisma db push` is not the
+deployment mechanism for these changes.
+
+**Rationale:**
+This repository keeps operational migrations as reviewed SQL files and the
+configured database endpoint is currently unavailable. An additive migration
+provides an auditable change record, protects production from accidental schema
+drift, and leaves existing student data compatible because `rawFullName` is
+nullable.
+
+**Impact:**
+- `phase8_import_reconciliation.sql` is prepared but not applied.
+- `SubjectAlias`, `IntegrationRequest`, `Student.rawFullName`, and the
+  `COMMITTING` import-job state remain unavailable at runtime until application.
+- Database application, real-file verification, and deployment verification are
+  tracked separately from code completion.
+- Student Hub imports retain job-level resumability while Student,
+  StudentProfile, Score, and staging-row completion are atomic per staging row.
+
+---
+
+## Decision #012 — Synchronous OCR Is an Interim Import Aid
+
+**Date:** 2026-08-24
+**Status:** Accepted
+
+**Decision:**
+The existing synchronous image OCR route remains a bounded interim import aid,
+available only to authenticated teachers in a school context. It validates file
+size and signatures, rate-limits per teacher, and validates structured output.
+It is not the planned queued OCR service.
+
+**Impact:**
+- No claim of queueing, storage mediation, durable retries, PII audit logging,
+  or provider cost telemetry is made for this route.
+- The documented OCR-service architecture remains a separate implementation
+  track and requires its own specification and verification gates.
+
+---
+
+## Decision #013 — Reproducible Reviewed Database Schema
+
+**Date:** 2026-08-24
+**Status:** Accepted
+
+**Decision:**
+TeachNexis reviewed migration history must reproducibly construct the
+authoritative application schema from a fresh non-production database. Schema
+evolution is captured in reviewed migrations; `prisma db push` is not a repair
+mechanism for migration-history drift.
+
+**Impact:**
+- Reconciliation migrations are additive and domain-reviewed where possible.
+- Intentional legacy differences are documented rather than destructively
+  removed solely to make a schema diff empty.
+
+---

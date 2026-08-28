@@ -119,7 +119,7 @@ export default async function OGImage() {
               marginBottom: 44,
             }}
           >
-            Generate WAEC-ready lesson notes in 10 seconds, build smart exams with distractor analysis, and track every student's skill graph — powered by 7 free AI models.
+            Generate WAEC-ready lesson notes in 10 seconds, build smart exams with distractor analysis, and track every student&apos;s skill graph — powered by 7 free AI models.
           </div>
 
           {/* Feature pills */}

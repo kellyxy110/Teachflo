@@ -5,6 +5,9 @@ import { useRouter } from "next/navigation";
 import { Sparkles, Save, RefreshCw, ChevronDown, ChevronUp } from "lucide-react";
 import { saveExam } from "@/app/actions/exams";
 import type { ClassLevel, ExamType, Difficulty } from "@prisma/client";
+import { Button } from "@/components/ui/Button";
+import { StatusMessage } from "@/components/ui/Status";
+import { WorkflowStepper } from "@/components/ui/WorkflowStepper";
 
 const CLASS_LEVELS: ClassLevel[] = ["JS1","JS2","JS3","SS1","SS2","SS3"];
 const SUBJECTS = [
@@ -88,14 +91,31 @@ export function ExamGeneratorClient() {
 
   return (
     <div className="space-y-6">
+      <WorkflowStepper
+        steps={[
+          { id: "details", label: "Details" },
+          { id: "questions", label: "Generate Questions", shortLabel: "Questions" },
+          { id: "review", label: "Teacher Review", shortLabel: "Review" },
+          { id: "save", label: "Save" },
+        ]}
+        currentStep={generated ? "review" : generating ? "questions" : "details"}
+        completedStepIds={generated ? ["details", "questions"] : generating ? ["details"] : []}
+        label="Assessment creation stages"
+      />
+
       {/* Config form */}
-      <div className="bg-surface border border-border rounded-xl p-5 space-y-5">
-        <h3 className="font-semibold text-text">Exam Settings</h3>
+      <section className="space-y-5 rounded-xl border border-border bg-surface p-5" aria-labelledby="assessment-details-heading">
+        <div>
+          <p className="text-xs font-bold uppercase tracking-wide text-primary">Details</p>
+          <h2 id="assessment-details-heading" className="mt-1 font-semibold text-text">Assessment context</h2>
+          <p className="mt-1 text-sm text-text-2">Set the academic context and the question distribution before generating a draft.</p>
+        </div>
 
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
           <div className="col-span-2 sm:col-span-1">
-            <label className="block text-xs font-medium text-text-2 mb-1">Subject *</label>
+            <label htmlFor="assessment-subject" className="block text-xs font-medium text-text-2 mb-1">Subject *</label>
             <select
+              id="assessment-subject"
               value={form.subject}
               onChange={(e) => setForm((f) => ({ ...f, subject: e.target.value }))}
               className="w-full px-3 py-2 border border-border rounded-lg text-sm text-text focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-surface"
@@ -105,8 +125,9 @@ export function ExamGeneratorClient() {
             </select>
           </div>
           <div>
-            <label className="block text-xs font-medium text-text-2 mb-1">Class *</label>
+            <label htmlFor="assessment-class" className="block text-xs font-medium text-text-2 mb-1">Class *</label>
             <select
+              id="assessment-class"
               value={form.classLevel}
               onChange={(e) => setForm((f) => ({ ...f, classLevel: e.target.value as ClassLevel }))}
               className="w-full px-3 py-2 border border-border rounded-lg text-sm text-text focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-surface"
@@ -116,8 +137,9 @@ export function ExamGeneratorClient() {
             </select>
           </div>
           <div>
-            <label className="block text-xs font-medium text-text-2 mb-1">Exam Type</label>
+            <label htmlFor="assessment-type" className="block text-xs font-medium text-text-2 mb-1">Assessment type</label>
             <select
+              id="assessment-type"
               value={form.examType}
               onChange={(e) => setForm((f) => ({ ...f, examType: e.target.value as ExamType }))}
               className="w-full px-3 py-2 border border-border rounded-lg text-sm text-text focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-surface"
@@ -125,27 +147,33 @@ export function ExamGeneratorClient() {
               {EXAM_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
             </select>
           </div>
-          <div>
-            <label className="block text-xs font-medium text-text-2 mb-1">MCQ / Theory / Advanced</label>
-            <div className="flex gap-1">
-              {(["mcqCount","theoryCount","advancedCount"] as const).map((k) => (
-                <input
-                  key={k}
-                  type="number"
-                  min={0}
-                  max={30}
-                  value={form[k]}
-                  onChange={(e) => setForm((f) => ({ ...f, [k]: parseInt(e.target.value) || 0 }))}
-                  className="w-full px-2 py-2 border border-border rounded-lg text-sm text-text text-center focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-surface"
-                />
-              ))}
+          <fieldset>
+            <legend className="block text-xs font-medium text-text-2 mb-1">Question distribution</legend>
+            <div className="grid grid-cols-3 gap-1">
+              {(["mcqCount","theoryCount","advancedCount"] as const).map((key, index) => {
+                const labels = ["MCQ", "Theory", "Advanced"];
+                return (
+                  <label key={key} className="text-center text-[10px] font-medium text-muted">
+                    <span className="block mb-1">{labels[index]}</span>
+                    <input
+                      type="number"
+                      min={0}
+                      max={30}
+                      value={form[key]}
+                      onChange={(event) => setForm((current) => ({ ...current, [key]: parseInt(event.target.value) || 0 }))}
+                      className="min-h-11 w-full rounded-lg border border-border bg-surface px-1 text-center text-sm text-text focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                    />
+                  </label>
+                );
+              })}
             </div>
-          </div>
+          </fieldset>
         </div>
 
         <div>
-          <label className="block text-xs font-medium text-text-2 mb-1">Topic *</label>
+          <label htmlFor="assessment-topic" className="block text-xs font-medium text-text-2 mb-1">Topic *</label>
           <input
+            id="assessment-topic"
             type="text"
             value={form.topic}
             onChange={(e) => setForm((f) => ({ ...f, topic: e.target.value }))}
@@ -156,14 +184,16 @@ export function ExamGeneratorClient() {
         </div>
 
         {/* Difficulty */}
-        <div>
-          <label className="block text-xs font-medium text-text-2 mb-2">Difficulty</label>
+        <fieldset>
+          <legend className="block text-xs font-medium text-text-2 mb-2">Difficulty</legend>
           <div className="flex gap-2 flex-wrap">
             {DIFFICULTIES.map(({ value, label, description }) => (
               <button
+                type="button"
                 key={value}
                 onClick={() => setForm((f) => ({ ...f, difficulty: value }))}
                 title={description}
+                aria-pressed={form.difficulty === value}
                 className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
                   form.difficulty === value
                     ? "bg-primary text-white border-primary"
@@ -174,37 +204,48 @@ export function ExamGeneratorClient() {
               </button>
             ))}
           </div>
-        </div>
+        </fieldset>
 
-        <div className="flex gap-3">
-          <button
+        <div className="flex flex-col gap-3 sm:flex-row">
+          <Button
             onClick={generate}
             disabled={!form.subject || !form.classLevel || !form.topic || generating || isPending}
-            className="flex items-center gap-2 bg-primary text-white px-5 py-2.5 rounded-lg text-sm font-semibold hover:bg-primary-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {generating ? (
-              <><RefreshCw size={15} className="animate-spin" /> Generating...</>
+              <><RefreshCw size={15} className="animate-spin motion-reduce:animate-none" aria-hidden="true" /> Generating draft…</>
             ) : (
-              <><Sparkles size={15} /> Generate Exam</>
+              <><Sparkles size={15} aria-hidden="true" /> Generate assessment draft</>
             )}
-          </button>
+          </Button>
           {generated && (
-            <button
+            <Button
+              variant="secondary"
               onClick={handleSave}
               disabled={isPending}
-              className="flex items-center gap-2 bg-success text-white px-5 py-2.5 rounded-lg text-sm font-semibold hover:bg-success/90 transition-colors disabled:opacity-50"
             >
-              <Save size={15} />
-              {isPending ? "Saving..." : "Save Exam"}
-            </button>
+              <Save size={15} aria-hidden="true" />
+              {isPending ? "Saving assessment…" : "Save reviewed assessment"}
+            </Button>
           )}
         </div>
 
-        {error && <p className="text-sm text-danger">{error}</p>}
-      </div>
+        {error && <StatusMessage tone="error" title="Generation failed">{error}</StatusMessage>}
+      </section>
 
       {/* Preview */}
-      {generated && <ExamPreview data={generated} />}
+      {generated && (
+        <section className="space-y-4" aria-labelledby="assessment-review-heading">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-wide text-primary">Teacher review</p>
+            <h2 id="assessment-review-heading" className="mt-1 text-lg font-bold text-text">Review every generated question</h2>
+            <p className="mt-1 text-sm text-text-2">Confirm wording, answer keys, solutions, marks, and academic fit before saving this assessment.</p>
+          </div>
+          <StatusMessage tone="warning" title="AI-generated draft">
+            Generated content is a suggestion. It does not enter the saved assessment until you review it and choose Save reviewed assessment.
+          </StatusMessage>
+          <ExamPreview data={generated} />
+        </section>
+      )}
     </div>
   );
 }

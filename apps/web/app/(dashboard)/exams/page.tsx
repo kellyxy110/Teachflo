@@ -2,20 +2,14 @@ import Link from "next/link";
 import { Plus, Brain, PenTool, Sparkles } from "lucide-react";
 import { getExams } from "@/app/actions/exams";
 import { ExamsListClient } from "./ExamsListClient";
+import { PageHeader } from "@/components/ui/PageHeader";
 
 export default async function ExamsPage() {
   const exams = await getExams();
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-text">Exams</h1>
-          <p className="text-sm text-text-2 mt-0.5">
-            {exams.length} saved exam{exams.length !== 1 ? "s" : ""}
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
+      <PageHeader title="Question Bank & Exams" breadcrumb={[{ label: "Teaching" }, { label: "Question Bank & Exams" }]} description={<>{exams.length} saved exam{exams.length !== 1 ? "s" : ""}. Build, review, and reuse questions in assessments.</>} secondaryActions={<div className="flex flex-wrap gap-2">
           {/* Manual builder — most prominent for manual creation */}
           <Link
             href="/exams/questions/new"
@@ -45,8 +39,7 @@ export default async function ExamsPage() {
             <Plus size={16} />
             New Exam
           </Link>
-        </div>
-      </div>
+        </div>} />
 
       <ExamsListClient exams={exams} />
     </div>

@@ -1,6 +1,7 @@
 "use client";
 import { motion } from "framer-motion";
 import { GitBranch, Layers, ArrowRight, BookOpen } from "lucide-react";
+import Link from "next/link";
 
 const SUBJECTS = [
   "Mathematics", "English Language", "Physics", "Chemistry",
@@ -66,13 +67,13 @@ export function CurriculumSection() {
               ))}
             </div>
 
-            <a
+            <Link
               href="/sign-up"
               className="inline-flex items-center gap-2 text-sm font-bold transition-all hover:gap-3"
               style={{ color: "#2563eb" }}
             >
               Explore the curriculum <ArrowRight size={15} />
-            </a>
+            </Link>
           </motion.div>
 
           {/* Right: stats + subjects */}

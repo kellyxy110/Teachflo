@@ -58,9 +58,9 @@ export function StudyBuddyClient({ students }: Props) {
 
   useEffect(() => {
     if (selectedStudentId) {
-      loadStudentContext(selectedStudentId);
+      queueMicrotask(() => { void loadStudentContext(selectedStudentId); });
     } else {
-      setStudentCtx(null);
+      queueMicrotask(() => setStudentCtx(null));
     }
   }, [selectedStudentId, loadStudentContext]);
 

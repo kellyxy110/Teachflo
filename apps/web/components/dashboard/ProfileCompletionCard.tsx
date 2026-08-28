@@ -62,7 +62,7 @@ export function ProfileCompletionCard(props: Props) {
 
   useEffect(() => {
     const wasDismissed = localStorage.getItem(DISMISS_KEY) === "1";
-    if (!wasDismissed && rating < 3) setDismissed(false);
+    if (!wasDismissed && rating < 3) queueMicrotask(() => setDismissed(false));
   }, [rating]);
 
   function dismiss() {

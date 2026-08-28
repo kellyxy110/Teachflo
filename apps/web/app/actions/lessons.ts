@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { requireSchool } from "@/lib/auth";
-import type { ClassLevel, LessonMode } from "@prisma/client";
+import type { ClassLevel, LessonMode, Term } from "@prisma/client";
 
 export async function saveLesson(data: {
   subject: string;
@@ -25,7 +25,7 @@ export async function saveLesson(data: {
       classLevel: data.classLevel,
       topic: data.topic,
       week: data.week ?? null,
-      term: data.term ? (data.term as any) : null,
+      term: data.term ? (data.term as Term) : null,
       mode: data.mode ?? "STANDARD",
       objectives: [],
       introduction: "",

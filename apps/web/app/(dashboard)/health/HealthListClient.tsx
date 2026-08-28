@@ -37,7 +37,7 @@ export function HealthListClient({ classes }: { classes: ClassInfo[] }) {
   }, []);
 
   useEffect(() => {
-    if (selectedClassId) loadStudents(selectedClassId);
+    if (selectedClassId) queueMicrotask(() => { void loadStudents(selectedClassId); });
   }, [selectedClassId, loadStudents]);
 
   const filtered = students.filter((s) => {

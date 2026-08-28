@@ -1,34 +1,40 @@
 import { redirect } from "next/navigation";
 import { db } from "./db";
 import { getRoleFromMetadata, type UserRole, type Permission, can } from "./roles";
-import { authService } from "./auth/service";
+import { authService, hasTestAuthOverride } from "./auth/service";
 
-const CLERK_KEY = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
+const AUTH_READY =
+  process.env.AUTH_PROVIDER === "supabase"
+    ? Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
+    : Boolean(process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY);
 
 // ─── Auth service wrappers ────────────────────────────────────────────────────
 // All auth goes through authService — never import @clerk/nextjs directly
 // outside lib/auth/adapters/clerk.ts.
 
 export async function safeAuth() {
-  if (!CLERK_KEY) redirect("/setup");
+  if (!AUTH_READY && !hasTestAuthOverride()) redirect("/setup");
   return authService.getSession();
 }
 
 export async function safeCurrentUser() {
-  if (!CLERK_KEY) return null;
+  if (!AUTH_READY) return null;
   return authService.getCurrentUser();
 }
 
 // ─── Teacher auth ─────────────────────────────────────────────────────────────
 
 export async function getCurrentTeacher() {
-  const { userId } = await safeAuth();
+  const { userId, provider } = await safeAuth();
   if (!userId) redirect("/sign-in");
 
-  const teacher = await db.teacher.findUnique({
-    where: { clerkId: userId },
-    include: { school: true },
-  });
+  const identity = provider
+    ? await db.authIdentity.findUnique({
+        where: { provider_providerUserId: { provider: provider === "supabase" ? "SUPABASE" : "CLERK", providerUserId: userId } },
+        include: { teacher: { include: { school: true } } },
+      })
+    : null;
+  const teacher = identity?.teacher ?? await db.teacher.findUnique({ where: { clerkId: userId }, include: { school: true } });
 
   return teacher;
 }
@@ -47,13 +53,16 @@ export async function requireSchool() {
 // ─── Student auth ────────────────────────────────────────────────────────────
 
 export async function getCurrentStudent() {
-  const { userId } = await safeAuth();
+  const { userId, provider } = await safeAuth();
   if (!userId) redirect("/sign-in");
 
-  const student = await db.student.findUnique({
-    where: { clerkId: userId },
-    include: { school: true, class: true },
-  });
+  const identity = provider
+    ? await db.authIdentity.findUnique({
+        where: { provider_providerUserId: { provider: provider === "supabase" ? "SUPABASE" : "CLERK", providerUserId: userId } },
+        include: { student: { include: { school: true, class: true } } },
+      })
+    : null;
+  const student = identity?.student ?? await db.student.findUnique({ where: { clerkId: userId }, include: { school: true, class: true } });
 
   return student;
 }

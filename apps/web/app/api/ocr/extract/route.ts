@@ -1,5 +1,9 @@
+import { safeAuth } from "@/lib/auth";
 import { rateLimit } from "@/lib/rate-limit";
 import { getOpenRouterClient } from "@/lib/ai";
+import { db } from "@/lib/db";
+import { validateImageBytes } from "@/lib/services/import/image-validation";
+import { z } from "zod";
 
 // Vision models that support image input via OpenRouter
 const VISION_MODELS = [
@@ -9,10 +13,28 @@ const VISION_MODELS = [
 ];
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
-const ALLOWED_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
+const ocrOutputSchema = z.object({
+  headers: z.array(z.string().trim().min(1).max(120)).min(1).max(100),
+  rows: z.array(z.record(z.string().max(120), z.string().max(500))).max(200),
+  detectedSubject: z.string().max(120).nullable().optional(),
+  detectedClass: z.string().max(100).nullable().optional(),
+  detectedTerm: z.enum(["FIRST", "SECOND", "THIRD"]).nullable().optional(),
+  detectedSession: z.string().regex(/^\d{4}\/\d{4}$/).nullable().optional(),
+});
 
 export async function POST(request: Request) {
-  const { ok } = await rateLimit("ocr:extract");
+  const auth = await safeAuth();
+  if (!auth.userId) return Response.json({ error: "Unauthorized" }, { status: 401 });
+
+  // OCR sends student data to a paid/external provider. Only a teacher with a
+  // school context may invoke it; an authenticated student session is not enough.
+  const teacher = await db.teacher.findUnique({ where: { clerkId: auth.userId } });
+  if (!teacher) return Response.json({ error: "Teacher account required" }, { status: 403 });
+
+  // Scoped per-user — a shared "ocr:extract" key let one caller exhaust the
+  // platform-wide budget for every school, and this endpoint had no auth check
+  // at all before this fix, so it was reachable by anyone on the internet.
+  const { ok } = await rateLimit(`ocr:extract:${teacher.id}`);
   if (!ok) return Response.json({ error: "Too many requests" }, { status: 429 });
 
   let formData: FormData;
@@ -24,16 +46,15 @@ export async function POST(request: Request) {
 
   const file = formData.get("image") as File | null;
   if (!file) return Response.json({ error: "No image provided" }, { status: 400 });
-  if (!ALLOWED_TYPES.includes(file.type)) {
-    return Response.json({ error: "Unsupported image type. Use JPG, PNG, or WebP." }, { status: 400 });
-  }
   if (file.size > MAX_FILE_SIZE) {
     return Response.json({ error: "Image too large. Maximum 5 MB." }, { status: 400 });
   }
 
   const bytes = await file.arrayBuffer();
+  const verified = validateImageBytes(new Uint8Array(bytes));
+  if (!verified.ok) return Response.json({ error: verified.error }, { status: 400 });
   const base64 = Buffer.from(bytes).toString("base64");
-  const dataUrl = `data:${file.type};base64,${base64}`;
+  const dataUrl = `data:${verified.type};base64,${base64}`;
 
   const prompt = `You are an expert at reading Nigerian school mark sheets and result slips.
 
@@ -84,23 +105,11 @@ Rules:
       // Strip markdown fences if model wraps response
       const cleaned = raw.replace(/^```(?:json)?\n?/i, "").replace(/\n?```$/i, "").trim();
 
-      let parsed: {
-        headers: string[];
-        rows: Record<string, string>[];
-        detectedSubject?: string | null;
-        detectedClass?: string | null;
-        detectedTerm?: string | null;
-        detectedSession?: string | null;
-      };
-
+      let parsed: z.infer<typeof ocrOutputSchema>;
       try {
-        parsed = JSON.parse(cleaned);
+        parsed = ocrOutputSchema.parse(JSON.parse(cleaned));
       } catch {
         throw new Error(`Model returned invalid JSON: ${cleaned.slice(0, 200)}`);
-      }
-
-      if (!Array.isArray(parsed.headers) || !Array.isArray(parsed.rows)) {
-        throw new Error("Model response missing headers or rows");
       }
 
       return Response.json({

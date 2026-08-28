@@ -105,6 +105,20 @@ function fmtNum(n: number): string {
   return parseFloat(n.toFixed(4)).toString();
 }
 
+function MatrixInput({ mat, label, size, a, b, update }: { mat: "A" | "B"; label: string; size: MatrixSize; a: Matrix; b: Matrix; update: (mat: "A" | "B", i: number, j: number, value: string) => void }) {
+  const matrix = mat === "A" ? a : b;
+  return <div>
+    <p className="text-xs font-bold text-text-2 mb-2">Matrix {label}</p>
+    <div className="inline-grid gap-1" style={{ gridTemplateColumns: `repeat(${size}, 1fr)` }}>
+      {matrix.map((row, i) => row.map((v, j) => <input key={`${i}-${j}`} type="number" value={v === 0 ? "" : v} onChange={(e) => update(mat, i, j, e.target.value)} placeholder="0" className="w-16 text-center text-sm px-2 py-2 rounded-lg border border-border bg-bg text-text font-mono focus:outline-none focus:border-primary/60" />))}
+    </div>
+  </div>;
+}
+
+function StatRow({ label, value }: { label: string; value: string }) {
+  return <div className="flex justify-between items-center py-2 border-b border-border last:border-0"><span className="text-sm text-text-2">{label}</span><span className="text-sm font-bold text-text font-mono">{value}</span></div>;
+}
+
 // ── Statistics helpers ────────────────────────────────────────────
 function parseData(raw: string): number[] {
   return raw.split(/[\s,;\n]+/).map(Number).filter((n) => !isNaN(n));
@@ -314,10 +328,12 @@ function MatrixCalc() {
   const [err, setErr] = useState<string | null>(null);
 
   useEffect(() => {
-    setA(makeMatrix(size));
-    setB(makeMatrix(size));
-    setResult(null);
-    setErr(null);
+    queueMicrotask(() => {
+      setA(makeMatrix(size));
+      setB(makeMatrix(size));
+      setResult(null);
+      setErr(null);
+    });
   }, [size]);
 
   const update = (mat: "A" | "B", i: number, j: number, v: string) => {
@@ -346,26 +362,6 @@ function MatrixCalc() {
   };
 
   const needsB = op === "add" || op === "subtract" || op === "multiply";
-
-  const MatrixInput = ({ mat, label }: { mat: "A" | "B"; label: string }) => (
-    <div>
-      <p className="text-xs font-bold text-text-2 mb-2">Matrix {label}</p>
-      <div className="inline-grid gap-1" style={{ gridTemplateColumns: `repeat(${size}, 1fr)` }}>
-        {(mat === "A" ? A : B).map((row, i) =>
-          row.map((v, j) => (
-            <input
-              key={`${i}-${j}`}
-              type="number"
-              value={v === 0 ? "" : v}
-              onChange={(e) => update(mat, i, j, e.target.value)}
-              placeholder="0"
-              className="w-16 text-center text-sm px-2 py-2 rounded-lg border border-border bg-bg text-text font-mono focus:outline-none focus:border-primary/60"
-            />
-          ))
-        )}
-      </div>
-    </div>
-  );
 
   return (
     <div className="space-y-5">
@@ -405,13 +401,13 @@ function MatrixCalc() {
       </div>
 
       <div className="flex flex-wrap items-start gap-8">
-        <MatrixInput mat="A" label="A" />
+        <MatrixInput mat="A" label="A" size={size} a={A} b={B} update={update} />
         {needsB && (
           <>
             <div className="self-center text-xl font-bold text-text-2 mt-6">
               {op === "add" ? "+" : op === "subtract" ? "−" : "×"}
             </div>
-            <MatrixInput mat="B" label="B" />
+            <MatrixInput mat="B" label="B" size={size} a={A} b={B} update={update} />
           </>
         )}
         <div className="self-center mt-6">
@@ -469,13 +465,6 @@ function StatisticsCalc() {
   for (const v of data) freq.set(v, (freq.get(v) ?? 0) + 1);
   const freqEntries = [...freq.entries()].sort((a, b) => a[0] - b[0]);
   const maxFreq = Math.max(...freq.values(), 1);
-
-  const StatRow = ({ label, value }: { label: string; value: string }) => (
-    <div className="flex justify-between items-center py-2 border-b border-border last:border-0">
-      <span className="text-sm text-text-2">{label}</span>
-      <span className="text-sm font-bold text-text font-mono">{value}</span>
-    </div>
-  );
 
   return (
     <div className="space-y-4">

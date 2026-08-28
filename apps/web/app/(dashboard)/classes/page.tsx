@@ -3,6 +3,8 @@ import Link from "next/link";
 import { db } from "@/lib/db";
 import { requireSchool } from "@/lib/auth";
 import { createClass } from "@/app/actions/classes";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { EmptyState } from "@/components/ui/States";
 
 const CLASS_LEVELS = ["JS1","JS2","JS3","SS1","SS2","SS3"] as const;
 const TERMS = ["FIRST","SECOND","THIRD"] as const;
@@ -26,15 +28,11 @@ export default async function ClassesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-text">Classes</h1>
-          <p className="text-text-2 text-sm mt-0.5">
-            {classes.length} class{classes.length !== 1 ? "es" : ""} ·{" "}
-            {classes.reduce((s, c) => s + c._count.students, 0)} students total
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        title="Classes"
+        breadcrumb={[{ label: "Today", href: "/dashboard" }, { label: "Classes" }]}
+        description={<>{classes.length} class{classes.length !== 1 ? "es" : ""} · {classes.reduce((s, c) => s + c._count.students, 0)} students total</>}
+      />
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Create form */}
@@ -94,13 +92,7 @@ export default async function ClassesPage() {
         {/* Class lists */}
         <div className="lg:col-span-2 space-y-4">
           {classes.length === 0 ? (
-            <div className="bg-surface rounded-xl border border-border p-12 text-center">
-              <GraduationCap size={36} className="text-muted mx-auto mb-3" />
-              <p className="font-medium text-text">No classes yet</p>
-              <p className="text-sm text-text-2 mt-1">
-                Use the form to add your first class.
-              </p>
-            </div>
+            <EmptyState icon={<GraduationCap size={36} />} title="No classes yet" description="Use the form to add your first class." />
           ) : (
             <>
               {juniorClasses.length > 0 && (

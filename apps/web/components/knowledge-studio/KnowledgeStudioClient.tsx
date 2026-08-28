@@ -116,9 +116,9 @@ export function KnowledgeStudioClient({
 
   useEffect(() => {
     if (selectedIds.length === 1) {
-      analyzeDocument(selectedIds[0]);
+      queueMicrotask(() => { void analyzeDocument(selectedIds[0]); });
     } else {
-      setAnalysis(null);
+      queueMicrotask(() => setAnalysis(null));
     }
   }, [selectedIds, analyzeDocument]);
 

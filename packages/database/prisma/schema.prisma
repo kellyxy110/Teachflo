@@ -34,6 +34,7 @@ model School {
   library   LibraryItem[]
   scores    Score[]
   documents Document[]
+  questions Question[]
 
   @@map("schools")
 }
@@ -76,9 +77,18 @@ model Teacher {
 
   lessons    Lesson[]
   exams      Exam[]
+  assessmentPublications AssessmentPublication[]
+  releasedAttempts ExamAttempt[] @relation("ReleasedAttemptResults")
   scores     Score[]
   homework   Homework[]
   attendance Attendance[]
+  authIdentities AuthIdentity[]
+  questions Question[]
+  curriculumProvenanceVerifications CurriculumProvenance[] @relation("CurriculumProvenanceVerifier")
+  curriculumAlignmentReviews QuestionVersionCurriculumAlignment[] @relation("CurriculumAlignmentReviewer")
+  curriculumSourceRegistrations CurriculumSource[] @relation("CurriculumSourceRegistrar")
+  curriculumStagedReviews CurriculumStagedItem[] @relation("CurriculumStagedReviewer")
+  gradedResponses QuestionResponse[] @relation("GradedResponses")
 
   @@unique([schoolId, email])
   @@index([schoolId])
@@ -152,6 +162,11 @@ model Student {
   class     Class    @relation(fields: [classId], references: [id])
   firstName String
   lastName  String
+  // Original, un-split value when a student was imported from a single "Full
+  // Name" column — preserved for audit/redo since firstName/lastName are
+  // required elsewhere in the app and a full non-destructive split isn't
+  // structurally supported yet (see docs/TASKS.md, Import Identity pass).
+  rawFullName String?
   regNumber String?
   gender    Gender?
   isActive  Boolean  @default(true)
@@ -165,6 +180,7 @@ model Student {
   attendance      Attendance[]
   healthRecord    HealthRecord?
   profile         StudentProfile?
+  authIdentities  AuthIdentity[]
 
   @@unique([schoolId, regNumber])
   @@index([classId])
@@ -175,6 +191,30 @@ model Student {
 enum Gender {
   MALE
   FEMALE
+}
+
+enum AuthProvider {
+  CLERK
+  SUPABASE
+}
+
+model AuthIdentity {
+  id             String       @id @default(cuid())
+  provider       AuthProvider
+  providerUserId String
+  teacherId      String?
+  studentId      String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  teacher Teacher? @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  student Student? @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerUserId])
+  @@unique([teacherId])
+  @@unique([studentId])
+  @@index([providerUserId])
+  @@map("auth_identities")
 }
 
 // ─────────────────────────────────────────────
@@ -202,6 +242,10 @@ model Score {
   grade  String?
   remark String?
 
+  // School-specific imported assessment detail. `total` remains the supplied
+  // source total; component values are never used to silently overwrite it.
+  componentValues ScoreAssessmentComponentValue[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -211,6 +255,43 @@ model Score {
   @@index([classId])
   @@index([teacherId])
   @@map("scores")
+}
+
+model AssessmentComponent {
+  id             String   @id @default(cuid())
+  schoolId       String
+  name           String
+  normalizedName String
+  maxScore       Float?
+  order          Int      @default(0)
+  category       String?
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  values ScoreAssessmentComponentValue[]
+
+  @@unique([schoolId, normalizedName])
+  @@index([schoolId, order])
+  @@map("assessment_components")
+}
+
+model ScoreAssessmentComponentValue {
+  id                    String              @id @default(cuid())
+  scoreId               String
+  assessmentComponentId String
+  obtainedScore         Float?
+  sourceLabel           String?
+  sourceMaxScore        Float?
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+
+  score               Score               @relation(fields: [scoreId], references: [id], onDelete: Cascade)
+  assessmentComponent AssessmentComponent @relation(fields: [assessmentComponentId], references: [id], onDelete: Restrict)
+
+  @@unique([scoreId, assessmentComponentId])
+  @@index([assessmentComponentId])
+  @@map("score_assessment_component_values")
 }
 
 // ─────────────────────────────────────────────
@@ -279,6 +360,18 @@ model Exam {
   examType   ExamType
   difficulty Difficulty
   duration   Int?
+  lifecycle  AssessmentLifecycle @default(DRAFT)
+  instructions String?
+  opensAt DateTime?
+  closesAt DateTime?
+  timezone String?
+  resultReleasePolicy ResultReleasePolicy @default(AFTER_TEACHER_RELEASE)
+  answerReleasePolicy AnswerReleasePolicy @default(NEVER)
+  gradingMode AssessmentGradingMode @default(MIXED)
+  passMarkPercent Float?
+  draftRevision Int @default(1)
+  publishedAt DateTime?
+  archivedAt DateTime?
 
   examMode       ExamMode @default(STANDARD)
   blueprint      Json?
@@ -286,7 +379,9 @@ model Exam {
   targetStudentId String?
 
   questions Question[]
+  assessmentItems AssessmentItem[]
   attempts  ExamAttempt[]
+  publications AssessmentPublication[]
 
   aiModel      String?
   promptTokens Int?
@@ -296,6 +391,8 @@ model Exam {
 
   @@index([schoolId])
   @@index([teacherId])
+  @@index([schoolId, lifecycle])
+  @@index([opensAt, closesAt])
   @@map("exams")
 }
 
@@ -323,14 +420,45 @@ enum ExamMode {
   ADAPTIVE
 }
 
+enum AssessmentLifecycle {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum ResultReleasePolicy {
+  AFTER_SUBMISSION
+  AFTER_CLOSE
+  AFTER_TEACHER_RELEASE
+}
+
+enum AnswerReleasePolicy {
+  NEVER
+  AFTER_TEACHER_RELEASE
+}
+
+enum AssessmentGradingMode {
+  AUTO
+  MANUAL
+  MIXED
+}
+
 // ─────────────────────────────────────────────
 // QUESTION
 // ─────────────────────────────────────────────
 
 model Question {
   id     String @id @default(cuid())
-  examId String
-  exam   Exam   @relation(fields: [examId], references: [id], onDelete: Cascade)
+  examId String?
+  exam   Exam?   @relation(fields: [examId], references: [id], onDelete: Cascade)
+  schoolId String?
+  school School? @relation(fields: [schoolId], references: [id], onDelete: Restrict)
+  createdByTeacherId String?
+  createdByTeacher Teacher? @relation(fields: [createdByTeacherId], references: [id], onDelete: Restrict)
+  lifecycle QuestionLifecycle @default(DRAFT)
+  sourceKind QuestionSourceKind @default(TEACHER)
+  visibility QuestionVisibility @default(PRIVATE)
+  defaultMarks Float?
 
   section      Section
   number       Int
@@ -367,6 +495,9 @@ model Question {
 
   responses QuestionResponse[]
   tags      QuestionTag[]
+  versions QuestionVersion[]
+  assessmentItems AssessmentItem[]
+  publicationItems AssessmentPublicationItem[]
 
   @@index([examId])
   @@map("questions")
@@ -456,6 +587,116 @@ enum LibraryCategory {
   AI_NOTES
 }
 
+enum QuestionLifecycle {
+  DRAFT
+  REVIEW
+  APPROVED
+  ARCHIVED
+}
+enum QuestionSourceKind {
+  TEACHER
+  AI
+  IMPORTED
+  PAST_QUESTION
+  SYSTEM
+}
+enum QuestionVisibility {
+  PRIVATE
+  SCHOOL
+  SYSTEM
+}
+
+model QuestionVersion {
+  id String @id @default(cuid())
+  questionId String
+  version Int
+  payload Json
+  createdAt DateTime @default(now())
+  question Question @relation(fields: [questionId], references: [id], onDelete: Restrict)
+  assessmentItems AssessmentItem[]
+  publicationItems AssessmentPublicationItem[]
+  curriculumAlignments QuestionVersionCurriculumAlignment[]
+  @@unique([questionId, version])
+  @@index([questionId])
+  @@map("question_versions")
+}
+
+model AssessmentItem {
+  id String @id @default(cuid())
+  examId String
+  questionId String
+  questionVersionId String
+  order Int
+  section Section
+  marksOverride Float?
+  snapshot Json?
+  exam Exam @relation(fields: [examId], references: [id], onDelete: Restrict)
+  question Question @relation(fields: [questionId], references: [id], onDelete: Restrict)
+  questionVersion QuestionVersion @relation(fields: [questionVersionId], references: [id], onDelete: Restrict)
+  publicationItems AssessmentPublicationItem[]
+  @@unique([examId, order])
+  @@index([examId])
+  @@index([questionId])
+  @@index([questionVersionId])
+  @@map("assessment_items")
+}
+
+model AssessmentPublication {
+  id String @id @default(cuid())
+  examId String
+  version Int
+  publishedByTeacherId String
+  title String
+  subject String
+  topic String
+  classLevel ClassLevel
+  instructions String?
+  duration Int?
+  opensAt DateTime?
+  closesAt DateTime?
+  timezone String?
+  resultReleasePolicy ResultReleasePolicy
+  answerReleasePolicy AnswerReleasePolicy
+  gradingMode AssessmentGradingMode
+  passMarkPercent Float?
+  settingsSnapshot Json?
+  contentHash String
+  publishedAt DateTime @default(now())
+
+  exam Exam @relation(fields: [examId], references: [id], onDelete: Restrict)
+  publishedBy Teacher @relation(fields: [publishedByTeacherId], references: [id], onDelete: Restrict)
+  items AssessmentPublicationItem[]
+  attempts ExamAttempt[]
+
+  @@unique([examId, version])
+  @@index([examId])
+  @@index([publishedAt])
+  @@map("assessment_publications")
+}
+
+model AssessmentPublicationItem {
+  id String @id @default(cuid())
+  publicationId String
+  assessmentItemId String?
+  questionId String
+  questionVersionId String
+  order Int
+  section Section
+  marks Float
+  snapshot Json
+
+  publication AssessmentPublication @relation(fields: [publicationId], references: [id], onDelete: Restrict)
+  assessmentItem AssessmentItem? @relation(fields: [assessmentItemId], references: [id], onDelete: Restrict)
+  question Question @relation(fields: [questionId], references: [id], onDelete: Restrict)
+  questionVersion QuestionVersion @relation(fields: [questionVersionId], references: [id], onDelete: Restrict)
+  responses QuestionResponse[]
+
+  @@unique([publicationId, order])
+  @@unique([publicationId, questionId])
+  @@index([questionVersionId])
+  @@map("assessment_publication_items")
+}
+
 // ─────────────────────────────────────────────
 // EXAM ATTEMPT (student takes an exam)
 // ─────────────────────────────────────────────
@@ -479,15 +720,23 @@ model ExamAttempt {
   currentDifficulty  String?  @default("medium")
   questionsAnswered  Int      @default(0)
   adaptiveState      Json?
+  publicationId String?
+  deadlineAt DateTime?
+  deliverySnapshot Json?
 
   startedAt   DateTime @default(now())
   submittedAt DateTime?
   gradedAt    DateTime?
+  resultReleasedAt DateTime?
+  resultReleasedByTeacherId String?
 
   responses QuestionResponse[]
+  publication AssessmentPublication? @relation(fields: [publicationId], references: [id], onDelete: Restrict)
+  resultReleasedBy Teacher? @relation("ReleasedAttemptResults", fields: [resultReleasedByTeacherId], references: [id], onDelete: Restrict)
 
   @@unique([studentId, examId])
   @@index([schoolId])
+  @@index([publicationId])
   @@map("exam_attempts")
 }
 
@@ -507,6 +756,8 @@ model QuestionResponse {
   attempt    ExamAttempt  @relation(fields: [attemptId], references: [id], onDelete: Cascade)
   questionId String
   question   Question     @relation(fields: [questionId], references: [id])
+  publicationItemId String?
+  publicationItem AssessmentPublicationItem? @relation(fields: [publicationItemId], references: [id], onDelete: Restrict)
 
   selectedOption   String?
   textResponse     String?
@@ -519,12 +770,16 @@ model QuestionResponse {
   feedback         String?
   errorType        String?
   difficultyAtTime String?
+  gradedByTeacherId String?
+  gradedAt DateTime?
+  gradedBy Teacher? @relation("GradedResponses", fields: [gradedByTeacherId], references: [id], onDelete: Restrict)
 
   createdAt DateTime @default(now())
 
   @@unique([attemptId, questionId])
   @@index([attemptId])
   @@index([questionId])
+  @@index([publicationItemId])
   @@map("question_responses")
 }
 
@@ -774,8 +1029,248 @@ enum CurriculumDifficulty {
   HARD
 }
 
+enum CurriculumLifecycle {
+  DRAFT
+  REVIEWED
+  PUBLISHED
+  ARCHIVED
+}
+
+enum AlignmentStatus {
+  UNMAPPED
+  PROPOSED
+  REVIEWED
+  APPROVED
+  REJECTED
+}
+
+enum CurriculumSourceKind {
+  HUMAN_CREATED
+  IMPORTED
+  CURRICULUM_SEEDED
+}
+
+enum CurriculumSourceType {
+  OFFICIAL_DOCUMENT
+  INSTITUTIONAL
+  STRUCTURED_DATASET
+  TEACHER_PROVIDED
+  UNKNOWN
+}
+
+enum SourceAuthorityLevel {
+  OFFICIAL
+  INSTITUTIONAL
+  VERIFIED_SECONDARY
+  TEACHER_PROVIDED
+  UNKNOWN
+}
+
+enum SourceVerificationState {
+  UNVERIFIED
+  REVIEWED
+  VERIFIED
+  REJECTED
+}
+
+enum IngestionJobState {
+  REGISTERED
+  VALIDATING
+  EXTRACTING
+  NORMALIZING
+  STAGED
+  NEEDS_REVIEW
+  APPROVED
+  PUBLISHING
+  PUBLISHED
+  FAILED
+  CANCELLED
+}
+
+enum StagedReviewState {
+  NEEDS_REVIEW
+  EDITED
+  APPROVED
+  REJECTED
+  PUBLISHED
+}
+
+model Curriculum {
+  id        String   @id @default(cuid())
+  slug      String   @unique
+  name      String
+  authority String
+  kind      String
+  scope     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  versions CurriculumVersion[]
+  sources CurriculumSource[]
+
+  @@map("curricula")
+}
+
+model CurriculumSource {
+  id                  String                 @id @default(cuid())
+  fingerprint         String                 @unique
+  title               String
+  sourceType          CurriculumSourceType   @default(UNKNOWN)
+  authorityLevel      SourceAuthorityLevel   @default(UNKNOWN)
+  verificationState   SourceVerificationState @default(UNVERIFIED)
+  organization        String?
+  sourceUrl           String?
+  fileName            String?
+  mimeType            String?
+  byteSize            Int?
+  publicationYear     Int?
+  effectiveYear       Int?
+  jurisdiction        String?
+  country             String?
+  licenseNote         String?
+  curriculumId        String?
+  curriculumVersionId String?
+  registeredAt        DateTime               @default(now())
+  registeredByTeacherId String?
+  curriculum          Curriculum?            @relation(fields: [curriculumId], references: [id], onDelete: Restrict)
+  curriculumVersion   CurriculumVersion?     @relation(fields: [curriculumVersionId], references: [id], onDelete: Restrict)
+  registeredBy         Teacher?               @relation("CurriculumSourceRegistrar", fields: [registeredByTeacherId], references: [id], onDelete: Restrict)
+  jobs                 CurriculumIngestionJob[]
+
+  @@index([curriculumId])
+  @@index([curriculumVersionId])
+  @@index([verificationState])
+  @@map("curriculum_sources")
+}
+
+model CurriculumVersion {
+  id           String             @id @default(cuid())
+  curriculumId String
+  versionKey   String
+  title        String
+  editionYear  Int?
+  status       CurriculumLifecycle @default(DRAFT)
+  publishedAt  DateTime?
+  archivedAt   DateTime?
+  sourceDocument String?
+  curriculum   Curriculum         @relation(fields: [curriculumId], references: [id], onDelete: Restrict)
+  nodes        CurriculumNode[]
+  provenance   CurriculumProvenance[]
+  alignments   QuestionVersionCurriculumAlignment[]
+  sources      CurriculumSource[]
+  ingestionJobs CurriculumIngestionJob[]
+
+  @@unique([curriculumId, versionKey])
+  @@index([status])
+  @@map("curriculum_versions")
+}
+
+model CurriculumIngestionJob {
+  id                String            @id @default(cuid())
+  sourceId          String
+  curriculumVersionId String?
+  state             IngestionJobState  @default(REGISTERED)
+  revision          Int               @default(1)
+  rawHash           String?
+  errorMessage      String?
+  registeredAt      DateTime          @default(now())
+  startedAt         DateTime?
+  completedAt       DateTime?
+  updatedAt         DateTime          @updatedAt
+  source            CurriculumSource  @relation(fields: [sourceId], references: [id], onDelete: Restrict)
+  curriculumVersion CurriculumVersion? @relation(fields: [curriculumVersionId], references: [id], onDelete: Restrict)
+  stagedItems       CurriculumStagedItem[]
+
+  @@unique([sourceId, revision])
+  @@index([state])
+  @@index([curriculumVersionId, state])
+  @@map("curriculum_ingestion_jobs")
+}
+
+model CurriculumStagedItem {
+  id                    String            @id @default(cuid())
+  jobId                 String
+  stableKey             String
+  parentStableKey       String?
+  type                  NodeType
+  label                 String
+  normalizedText        String?
+  rawText               String
+  description           String?
+  subject               String?
+  classLevel            ClassLevel?
+  term                  Term?
+  sourcePage            String?
+  sourceSection         String?
+  extractionConfidence  Float?
+  classificationConfidence Float?
+  reviewState           StagedReviewState @default(NEEDS_REVIEW)
+  reviewRevision        Int               @default(1)
+  reviewNotes           String?
+  reviewedByTeacherId   String?
+  reviewedAt            DateTime?
+  publishedNodeId       String?
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @updatedAt
+  job                   CurriculumIngestionJob @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  reviewedBy            Teacher?          @relation("CurriculumStagedReviewer", fields: [reviewedByTeacherId], references: [id], onDelete: Restrict)
+  publishedNode         CurriculumNode?   @relation("StagedPublishedNode", fields: [publishedNodeId], references: [id], onDelete: Restrict)
+
+  @@unique([jobId, stableKey])
+  @@index([jobId, reviewState])
+  @@index([publishedNodeId])
+  @@map("curriculum_staged_items")
+}
+
+model CurriculumProvenance {
+  id                 String   @id @default(cuid())
+  curriculumVersionId String
+  organization       String?
+  documentTitle      String
+  editionYear        Int?
+  sourceUrl          String?
+  pageOrSection      String?
+  extractionMethod   String?
+  confidence         Float?
+  importedAt         DateTime @default(now())
+  verifiedAt         DateTime?
+  verifiedByTeacherId String?
+  notes              String?
+  version            CurriculumVersion @relation(fields: [curriculumVersionId], references: [id], onDelete: Restrict)
+  verifiedBy         Teacher? @relation("CurriculumProvenanceVerifier", fields: [verifiedByTeacherId], references: [id], onDelete: Restrict)
+
+  @@index([curriculumVersionId])
+  @@index([verifiedByTeacherId])
+  @@map("curriculum_provenance")
+}
+
+model QuestionVersionCurriculumAlignment {
+  id                 String             @id @default(cuid())
+  questionVersionId  String
+  curriculumNodeId   String
+  curriculumVersionId String
+  status             AlignmentStatus    @default(UNMAPPED)
+  sourceKind         CurriculumSourceKind @default(HUMAN_CREATED)
+  confidence         Float?
+  notes              String?
+  reviewedAt         DateTime?
+  reviewedByTeacherId String?
+  questionVersion    QuestionVersion   @relation(fields: [questionVersionId], references: [id], onDelete: Restrict)
+  node               CurriculumNode    @relation(fields: [curriculumNodeId], references: [id], onDelete: Restrict)
+  version            CurriculumVersion @relation(fields: [curriculumVersionId], references: [id], onDelete: Restrict)
+  reviewedBy         Teacher?          @relation("CurriculumAlignmentReviewer", fields: [reviewedByTeacherId], references: [id], onDelete: Restrict)
+
+  @@unique([questionVersionId, curriculumNodeId, curriculumVersionId])
+  @@index([curriculumNodeId, status])
+  @@index([curriculumVersionId, status])
+  @@index([reviewedByTeacherId])
+  @@map("question_version_curriculum_alignments")
+}
+
 model CurriculumNode {
   id               String                @id @default(cuid())
+  curriculumVersionId String?
+  stableKey        String?
   schoolId         String?
   type             NodeType
   label            String
@@ -800,10 +1295,15 @@ model CurriculumNode {
 
   outgoing CurriculumEdge[] @relation("EdgeSource")
   incoming CurriculumEdge[] @relation("EdgeTarget")
+  curriculumVersion CurriculumVersion? @relation(fields: [curriculumVersionId], references: [id], onDelete: Restrict)
+  questionAlignments QuestionVersionCurriculumAlignment[]
+  stagedPublishedItems CurriculumStagedItem[] @relation("StagedPublishedNode")
 
   @@index([type])
   @@index([subject, classLevel, term])
   @@index([schoolId])
+  @@index([curriculumVersionId, type])
+  @@unique([curriculumVersionId, stableKey])
   @@map("curriculum_nodes")
 }
 
@@ -886,6 +1386,7 @@ enum ImportSource {
 enum ImportStatus {
   PENDING
   ANALYZING
+  COMMITTING
   STAGED
   CONFIRMED
   COMMITTED
@@ -1005,6 +1506,42 @@ model PortalConnection {
   @@unique([schoolId, portalType])
   @@index([schoolId])
   @@map("portal_connections")
+}
+
+model IntegrationRequest {
+  id           String    @id @default(cuid())
+  schoolId     String
+  teacherId    String
+  connectorId  String
+  schoolName   String
+  portalUrl    String
+  adminContact String
+  message      String?
+  status       String    @default("NEW")
+  createdAt    DateTime  @default(now())
+
+  @@index([schoolId])
+  @@index([status])
+  @@map("integration_requests")
+}
+
+// Subject Registry — school-confirmed raw → canonical subject name mappings,
+// learned from import confirmations (e.g. "maths" -> "Mathematics"). Deliberately
+// scoped to a required schoolId rather than a nullable "global" row: Postgres
+// treats NULL as distinct from NULL in unique constraints, so a nullable-schoolId
+// design would silently permit duplicate "global" aliases. Platform-wide default
+// synonyms live in code (lib/services/import/subject-normalize.ts) instead.
+model SubjectAlias {
+  id               String   @id @default(cuid())
+  schoolId         String
+  rawValue         String   // normalized (trimmed, lowercased) source text
+  canonicalSubject String   // teacher-confirmed canonical name for this school
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@unique([schoolId, rawValue])
+  @@index([schoolId])
+  @@map("subject_aliases")
 }
 
 model StudentProfile {

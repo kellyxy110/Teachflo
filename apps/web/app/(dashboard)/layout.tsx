@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { safeAuth } from "@/lib/auth";
+import { safeAuth, getCurrentTeacher } from "@/lib/auth";
 import { MobileNavProvider } from "@/components/layout/MobileNavContext";
 import { SidebarCollapseProvider } from "@/components/layout/SidebarCollapseContext";
 import { DashboardShell } from "@/components/layout/DashboardShell";
@@ -18,7 +18,7 @@ export default async function DashboardLayout({
   const meta = (sessionClaims?.publicMetadata ?? {}) as Record<string, unknown>;
   if (meta?.role === "student") redirect("/s/dashboard");
 
-  const teacher = await db.teacher.findUnique({ where: { clerkId: userId } });
+  const teacher = await getCurrentTeacher();
   if (!teacher) {
     const student = await db.student.findUnique({ where: { clerkId: userId } });
     if (student) redirect("/s/dashboard");

@@ -398,7 +398,7 @@ function useLocalState<T>(key: string, defaultValue: T) {
   useEffect(() => {
     try {
       const raw = localStorage.getItem(key);
-      if (raw) setState(JSON.parse(raw));
+      if (raw) queueMicrotask(() => setState(JSON.parse(raw)));
     } catch {}
   }, [key]);
   function set(v: T) {
@@ -550,7 +550,7 @@ export function BetaHubClient() {
             <h2 className="text-lg font-bold text-text mb-2">Welcome, Pioneer Educator 🎉</h2>
             <p className="text-sm text-text-2 leading-relaxed mb-4">
               You are among a select group of Nigerian teachers who will shape TeachFlow OS before it
-              launches publicly. Your testing time — your feedback on what works, what doesn't, and what's
+              launches publicly. Your testing time — your feedback on what works, what doesn&apos;t, and what&apos;s
               missing — is the most valuable contribution you can make to Nigerian education technology.
             </p>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -652,7 +652,7 @@ export function BetaHubClient() {
           <div className="bg-primary/5 border border-primary/20 rounded-xl p-4">
             <p className="text-sm text-text-2">
               For each module below, follow the numbered steps, then answer the feedback questions honestly.
-              Use the <strong className="text-text">Checklist tab</strong> to track what you've tested.
+              Use the <strong className="text-text">Checklist tab</strong> to track what you&apos;ve tested.
             </p>
           </div>
 

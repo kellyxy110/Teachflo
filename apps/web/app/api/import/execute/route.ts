@@ -1,6 +1,10 @@
 import { safeAuth } from "@/lib/auth";
 import { rateLimit } from "@/lib/rate-limit";
 import { db } from "@/lib/db";
+import { resolveStudentIdentity } from "@/lib/services/import/resolve-student";
+import { splitFullName, DEFAULT_FULL_NAME_FORMAT, type FullNameFormat } from "@/lib/services/import/name-format";
+import { normalizeKey, learnSubjectAlias } from "@/lib/services/import/subject-normalize";
+import { hasChangedSubjectMapping, importExecuteRequestSchema, validateScoreValue } from "@/lib/services/import/validation";
 
 export const maxDuration = 60;
 
@@ -26,7 +30,13 @@ interface RequestBody {
   term: "FIRST" | "SECOND" | "THIRD";
   session: string;
   schoolId: string;
-  teacherId: string;
+  // Teacher-confirmed split direction for a mapped "Full Name" column — never
+  // a silent hardcoded assumption.
+  fullNameFormat?: FullNameFormat;
+  fullNameFormatConfirmed?: boolean;
+  // Teacher-confirmed raw subject text -> canonical subject name.
+  subjectCanonicalMap?: Record<string, string>;
+  subjectMappingsConfirmed?: boolean;
 }
 
 function parseScore(val?: string): number | null {
@@ -69,8 +79,22 @@ export async function POST(request: Request) {
     return Response.json({ error: "Too many requests" }, { status: 429 });
   }
 
-  const body: RequestBody = await request.json();
-  const { rows, classId, subject, term, session, schoolId, teacherId } = body;
+  let body: RequestBody;
+  try {
+    body = importExecuteRequestSchema.parse(await request.json());
+  } catch {
+    return Response.json({ error: "Invalid import request" }, { status: 400 });
+  }
+  const {
+    rows,
+    classId,
+    subject,
+    term,
+    session,
+    schoolId,
+    fullNameFormat = DEFAULT_FULL_NAME_FORMAT,
+    subjectCanonicalMap = {},
+  } = body;
 
   if (teacher.schoolId !== schoolId) {
     return Response.json({ error: "School mismatch" }, { status: 403 });
@@ -78,6 +102,15 @@ export async function POST(request: Request) {
 
   if (!classId || !rows?.length) {
     return Response.json({ error: "classId and rows are required" }, { status: 400 });
+  }
+  if (rows.some((row) => ![row.ca1, row.ca2, row.exam, row.total].every(validateScoreValue))) {
+    return Response.json({ error: "Scores must be numeric values between 0 and 100" }, { status: 400 });
+  }
+  if (rows.some((row) => row.fullName?.trim()) && !body.fullNameFormatConfirmed) {
+    return Response.json({ error: "Confirm the Full Name interpretation before importing" }, { status: 400 });
+  }
+  if (hasChangedSubjectMapping(subjectCanonicalMap) && !body.subjectMappingsConfirmed) {
+    return Response.json({ error: "Confirm subject mappings before importing" }, { status: 400 });
   }
 
   const cls = await db.class.findFirst({
@@ -103,10 +136,12 @@ export async function POST(request: Request) {
     let firstName = row.firstName?.trim();
     let lastName = row.lastName?.trim();
 
-    if (!firstName && !lastName && row.fullName?.trim()) {
-      const parts = row.fullName.trim().split(/\s+/);
-      lastName = parts[0];
-      firstName = parts.slice(1).join(" ") || parts[0];
+    let rawFullName: string | null = null;
+    if ((!firstName || !lastName) && row.fullName?.trim()) {
+      const split = splitFullName(row.fullName, fullNameFormat);
+      firstName = firstName || split.firstName;
+      lastName = lastName || split.lastName;
+      rawFullName = split.rawFullName;
     }
 
     if (!firstName || !lastName) {
@@ -118,31 +153,29 @@ export async function POST(request: Request) {
       const regNumber = row.regNumber?.trim() || null;
       const gender = normalizeGender(row.gender);
 
-      let student = regNumber
-        ? await db.student.findFirst({
-            where: { schoolId, regNumber },
-          })
-        : await db.student.findFirst({
-            where: {
-              schoolId,
-              classId,
-              firstName: { equals: firstName, mode: "insensitive" },
-              lastName: { equals: lastName, mode: "insensitive" },
-            },
-          });
+      const resolution = await resolveStudentIdentity({ schoolId, classId, firstName, lastName, regNumber });
+      if (resolution.type === "AMBIGUOUS") {
+        const classNames = resolution.candidates.map((c) => c.className).join(", ");
+        errors.push(
+          `Row ${rowNum}: multiple existing students named ${firstName} ${lastName} found (in ${classNames}) — add a registration number to disambiguate and re-import this row`
+        );
+        continue;
+      }
+      let studentId: string | null = resolution.type === "MATCH" ? resolution.studentId : null;
 
-      if (student) {
+      if (studentId) {
         await db.student.update({
-          where: { id: student.id },
+          where: { id: studentId },
           data: {
             classId,
             ...(gender ? { gender } : {}),
             ...(regNumber ? { regNumber } : {}),
+            ...(rawFullName && resolution.type === "MATCH" && !resolution.rawFullName ? { rawFullName } : {}),
           },
         });
         studentsUpdated++;
       } else {
-        student = await db.student.create({
+        const created = await db.student.create({
           data: {
             schoolId,
             classId,
@@ -150,8 +183,10 @@ export async function POST(request: Request) {
             lastName,
             regNumber,
             gender,
+            ...(rawFullName ? { rawFullName } : {}),
           },
         });
+        studentId = created.id;
         studentsCreated++;
       }
 
@@ -165,12 +200,15 @@ export async function POST(request: Request) {
         }
         const grade = row.grade?.trim() || computeGrade(total);
         const remark = row.remark?.trim() || null;
-        const subjectName = row.subject?.trim() || subject;
+        const rawSubject = row.subject?.trim();
+        const subjectName = rawSubject
+          ? subjectCanonicalMap[normalizeKey(rawSubject)] ?? rawSubject
+          : subject;
 
         await db.score.upsert({
           where: {
             studentId_subject_term_session: {
-              studentId: student.id,
+              studentId,
               subject: subjectName,
               term,
               session,
@@ -178,9 +216,9 @@ export async function POST(request: Request) {
           },
           create: {
             schoolId,
-            studentId: student.id,
+            studentId,
             classId,
-            teacherId,
+            teacherId: teacher.id,
             subject: subjectName,
             term,
             session,
@@ -199,10 +237,14 @@ export async function POST(request: Request) {
             grade,
             remark,
             classId,
-            teacherId,
+            teacherId: teacher.id,
           },
         });
         scoresCreated++;
+
+        if (rawSubject && rawSubject !== subjectName) {
+          await learnSubjectAlias(schoolId, rawSubject, subjectName);
+        }
       }
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Unknown error";

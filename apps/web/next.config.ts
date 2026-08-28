@@ -24,7 +24,7 @@ const securityHeaders = [
       "img-src 'self' data: blob: https://img.clerk.com https://images.unsplash.com https://*.supabase.co",
       // Turnstile iframe (Clerk Bot Protection) + Clerk account iframes
       "frame-src 'self' https://challenges.cloudflare.com https://*.clerk.accounts.dev https://clerk.teachnexis.vercel.app",
-      "connect-src 'self' blob: https://*.clerk.accounts.dev https://api.clerk.dev wss://*.clerk.accounts.dev https://challenges.cloudflare.com https://openrouter.ai https://api.groq.com https://api.cerebras.ai https://ingest.sentry.io https://router.bynara.id",
+      "connect-src 'self' blob: https://*.clerk.accounts.dev https://api.clerk.dev wss://*.clerk.accounts.dev https://*.supabase.co https://challenges.cloudflare.com https://openrouter.ai https://api.groq.com https://api.cerebras.ai https://ingest.sentry.io https://router.bynara.id",
       "frame-ancestors 'none'",
     ].join("; "),
   },

@@ -8,6 +8,10 @@ type Tab = "projectile" | "circuit" | "wave";
 // ── Projectile Motion ─────────────────────────────────────────────
 const g = 9.8;
 
+function PhysicsSlider({ label, min, max, val, set, unit }: { label: string; min: number; max: number; val: number; set: (v: number) => void; unit: string }) {
+  return <div><div className="flex justify-between text-xs mb-1"><span className="text-text-2">{label}</span><span className="font-mono text-text">{val} {unit}</span></div><input type="range" min={min} max={max} value={val} onChange={(e) => set(Number(e.target.value))} className="w-full" /></div>;
+}
+
 function ProjectileLab() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animRef = useRef<number | null>(null);
@@ -104,7 +108,7 @@ function ProjectileLab() {
 
   useEffect(() => {
     drawFrame(0);
-    setStats({ maxH, range, tof });
+    queueMicrotask(() => setStats({ maxH, range, tof }));
   }, [angle, speed, drawFrame, maxH, range, tof]);
 
   const startAnim = () => {
@@ -415,25 +419,15 @@ function WaveLab() {
     return () => { running = false; if (animRef.current) cancelAnimationFrame(animRef.current); };
   }, [amp, freq, amp2, freq2, showTwo]);
 
-  const Slider = ({ label, min, max, val, set, unit }: { label: string; min: number; max: number; val: number; set: (v: number) => void; unit: string }) => (
-    <div>
-      <div className="flex justify-between text-xs mb-1">
-        <span className="text-text-2">{label}</span>
-        <span className="font-mono text-text">{val} {unit}</span>
-      </div>
-      <input type="range" min={min} max={max} value={val} onChange={(e) => set(Number(e.target.value))} className="w-full" />
-    </div>
-  );
-
   return (
     <div className="space-y-4">
       <canvas ref={canvasRef} width={720} height={280} className="w-full rounded-xl border border-border" />
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="bg-surface border border-border rounded-xl p-4 space-y-3">
           <p className="text-xs font-bold text-text-2 uppercase tracking-wider" style={{ color: "#3b82f6" }}>Wave 1</p>
-          <Slider label="Amplitude" min={10} max={120} val={amp} set={setAmp} unit="px" />
-          <Slider label="Frequency" min={1} max={10} val={freq} set={setFreq} unit="Hz" />
-          <Slider label="Wave Speed" min={20} max={300} val={speed2} set={setSpeed2} unit="m/s" />
+          <PhysicsSlider label="Amplitude" min={10} max={120} val={amp} set={setAmp} unit="px" />
+          <PhysicsSlider label="Frequency" min={1} max={10} val={freq} set={setFreq} unit="Hz" />
+          <PhysicsSlider label="Wave Speed" min={20} max={300} val={speed2} set={setSpeed2} unit="m/s" />
           <div className="pt-2 border-t border-border text-xs space-y-1 text-text-2">
             <div className="flex justify-between"><span>Wavelength (λ = v/f)</span><span className="font-mono text-text">{wavelength.toFixed(1)} m</span></div>
             <div className="flex justify-between"><span>Period (T = 1/f)</span><span className="font-mono text-text">{period.toFixed(3)} s</span></div>
@@ -449,8 +443,8 @@ function WaveLab() {
           </div>
           {showTwo && (
             <>
-              <Slider label="Amplitude" min={10} max={120} val={amp2} set={setAmp2} unit="px" />
-              <Slider label="Frequency" min={1} max={10} val={freq2} set={setFreq2} unit="Hz" />
+              <PhysicsSlider label="Amplitude" min={10} max={120} val={amp2} set={setAmp2} unit="px" />
+              <PhysicsSlider label="Frequency" min={1} max={10} val={freq2} set={setFreq2} unit="Hz" />
               <p className="text-xs text-text-2 pt-2 border-t border-border">
                 Green = superposition (sum of both waves). Shows constructive/destructive interference.
               </p>

@@ -173,7 +173,7 @@ export function GenerateVisualButton({
               className="w-full px-3 py-2 border border-border rounded-lg text-sm text-text placeholder:text-muted bg-surface focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary resize-y"
             />
             <p className="text-xs text-muted mt-1">
-              Be specific: include labels, structure, and style. E.g. "Cross-section of mitochondria with labelled cristae, matrix, and inner membrane"
+              Be specific: include labels, structure, and style. E.g. &quot;Cross-section of mitochondria with labelled cristae, matrix, and inner membrane&quot;
             </p>
           </div>
 

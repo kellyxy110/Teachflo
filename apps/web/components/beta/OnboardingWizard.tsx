@@ -24,7 +24,7 @@ const steps: Step[] = [
         <p className="text-sm text-text-2 leading-relaxed">
           TeachFlow OS is designed to give every Nigerian teacher superpowers — generating
           complete lesson notes in 10 seconds, building WAEC-ready exam papers, and
-          tracking every student's learning journey automatically.
+          tracking every student&apos;s learning journey automatically.
         </p>
         <div className="grid grid-cols-3 gap-3 mt-4">
           {[
@@ -42,7 +42,7 @@ const steps: Step[] = [
         <div className="mt-4 p-3 bg-primary/5 border border-primary/20 rounded-xl">
           <p className="text-xs text-text-2">
             <span className="font-semibold text-primary">You are a Pioneer Educator.</span>{" "}
-            Your feedback during this beta phase will directly shape TeachFlow's future. Thank you for being here.
+            Your feedback during this beta phase will directly shape TeachFlow&apos;s future. Thank you for being here.
           </p>
         </div>
       </div>
@@ -220,7 +220,7 @@ const steps: Step[] = [
         <p className="text-sm text-text-2 leading-relaxed">
           Over the next <strong className="text-text">60–90 minutes</strong>, we ask you to explore
           every major feature and share your honest experience. This is not a quiz — there are no
-          wrong answers. Only your genuine teacher's perspective.
+          wrong answers. Only your genuine teacher&apos;s perspective.
         </p>
         <div className="space-y-2.5">
           {[

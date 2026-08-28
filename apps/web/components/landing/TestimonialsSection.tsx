@@ -97,7 +97,7 @@ export function TestimonialsSection() {
                 opacity: 0.2, fontFamily: "Georgia, serif",
                 marginBottom: 16,
               }}>
-                "
+                &quot;
               </div>
 
               {/* Quote */}

@@ -1,12 +1,21 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import {
-  Upload, FileSpreadsheet, CheckCircle, XCircle, ArrowRight, ArrowLeft,
+  FileSpreadsheet, CheckCircle, XCircle, ArrowRight, ArrowLeft,
   Loader2, AlertTriangle, Users, ClipboardList, Sparkles, Eye, Camera,
   AlertCircle, RefreshCw, ShieldCheck, FileDown, BarChart3, Hash,
   TrendingDown, TrendingUp, ClipboardPaste, FileText, Table2,
 } from "lucide-react";
+import {
+  splitFullName, FULL_NAME_FORMAT_LABELS, DEFAULT_FULL_NAME_FORMAT, type FullNameFormat,
+} from "@/lib/services/import/name-format";
+import { normalizeKey, type SubjectSuggestion } from "@/lib/services/import/subject-normalize-shared";
+import { normalizeAssessmentComponentName, parseTabularMatrix, suggestAssessmentComponent } from "@/lib/services/import/assessment-components-shared";
+import { FormField, Input, Select, fieldAria } from "@/components/ui/FormField";
+import { ResponsiveTable } from "@/components/ui/ResponsiveTable";
+import { StatusMessage } from "@/components/ui/Status";
+import { WorkflowStepper } from "@/components/ui/WorkflowStepper";
 
 type Step = "upload" | "mapping" | "preview" | "conflicts" | "importing" | "done";
 type UploadMode = "file" | "paste" | "templates";
@@ -23,6 +32,26 @@ interface ColumnMapping {
   source: string;
   target: string;
   confidence: number;
+  componentName?: string;
+  normalizedName?: string;
+  maxScore?: number;
+}
+
+interface AssessmentComponentConfig {
+  sourceColumn: string;
+  componentName: string;
+  normalizedName: string;
+  maxScore: string;
+  order: number;
+  existingComponentId?: string;
+}
+
+interface ExistingAssessmentComponent {
+  id: string;
+  name: string;
+  normalizedName: string;
+  maxScore: number | null;
+  order: number;
 }
 
 interface AnalyzeResult {
@@ -69,22 +98,40 @@ interface PostAnalytics {
 }
 
 const TARGET_FIELDS = [
-  { key: "firstName", label: "First Name", required: true },
-  { key: "lastName", label: "Last Name", required: true },
-  { key: "regNumber", label: "Reg / Admission No.", required: false },
-  { key: "gender", label: "Gender", required: false },
-  { key: "dateOfBirth", label: "Date of Birth", required: false },
-  { key: "className", label: "Class Name", required: false },
-  { key: "subject", label: "Subject", required: false },
-  { key: "ca1", label: "CA1 Score", required: false },
-  { key: "ca2", label: "CA2 Score", required: false },
-  { key: "exam", label: "Exam Score", required: false },
-  { key: "total", label: "Total Score", required: false },
-  { key: "grade", label: "Grade", required: false },
-  { key: "position", label: "Position / Rank", required: false },
-  { key: "remark", label: "Teacher Remark", required: false },
-  { key: "ignore", label: "— Skip Column —", required: false },
+  { key: "fullName", label: "Full Name / Student Name", required: false, group: "Identity / student fields" },
+  { key: "firstName", label: "First Name", required: true, group: "Identity / student fields" },
+  { key: "lastName", label: "Last Name", required: true, group: "Identity / student fields" },
+  { key: "regNumber", label: "Reg / Admission No.", required: false, group: "Identity / student fields" },
+  { key: "gender", label: "Gender", required: false, group: "Identity / student fields" },
+  { key: "dateOfBirth", label: "Date of Birth", required: false, group: "Identity / student fields" },
+  { key: "parentName", label: "Parent / Guardian Name", required: false, group: "Identity / student fields" },
+  { key: "parentPhone", label: "Parent / Guardian Phone", required: false, group: "Identity / student fields" },
+  { key: "className", label: "Class", required: false, group: "Identity / student fields" },
+  { key: "subject", label: "Subject", required: false, group: "Identity / student fields" },
+  { key: "assessmentComponent", label: "Assessment Component", required: false, group: "Result fields" },
+  { key: "ca1", label: "Legacy CA1 Score", required: false, group: "Result fields" },
+  { key: "ca2", label: "Legacy CA2 Score", required: false, group: "Result fields" },
+  { key: "exam", label: "Exam Score", required: false, group: "Result fields" },
+  { key: "total", label: "Total Score (supplied)", required: false, group: "Result fields" },
+  { key: "grade", label: "Grade", required: false, group: "Result fields" },
+  { key: "position", label: "Position / Rank", required: false, group: "Result fields" },
+  { key: "remark", label: "Teacher Remark", required: false, group: "Result fields" },
+  { key: "ignore", label: "— Skip Column —", required: false, group: "Other" },
 ];
+
+function buildComponentConfigs(mappings: ColumnMapping[]): Record<string, AssessmentComponentConfig> {
+  return Object.fromEntries(mappings.filter((mapping) => mapping.target === "assessmentComponent").map((mapping, order) => {
+    const suggestion = suggestAssessmentComponent(mapping.source);
+    const componentName = mapping.componentName ?? suggestion?.componentName ?? mapping.source;
+    return [mapping.source, {
+      sourceColumn: mapping.source,
+      componentName,
+      normalizedName: mapping.normalizedName ?? suggestion?.normalizedName ?? normalizeAssessmentComponentName(componentName),
+      maxScore: String(mapping.maxScore ?? suggestion?.maxScore ?? ""),
+      order,
+    }];
+  }));
+}
 
 type ConflictResolution = "KEEP_EXISTING" | "REPLACE" | "MERGE";
 type TemplateType = "student-list" | "result-import" | "subject-scores" | "full-class";
@@ -193,8 +240,6 @@ async function downloadTemplate(type: TemplateType) {
 
 export function ImportHubClient({
   classes,
-  schoolId,
-  teacherId,
 }: {
   classes: ClassOption[];
   schoolId: string;
@@ -222,8 +267,72 @@ export function ImportHubClient({
   const [ocrPreview, setOcrPreview] = useState<string | null>(null);
   const [validationIssues, setValidationIssues] = useState<ValidationIssue[]>([]);
   const [postAnalytics, setPostAnalytics] = useState<PostAnalytics | null>(null);
+  // Full-name split direction — never a silent hardcoded assumption. Default
+  // is only ever a pre-selected suggestion; the teacher confirms it below.
+  const [fullNameFormat, setFullNameFormat] = useState<FullNameFormat>(DEFAULT_FULL_NAME_FORMAT);
+  const [fullNameFormatConfirmed, setFullNameFormatConfirmed] = useState(false);
+  // Subject Registry confirmation: raw value -> teacher-confirmed canonical name.
+  const [subjectSuggestions, setSubjectSuggestions] = useState<SubjectSuggestion[]>([]);
+  const [subjectOverrides, setSubjectOverrides] = useState<Record<string, string>>({});
+  const [loadingSubjects, setLoadingSubjects] = useState(false);
+  const [subjectMappingsConfirmed, setSubjectMappingsConfirmed] = useState(false);
+  const [componentConfigs, setComponentConfigs] = useState<Record<string, AssessmentComponentConfig>>({});
+  const [existingComponents, setExistingComponents] = useState<ExistingAssessmentComponent[]>([]);
+  const [assessmentComponentsConfirmed, setAssessmentComponentsConfirmed] = useState(false);
+  const [componentDiscrepanciesConfirmed, setComponentDiscrepanciesConfirmed] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const imgRef = useRef<HTMLInputElement>(null);
+
+  // As soon as a "Subject" column is mapped, fetch canonicalization suggestions
+  // (school-confirmed aliases > built-in synonyms > as-entered) so the teacher
+  // can review/edit them before staging — never applied silently.
+  useEffect(() => {
+    const subjectCol = mappings.find((m) => m.target === "subject")?.source;
+    if (step !== "mapping" || !subjectCol) return;
+    const values = rawData.map((r) => r[subjectCol]).filter((v): v is string => !!v?.trim());
+    if (values.length === 0) return;
+
+    let cancelled = false;
+    // Standard fetch-in-effect loading indicator — not a synchronization hazard,
+    // the rule just can't distinguish this from the cascading-render case it targets.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setLoadingSubjects(true);
+    fetch("/api/subjects/suggest", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ values }),
+    })
+      .then((res) => (res.ok ? res.json() : { suggestions: [] }))
+      .then((data: { suggestions: SubjectSuggestion[] }) => {
+        if (cancelled) return;
+        setSubjectSuggestions(data.suggestions);
+        setSubjectMappingsConfirmed(false);
+        setSubjectOverrides((prev) => {
+          const next = { ...prev };
+          for (const s of data.suggestions) {
+            const key = normalizeKey(s.raw);
+            if (!(key in next)) next[key] = s.suggested;
+          }
+          return next;
+        });
+      })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setLoadingSubjects(false); });
+
+    return () => { cancelled = true; };
+  }, [step, mappings, rawData]);
+
+  useEffect(() => {
+    if (step !== "mapping" || !mappings.some((mapping) => mapping.target === "assessmentComponent")) return;
+    let cancelled = false;
+    fetch("/api/assessment-components")
+      .then((response) => response.ok ? response.json() : { components: [] })
+      .then((data: { components: ExistingAssessmentComponent[] }) => {
+        if (!cancelled) setExistingComponents(data.components);
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [step, mappings]);
 
   const parseFile = useCallback(async (f: File) => {
     const ext = f.name.split(".").pop()?.toLowerCase();
@@ -241,13 +350,8 @@ export function ImportHubClient({
       const buffer = await f.arrayBuffer();
       const wb = XLSX.read(buffer, { type: "array" });
       const ws = wb.Sheets[wb.SheetNames[0]];
-      const json = XLSX.utils.sheet_to_json<Record<string, string>>(ws, { defval: "" });
-      if (json.length === 0) return { headers: [], rows: [] };
-      const headers = Object.keys(json[0]);
-      return {
-        headers,
-        rows: json.map((row) => Object.fromEntries(headers.map((h) => [h, String(row[h] ?? "")]))),
-      };
+      const matrix = XLSX.utils.sheet_to_json<unknown[]>(ws, { header: 1, defval: "" });
+      return parseTabularMatrix(matrix);
     }
     throw new Error("Unsupported file type. Use CSV, XLSX, or XLS.");
   }, []);
@@ -257,7 +361,7 @@ export function ImportHubClient({
       const analyzeRes = await fetch("/api/import/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ headers, sampleRows: rows.slice(0, 5), fileName, totalRows: rows.length }),
+        body: JSON.stringify({ headers, sampleRows: rows.slice(0, 3), fileName, totalRows: rows.length }),
       });
       if (!analyzeRes.ok) {
         const err = await analyzeRes.json().catch(() => ({ error: "Analysis failed" }));
@@ -281,6 +385,9 @@ export function ImportHubClient({
         const result = await analyzeAndStage(headers, rows, f.name);
         setAnalysis(result);
         setMappings(result.mappings);
+        setComponentConfigs(buildComponentConfigs(result.mappings));
+        setAssessmentComponentsConfirmed(false);
+        setComponentDiscrepanciesConfirmed(false);
         if (result.detectedSubject) setSubject(result.detectedSubject);
         if (result.detectedTerm) {
           const t = result.detectedTerm.toUpperCase();
@@ -318,6 +425,9 @@ export function ImportHubClient({
       const a = await analyzeAndStage(result.headers, result.rows, f.name);
       setAnalysis(a);
       setMappings(a.mappings);
+      setComponentConfigs(buildComponentConfigs(a.mappings));
+      setAssessmentComponentsConfirmed(false);
+      setComponentDiscrepanciesConfirmed(false);
       if (a.detectedSubject) setSubject(a.detectedSubject);
       setStep("mapping");
     } catch (e) {
@@ -340,6 +450,9 @@ export function ImportHubClient({
       const result = await analyzeAndStage(headers, rows, "pasted-table.csv");
       setAnalysis(result);
       setMappings(result.mappings);
+      setComponentConfigs(buildComponentConfigs(result.mappings));
+      setAssessmentComponentsConfirmed(false);
+      setComponentDiscrepanciesConfirmed(false);
       if (result.detectedSubject) setSubject(result.detectedSubject);
       if (result.detectedTerm) {
         const t = result.detectedTerm.toUpperCase();
@@ -354,26 +467,63 @@ export function ImportHubClient({
     }
   }, [pastePreview, analyzeAndStage]);
 
+  const hasScoreColumns = mappings.some((mapping) => ["ca1", "ca2", "assessmentComponent", "exam", "total", "grade"].includes(mapping.target));
+  const assessmentComponentMappings = mappings
+    .filter((mapping) => mapping.target === "assessmentComponent")
+    .map((mapping, order) => {
+      const config = componentConfigs[mapping.source];
+      return config ? {
+        sourceColumn: mapping.source,
+        componentName: config.componentName.trim(),
+        normalizedName: normalizeAssessmentComponentName(config.normalizedName || config.componentName),
+        maxScore: Number(config.maxScore),
+        order,
+        existingComponentId: config.existingComponentId,
+        createConfirmed: !config.existingComponentId && assessmentComponentsConfirmed,
+      } : null;
+    })
+    .filter((mapping): mapping is NonNullable<typeof mapping> => mapping !== null);
+
+  const totalColumn = mappings.find((mapping) => mapping.target === "total")?.source;
+  const examColumn = mappings.find((mapping) => mapping.target === "exam")?.source;
+  const componentDiscrepancies = useMemo(() => totalColumn ? rawData.flatMap((row, rowIndex) => {
+    const suppliedTotal = Number(row[totalColumn]);
+    const componentValues = assessmentComponentMappings
+      .map((mapping) => Number(row[mapping.sourceColumn]))
+      .filter(Number.isFinite);
+    const exam = examColumn ? Number(row[examColumn]) : NaN;
+    const visibleSum = componentValues.reduce((sum, value) => sum + value, 0) + (Number.isFinite(exam) ? exam : 0);
+    return Number.isFinite(suppliedTotal) && componentValues.length > 0 && Math.abs(suppliedTotal - visibleSum) > 0.000001
+      ? [{ rowIndex, suppliedTotal, visibleSum }]
+      : [];
+  }) : [], [totalColumn, rawData, assessmentComponentMappings, examColumn]);
+
   const runClientValidation = useCallback((): ValidationIssue[] => {
     const issues: ValidationIssue[] = [];
 
     const hasFirstName = mappings.some((m) => m.target === "firstName");
     const hasLastName = mappings.some((m) => m.target === "lastName");
-    if (!hasFirstName || !hasLastName) {
-      issues.push({ type: "error", message: "First Name and Last Name columns must be mapped" });
+    const hasFullName = mappings.some((m) => m.target === "fullName");
+    const hasName = (hasFirstName && hasLastName) || hasFullName;
+    if (!hasName) {
+      issues.push({ type: "error", message: "Map a Full Name column, or both First Name and Last Name" });
     }
 
     if (!classId) issues.push({ type: "error", message: "Class is required" });
 
-    if (hasFirstName && hasLastName) {
-      const fnCol = mappings.find((m) => m.target === "firstName")?.source ?? "";
-      const lnCol = mappings.find((m) => m.target === "lastName")?.source ?? "";
-      const nameKeys = rawData.map((r) => `${r[fnCol] ?? ""}|${r[lnCol] ?? ""}`.toLowerCase().trim());
-      const validNames = nameKeys.filter((n) => n !== "|" && n.replace("|", "").trim());
-      const uniq = new Set(validNames);
-      if (uniq.size < validNames.length) {
-        const dups = validNames.filter((n, i) => validNames.indexOf(n) !== i);
-        issues.push({ type: "warning", message: `${dups.length} duplicate student name(s) in import data` });
+    if (hasName) {
+      const fnCol = mappings.find((m) => m.target === "firstName")?.source;
+      const lnCol = mappings.find((m) => m.target === "lastName")?.source;
+      const fullCol = mappings.find((m) => m.target === "fullName")?.source;
+      const nameKeys = rawData
+        .map((r) => {
+          if (fullCol) return r[fullCol]?.trim().toLowerCase() ?? "";
+          return `${r[fnCol ?? ""] ?? ""}|${r[lnCol ?? ""] ?? ""}`.toLowerCase().trim();
+        })
+        .filter((n) => n && n !== "|");
+      const uniq = new Set(nameKeys);
+      if (uniq.size < nameKeys.length) {
+        issues.push({ type: "warning", message: `${nameKeys.length - uniq.size} duplicate student name(s) in import data` });
       }
     }
 
@@ -404,12 +554,52 @@ export function ImportHubClient({
       }
     }
 
+    if (mappings.some((mapping) => mapping.target === "assessmentComponent")) {
+      if (assessmentComponentMappings.length !== mappings.filter((mapping) => mapping.target === "assessmentComponent").length) {
+        issues.push({ type: "error", message: "Configure every mapped assessment component" });
+      }
+      const normalizedNames = assessmentComponentMappings.map((mapping) => mapping.normalizedName);
+      if (new Set(normalizedNames).size !== normalizedNames.length) {
+        issues.push({ type: "error", message: "Each assessment component can be mapped only once" });
+      }
+      for (const mapping of assessmentComponentMappings) {
+        if (!mapping.componentName || !mapping.normalizedName || !Number.isFinite(mapping.maxScore) || mapping.maxScore <= 0) {
+          issues.push({ type: "error", message: `Confirm a name and maximum score for ${mapping.sourceColumn}` });
+          continue;
+        }
+        const invalid = rawData.filter((row) => {
+          const raw = row[mapping.sourceColumn]?.trim();
+          if (!raw || raw === "-" || raw.toUpperCase() === "N/A") return false;
+          const value = Number(raw);
+          return !Number.isFinite(value) || value < 0 || value > mapping.maxScore;
+        }).length;
+        if (invalid > 0) issues.push({ type: "error", message: `${invalid} row(s) exceed or violate the confirmed maximum for ${mapping.componentName}` });
+      }
+      if (!assessmentComponentsConfirmed) {
+        issues.push({ type: "error", message: "Confirm the assessment component structure before staging" });
+      }
+    }
+
+    if (componentDiscrepancies.length > 0) {
+      issues.push({ type: "warning", message: `${componentDiscrepancies.length} row(s) have a supplied total that differs from the visible component sum` });
+      if (!componentDiscrepanciesConfirmed) {
+        issues.push({ type: "error", message: "Confirm that supplied totals will be preserved despite component discrepancies" });
+      }
+    }
+
     if (hasScoreColumns && !subject.trim()) {
       issues.push({ type: "error", message: "Subject name is required when importing scores" });
     }
 
+    if (hasFullName && !fullNameFormatConfirmed) {
+      issues.push({ type: "error", message: "Confirm how the Full Name column should be interpreted" });
+    }
+    if (subjectSuggestions.some((s) => normalizeKey(s.raw) !== normalizeKey(subjectOverrides[normalizeKey(s.raw)] ?? s.suggested)) && !subjectMappingsConfirmed) {
+      issues.push({ type: "error", message: "Confirm the subject mappings that will be learned for this school" });
+    }
+
     return issues;
-  }, [mappings, rawData, classId, subject]);
+  }, [mappings, rawData, classId, subject, hasScoreColumns, fullNameFormatConfirmed, subjectSuggestions, subjectOverrides, subjectMappingsConfirmed, assessmentComponentMappings, assessmentComponentsConfirmed, componentDiscrepancies, componentDiscrepanciesConfirmed]);
 
   const computePostAnalytics = useCallback((): PostAnalytics => {
     const totalCol = mappings.find((m) => m.target === "total")?.source;
@@ -440,6 +630,11 @@ export function ImportHubClient({
     };
   }, [mappings, rawData]);
 
+  const discardJob = useCallback((id: string) => {
+    // Best-effort cleanup — never blocks the flow that triggered it.
+    fetch(`/api/student-hub/jobs/${id}/discard`, { method: "POST" }).catch(() => {});
+  }, []);
+
   const runStaging = useCallback(async () => {
     const issues = runClientValidation();
     setValidationIssues(issues);
@@ -448,6 +643,11 @@ export function ImportHubClient({
     setLoading(true);
     setError(null);
     try {
+      // A previous staging round exists (e.g. the teacher went Back to fix a mapping
+      // and is re-staging) — discard it instead of leaving it stranded in STAGED
+      // status with no path to commit or clean up.
+      if (jobId) discardJob(jobId);
+
       const srcName = importSource === "PASTE" ? "CSV" : (file?.name?.endsWith(".csv") ? "CSV" : "EXCEL");
       const fileName = importSource === "PASTE" ? "pasted-table.csv" : (file?.name ?? "upload");
 
@@ -460,7 +660,7 @@ export function ImportHubClient({
       const { jobId: newJobId } = await jobRes.json() as { jobId: string };
       setJobId(newJobId);
 
-      const activeMappings = mappings.filter((m) => m.target !== "ignore");
+      const activeMappings = mappings.filter((m) => m.target !== "ignore" && m.target !== "assessmentComponent");
       const stagingRows = rawData.map((row, idx) => ({
         rowIndex: idx,
         rawData: row,
@@ -470,7 +670,18 @@ export function ImportHubClient({
       const stageRes = await fetch(`/api/student-hub/jobs/${newJobId}/stage`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ rows: stagingRows }),
+        body: JSON.stringify({
+          rows: stagingRows,
+          classId,
+          term,
+          session,
+          fullNameFormat,
+          fullNameFormatConfirmed,
+          subjectCanonicalMap: subjectOverrides,
+          subjectMappingsConfirmed,
+          assessmentComponentMappings,
+          assessmentComponentsConfirmed,
+        }),
       });
       if (!stageRes.ok) throw new Error("Staging failed");
       const result = await stageRes.json() as StagingResult;
@@ -481,7 +692,7 @@ export function ImportHubClient({
     } finally {
       setLoading(false);
     }
-  }, [importSource, file, mappings, rawData, runClientValidation]);
+  }, [importSource, file, mappings, rawData, runClientValidation, jobId, discardJob, classId, term, session, fullNameFormat, fullNameFormatConfirmed, subjectOverrides, subjectMappingsConfirmed, assessmentComponentMappings, assessmentComponentsConfirmed]);
 
   const executeCommit = useCallback(async () => {
     if (!jobId) return;
@@ -507,7 +718,33 @@ export function ImportHubClient({
     }
   }, [jobId, classId, subject, term, session, defaultResolution, computePostAnalytics]);
 
+  const changeMappingTarget = (mapping: ColumnMapping, target: string) => {
+    setMappings((previous) => previous.map((item) => item.source === mapping.source ? { ...item, target } : item));
+    setComponentConfigs((previous) => {
+      const next = { ...previous };
+      if (target === "assessmentComponent") {
+        const suggestion = suggestAssessmentComponent(mapping.source);
+        const componentName = mapping.componentName ?? suggestion?.componentName ?? mapping.source;
+        next[mapping.source] = next[mapping.source] ?? {
+          sourceColumn: mapping.source,
+          componentName,
+          normalizedName: mapping.normalizedName ?? suggestion?.normalizedName ?? normalizeAssessmentComponentName(componentName),
+          maxScore: String(mapping.maxScore ?? suggestion?.maxScore ?? ""),
+          order: Object.keys(next).length,
+        };
+      } else {
+        delete next[mapping.source];
+      }
+      return next;
+    });
+    setAssessmentComponentsConfirmed(false);
+    setComponentDiscrepanciesConfirmed(false);
+  };
+
   const reset = () => {
+    // Abandoning a staged-but-never-committed job (e.g. "Back" out of mapping after
+    // already staging once) — discard it so it doesn't linger invisibly.
+    if (jobId && !commitResult) discardJob(jobId);
     setStep("upload");
     setUploadMode("file");
     setFile(null);
@@ -524,43 +761,46 @@ export function ImportHubClient({
     setOcrPreview(null);
     setValidationIssues([]);
     setPostAnalytics(null);
+    setSubjectSuggestions([]);
+    setSubjectOverrides({});
+    setFullNameFormat(DEFAULT_FULL_NAME_FORMAT);
+    setFullNameFormatConfirmed(false);
+    setSubjectMappingsConfirmed(false);
+    setComponentConfigs({});
+    setExistingComponents([]);
+    setAssessmentComponentsConfirmed(false);
+    setComponentDiscrepanciesConfirmed(false);
   };
 
-  const hasScoreColumns = mappings.some((m) => ["ca1", "ca2", "exam", "total", "grade"].includes(m.target));
-  const requiredMet = mappings.some((m) => m.target === "firstName") && mappings.some((m) => m.target === "lastName");
+  const requiredMet =
+    (mappings.some((m) => m.target === "firstName") && mappings.some((m) => m.target === "lastName")) ||
+    mappings.some((m) => m.target === "fullName");
   const hasBlockingErrors = validationIssues.some((i) => i.type === "error");
 
-  const steps = ["upload", "mapping", "preview", "done"] as const;
+  const workflowSteps = [
+    { id: "upload", label: "Upload" },
+    { id: "analyse", label: "Analyse", shortLabel: "Analyse" },
+    { id: "map", label: "Map columns", shortLabel: "Map" },
+    { id: "preview", label: "Preview" },
+    { id: "confirm", label: "Confirm" },
+    { id: "commit", label: "Commit" },
+    { id: "complete", label: "Complete" },
+  ];
+  const workflowCurrent = step === "upload" ? (loading ? "analyse" : "upload")
+    : step === "mapping" ? "map"
+    : step === "preview" || step === "conflicts" ? "confirm"
+    : step === "importing" ? "commit"
+    : "complete";
+  const workflowCompleted = workflowSteps
+    .slice(0, Math.max(0, workflowSteps.findIndex((item) => item.id === workflowCurrent)))
+    .map((item) => item.id);
 
   return (
     <div className="space-y-6">
-      {/* Step indicator */}
-      <div className="flex items-center gap-2 text-xs font-medium flex-wrap">
-        {steps.map((s, i) => {
-          const active =
-            step === s ||
-            (s === "preview" && step === "conflicts") ||
-            (s === "done" && step === "importing");
-          return (
-            <div key={s} className="flex items-center gap-2">
-              {i > 0 && <div className="w-6 h-px bg-border" />}
-              <div
-                className={`px-3 py-1.5 rounded-full border transition-colors ${
-                  active ? "bg-primary text-white border-primary" : "bg-surface text-text-2 border-border"
-                }`}
-              >
-                {i + 1}. {s === "done" ? "Complete" : s.charAt(0).toUpperCase() + s.slice(1)}
-              </div>
-            </div>
-          );
-        })}
-      </div>
+      <WorkflowStepper steps={workflowSteps} currentStep={workflowCurrent} completedStepIds={workflowCompleted} label="Student import progress" />
 
       {error && (
-        <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 text-sm">
-          <AlertTriangle size={16} />
-          {error}
-        </div>
+        <StatusMessage tone="error" title="Import could not continue">{error}</StatusMessage>
       )}
 
       {/* ── Step 1: Upload ── */}
@@ -597,6 +837,7 @@ export function ImportHubClient({
                   {ocrPreview ? "AI is reading the mark sheet…" : `Parsing ${file?.name}…`}
                 </p>
                 {ocrPreview && (
+                  // eslint-disable-next-line @next/next/no-img-element
                   <img src={ocrPreview} alt="preview" className="mt-3 max-h-36 rounded-lg opacity-60 mx-auto" />
                 )}
               </div>
@@ -780,14 +1021,16 @@ export function ImportHubClient({
                   <ArrowRight size={14} className="text-text-2 shrink-0" />
                   <select
                     value={m.target}
-                    onChange={(e) =>
-                      setMappings((prev) =>
-                        prev.map((p) => p.source === m.source ? { ...p, target: e.target.value } : p)
-                      )
-                    }
+                    onChange={(e) => changeMappingTarget(m, e.target.value)}
                     className="w-44 px-2 py-1.5 rounded-lg text-sm bg-surface border border-border text-text focus:outline-none focus:ring-2 focus:ring-primary/30"
                   >
-                    {TARGET_FIELDS.map((f) => <option key={f.key} value={f.key}>{f.label}</option>)}
+                    {["Identity / student fields", "Result fields", "Other"].map((group) => (
+                      <optgroup key={group} label={group}>
+                        {TARGET_FIELDS.filter((field) => field.group === group).map((field) => (
+                          <option key={field.key} value={field.key}>{field.label}</option>
+                        ))}
+                      </optgroup>
+                    ))}
                   </select>
                   {m.confidence >= 0.8 && m.target !== "ignore" && <CheckCircle size={15} className="text-green-500 shrink-0" />}
                   {m.confidence < 0.5 && m.target !== "ignore" && <AlertTriangle size={13} className="text-amber-500 shrink-0" />}
@@ -796,41 +1039,224 @@ export function ImportHubClient({
             </div>
           </div>
 
+          {mappings.some((mapping) => mapping.target === "assessmentComponent") && (
+            <div className="bg-surface border border-border rounded-xl p-5 space-y-4">
+              <div>
+                <h3 className="font-bold text-text text-sm">Assessment Components</h3>
+                <p className="text-xs text-text-2 mt-1">
+                  Confirm how each school-specific score column will be stored. Existing components are scoped to this school only.
+                </p>
+              </div>
+              <div className="space-y-3">
+                {mappings.filter((mapping) => mapping.target === "assessmentComponent").map((mapping) => {
+                  const config = componentConfigs[mapping.source];
+                  if (!config) return null;
+                  return (
+                    <div key={mapping.source} className="rounded-xl border border-border bg-bg p-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+                      <div>
+                        <p className="text-[11px] uppercase tracking-wide text-text-2 font-semibold">Source</p>
+                        <p className="text-sm font-mono text-text mt-1">{mapping.source}</p>
+                        <p className="text-xs text-text-2 truncate">Sample: {analysis.sampleRows[0]?.[mapping.source] ?? "—"}</p>
+                      </div>
+                      <label className="text-xs text-text-2">
+                        Reuse or create
+                        <select
+                          value={config.existingComponentId ?? "__new__"}
+                          onChange={(event) => {
+                            const existing = existingComponents.find((component) => component.id === event.target.value);
+                            setComponentConfigs((previous) => ({
+                              ...previous,
+                              [mapping.source]: existing ? {
+                                ...config,
+                                existingComponentId: existing.id,
+                                componentName: existing.name,
+                                normalizedName: existing.normalizedName,
+                                maxScore: existing.maxScore == null ? "" : String(existing.maxScore),
+                              } : { ...config, existingComponentId: undefined },
+                            }));
+                            setAssessmentComponentsConfirmed(false);
+                          }}
+                          className="mt-1 w-full px-2 py-2 rounded-lg bg-surface border border-border text-text"
+                        >
+                          <option value="__new__">Create confirmed component</option>
+                          {existingComponents.map((component) => <option key={component.id} value={component.id}>{component.name}</option>)}
+                        </select>
+                      </label>
+                      <label className="text-xs text-text-2">
+                        Display name
+                        <input
+                          value={config.componentName}
+                          disabled={Boolean(config.existingComponentId)}
+                          onChange={(event) => setComponentConfigs((previous) => ({ ...previous, [mapping.source]: { ...config, componentName: event.target.value, normalizedName: normalizeAssessmentComponentName(event.target.value) } }))}
+                          className="mt-1 w-full px-2 py-2 rounded-lg bg-surface border border-border text-text disabled:opacity-60"
+                        />
+                      </label>
+                      <label className="text-xs text-text-2">
+                        Normalized name
+                        <input
+                          value={config.normalizedName}
+                          disabled={Boolean(config.existingComponentId)}
+                          onChange={(event) => setComponentConfigs((previous) => ({ ...previous, [mapping.source]: { ...config, normalizedName: event.target.value } }))}
+                          className="mt-1 w-full px-2 py-2 rounded-lg bg-surface border border-border text-text disabled:opacity-60"
+                        />
+                      </label>
+                      <label className="text-xs text-text-2">
+                        Maximum mark
+                        <input
+                          type="number"
+                          min="0.01"
+                          step="0.01"
+                          value={config.maxScore}
+                          disabled={Boolean(config.existingComponentId && existingComponents.find((component) => component.id === config.existingComponentId)?.maxScore != null)}
+                          onChange={(event) => setComponentConfigs((previous) => ({ ...previous, [mapping.source]: { ...config, maxScore: event.target.value } }))}
+                          className="mt-1 w-full px-2 py-2 rounded-lg bg-surface border border-border text-text disabled:opacity-60"
+                        />
+                      </label>
+                    </div>
+                  );
+                })}
+              </div>
+              <label className="flex items-start gap-2 text-xs text-text-2 cursor-pointer">
+                <input type="checkbox" checked={assessmentComponentsConfirmed} onChange={(event) => setAssessmentComponentsConfirmed(event.target.checked)} className="mt-0.5" />
+                I confirm these component names, maximum marks, ordering, and school-scoped reuse choices.
+              </label>
+            </div>
+          )}
+
+          {/* Full Name split direction — explicit, teacher-confirmed, never guessed */}
+          {mappings.some((m) => m.target === "fullName") && (() => {
+            const fullNameCol = mappings.find((m) => m.target === "fullName")!.source;
+            const samples = rawData.slice(0, 3).map((r) => r[fullNameCol]).filter(Boolean);
+            return (
+              <div className="bg-surface border border-border rounded-xl p-5 space-y-3">
+                <h3 className="font-bold text-text text-sm">Full Name Format</h3>
+                <p className="text-xs text-text-2">
+                  A single &ldquo;Full Name&rdquo; column is ambiguous — confirm how names should split.
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  {(Object.keys(FULL_NAME_FORMAT_LABELS) as FullNameFormat[]).map((fmt) => (
+                    <button
+                      key={fmt}
+                      onClick={() => { setFullNameFormat(fmt); setFullNameFormatConfirmed(true); }}
+                      className={`p-3 rounded-lg border text-left text-xs transition-colors ${
+                        fullNameFormat === fmt ? "border-primary bg-primary/5 ring-1 ring-primary" : "border-border hover:border-primary/30"
+                      }`}
+                    >
+                      {FULL_NAME_FORMAT_LABELS[fmt]}
+                    </button>
+                  ))}
+                </div>
+                {samples.length > 0 && (
+                  <div className="bg-bg rounded-lg border border-border p-3 space-y-1">
+                    <p className="text-[11px] font-semibold text-text-2 uppercase tracking-wide">Preview</p>
+                    {samples.map((s, i) => {
+                      const split = splitFullName(s, fullNameFormat);
+                      return (
+                        <p key={i} className="text-xs text-text font-mono">
+                          &ldquo;{s}&rdquo; → First: <strong>{split.firstName}</strong> · Last: <strong>{split.lastName}</strong>
+                        </p>
+                      );
+                    })}
+                    {fullNameFormat === "KEEP_WHOLE" && (
+                      <p className="text-[11px] text-amber-600 dark:text-amber-400 pt-1">
+                        The original name is preserved, but a best-effort split still populates First/Last Name — full non-split storage isn&apos;t supported everywhere in the app yet.
+                      </p>
+                    )}
+                  </div>
+                )}
+                <label className="flex items-start gap-2 text-xs text-text-2 cursor-pointer">
+                  <input type="checkbox" checked={fullNameFormatConfirmed} onChange={(e) => setFullNameFormatConfirmed(e.target.checked)} className="mt-0.5" />
+                  I confirm this interpretation for every Full Name value in this import.
+                </label>
+              </div>
+            );
+          })()}
+
+          {/* Subject Registry confirmation — suggestions only, never applied silently */}
+          {mappings.some((m) => m.target === "subject") && subjectSuggestions.length > 0 && (
+            <div className="bg-surface border border-border rounded-xl p-5 space-y-3">
+              <div className="flex items-center gap-2">
+                <h3 className="font-bold text-text text-sm">Confirm Subject Names</h3>
+                {loadingSubjects && <Loader2 size={13} className="animate-spin text-text-2" />}
+              </div>
+              <p className="text-xs text-text-2">
+                Review how each subject value in this file will be recorded. Different spellings of the same subject (e.g. &ldquo;Maths&rdquo; and &ldquo;Mathematics&rdquo;) should map to one canonical name.
+              </p>
+              <div className="grid gap-2">
+                {subjectSuggestions.map((s) => {
+                  const key = normalizeKey(s.raw);
+                  return (
+                    <div key={s.raw} className="flex items-center gap-3 px-3 py-2 rounded-lg bg-bg border border-border">
+                      <span className="text-sm font-mono text-text flex-1 truncate">{s.raw}</span>
+                      <ArrowRight size={14} className="text-text-2 shrink-0" />
+                      <input
+                        value={subjectOverrides[key] ?? s.suggested}
+                        onChange={(e) => setSubjectOverrides((prev) => ({ ...prev, [key]: e.target.value }))}
+                        className="w-48 px-2 py-1.5 rounded-lg text-sm bg-surface border border-border text-text focus:outline-none focus:ring-2 focus:ring-primary/30"
+                      />
+                      {s.source === "SCHOOL_ALIAS" && (
+                        <span className="text-[10px] text-primary bg-primary/10 px-1.5 py-0.5 rounded shrink-0">Learned</span>
+                      )}
+                      {s.source === "BUILT_IN" && (
+                        <span className="text-[10px] text-text-2 bg-bg border border-border px-1.5 py-0.5 rounded shrink-0">Suggested</span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+              {subjectSuggestions.some((s) => normalizeKey(s.raw) !== normalizeKey(subjectOverrides[normalizeKey(s.raw)] ?? s.suggested)) && (
+                <label className="flex items-start gap-2 text-xs text-text-2 cursor-pointer">
+                  <input type="checkbox" checked={subjectMappingsConfirmed} onChange={(e) => setSubjectMappingsConfirmed(e.target.checked)} className="mt-0.5" />
+                  I confirm these canonical subject names and allow TeachNexis to reuse them for this school.
+                </label>
+              )}
+            </div>
+          )}
+
+          {componentDiscrepancies.length > 0 && (
+            <section className="space-y-3 rounded-xl border border-warning/30 bg-warning-50/40 p-4 sm:p-5" aria-labelledby="component-discrepancy-title">
+              <StatusMessage tone="warning" title="Supplied total differs from visible components" className="border-0 bg-transparent p-0">
+                <span id="component-discrepancy-title">{componentDiscrepancies.length} row(s) differ. TeachNexis will preserve the supplied Total Score and store component values separately. Nothing is silently recalculated or double-counted.</span>
+              </StatusMessage>
+              <ResponsiveTable label="Component total discrepancies" className="shadow-none" tableClassName="min-w-[30rem] text-xs">
+                  <thead><tr className="bg-bg"><th className="px-3 py-2 text-left">Row</th><th className="px-3 py-2 text-left">Supplied total</th><th className="px-3 py-2 text-left">Visible component sum</th></tr></thead>
+                  <tbody>{componentDiscrepancies.slice(0, 5).map((item) => (
+                    <tr key={item.rowIndex} className="border-t border-border"><td className="px-3 py-2">{item.rowIndex + 2}</td><td className="px-3 py-2 font-semibold">{item.suppliedTotal}</td><td className="px-3 py-2">{item.visibleSum}</td></tr>
+                  ))}</tbody>
+              </ResponsiveTable>
+              <label className="flex items-start gap-2 text-xs text-text-2 cursor-pointer">
+                <input type="checkbox" checked={componentDiscrepanciesConfirmed} onChange={(event) => setComponentDiscrepanciesConfirmed(event.target.checked)} className="mt-0.5 size-4 accent-primary" />
+                I reviewed these differences and confirm that the supplied totals remain authoritative for this import.
+              </label>
+            </section>
+          )}
+
           {/* Import settings */}
           <div className="bg-surface border border-border rounded-xl p-5 space-y-4">
             <h3 className="font-bold text-text text-sm">Import Settings</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-medium text-text-2 mb-1">Class *</label>
-                <select value={classId} onChange={(e) => setClassId(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg text-sm bg-bg border border-border text-text focus:outline-none focus:ring-2 focus:ring-primary/30">
+              <FormField id="import-class" label="Class" required>
+                <Select id="import-class" value={classId} onChange={(e) => setClassId(e.target.value)} required>
                   {classes.map((c) => <option key={c.id} value={c.id}>{c.name} ({c.level} — {c.session})</option>)}
-                </select>
-              </div>
+                </Select>
+              </FormField>
               {hasScoreColumns && (
-                <div>
-                  <label className="block text-xs font-medium text-text-2 mb-1">Default Subject *</label>
-                  <input value={subject} onChange={(e) => setSubject(e.target.value)}
-                    placeholder="e.g. Mathematics"
-                    className="w-full px-3 py-2 rounded-lg text-sm bg-bg border border-border text-text focus:outline-none focus:ring-2 focus:ring-primary/30" />
-                </div>
+                <FormField id="import-subject" label="Default Subject" required description="Used only when the file does not provide a subject column." error={!subject.trim() ? "Enter a subject before previewing." : undefined}>
+                  <Input id="import-subject" value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="e.g. Mathematics" required {...fieldAria("import-subject", { description: true, error: !subject.trim() })} />
+                </FormField>
               )}
               {hasScoreColumns && (
                 <>
-                  <div>
-                    <label className="block text-xs font-medium text-text-2 mb-1">Term</label>
-                    <select value={term} onChange={(e) => setTerm(e.target.value as typeof term)}
-                      className="w-full px-3 py-2 rounded-lg text-sm bg-bg border border-border text-text focus:outline-none focus:ring-2 focus:ring-primary/30">
+                  <FormField id="import-term" label="Term">
+                    <Select id="import-term" value={term} onChange={(e) => setTerm(e.target.value as typeof term)}>
                       <option value="FIRST">First Term</option>
                       <option value="SECOND">Second Term</option>
                       <option value="THIRD">Third Term</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-text-2 mb-1">Session</label>
-                    <input value={session} onChange={(e) => setSession(e.target.value)} placeholder="e.g. 2025/2026"
-                      className="w-full px-3 py-2 rounded-lg text-sm bg-bg border border-border text-text focus:outline-none focus:ring-2 focus:ring-primary/30" />
-                  </div>
+                    </Select>
+                  </FormField>
+                  <FormField id="import-session" label="Session" description="Use the school academic-session format, for example 2025/2026.">
+                    <Input id="import-session" value={session} onChange={(e) => setSession(e.target.value)} placeholder="e.g. 2025/2026" {...fieldAria("import-session", { description: true })} />
+                  </FormField>
                 </>
               )}
             </div>
@@ -932,13 +1358,40 @@ export function ImportHubClient({
               <Stat icon={XCircle} label="Skipped" value={String(stagingResult.skipCount)} color="text-text-2" />
             </div>
 
+            {assessmentComponentMappings.length > 0 && (
+              <div className="mb-5 overflow-x-auto rounded-lg border border-border">
+                <table className="w-full text-xs">
+                  <thead><tr className="bg-bg"><th className="px-3 py-2 text-left">Source column</th><th className="px-3 py-2 text-left">Stored component</th><th className="px-3 py-2 text-left">Normalized name</th><th className="px-3 py-2 text-left">Maximum</th><th className="px-3 py-2 text-left">Sample</th><th className="px-3 py-2 text-left">State</th></tr></thead>
+                  <tbody>{assessmentComponentMappings.map((mapping) => (
+                    <tr key={mapping.sourceColumn} className="border-t border-border">
+                      <td className="px-3 py-2 font-mono">{mapping.sourceColumn}</td>
+                      <td className="px-3 py-2 font-semibold">{mapping.componentName}</td>
+                      <td className="px-3 py-2">{mapping.normalizedName}</td>
+                      <td className="px-3 py-2">{mapping.maxScore}</td>
+                      <td className="px-3 py-2">{rawData[0]?.[mapping.sourceColumn] ?? "—"}</td>
+                      <td className="px-3 py-2 text-green-600">Confirmed</td>
+                    </tr>
+                  ))}</tbody>
+                </table>
+              </div>
+            )}
+
+            {componentDiscrepancies.length > 0 && (
+              <div className="mb-5 flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 text-xs text-amber-700 dark:text-amber-400">
+                <AlertTriangle size={15} className="shrink-0" />
+                <span><strong>{componentDiscrepancies.length} supplied total discrepancy/discrepancies confirmed.</strong> Supplied totals will be stored unchanged; visible sums remain validation metadata only.</span>
+              </div>
+            )}
+
             <div className="overflow-x-auto rounded-lg border border-border">
               <table className="w-full text-xs">
                 <thead>
                   <tr className="bg-bg">
                     {mappings.filter((m) => m.target !== "ignore").map((m) => (
                       <th key={m.source} className="px-3 py-2 text-left font-semibold text-text-2 whitespace-nowrap">
-                        {TARGET_FIELDS.find((f) => f.key === m.target)?.label ?? m.target}
+                        {m.target === "assessmentComponent"
+                          ? componentConfigs[m.source]?.componentName ?? "Assessment Component"
+                          : TARGET_FIELDS.find((f) => f.key === m.target)?.label ?? m.target}
                       </th>
                     ))}
                   </tr>

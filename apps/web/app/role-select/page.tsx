@@ -1,17 +1,16 @@
 import Link from "next/link";
 import { GraduationCap, BookOpen } from "lucide-react";
-import { safeAuth } from "@/lib/auth";
+import { safeAuth, getCurrentTeacher, getCurrentStudent } from "@/lib/auth";
 import { redirect } from "next/navigation";
-import { db } from "@/lib/db";
 
 export default async function RoleSelectPage() {
   const { userId } = await safeAuth();
   if (!userId) redirect("/sign-in");
 
-  const teacher = await db.teacher.findUnique({ where: { clerkId: userId } });
+  const teacher = await getCurrentTeacher();
   if (teacher) redirect("/dashboard");
 
-  const student = await db.student.findUnique({ where: { clerkId: userId } });
+  const student = await getCurrentStudent();
   if (student) redirect("/s/dashboard");
 
   return (

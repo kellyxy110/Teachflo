@@ -3,12 +3,15 @@ const MAX_REQUESTS = 15;
 
 // ── In-memory fallback (single instance, resets on cold start) ──────────────
 const hits = new Map<string, { count: number; resetAt: number }>();
-setInterval(() => {
+const cleanupTimer = setInterval(() => {
   const now = Date.now();
   for (const [key, val] of hits) {
     if (val.resetAt <= now) hits.delete(key);
   }
 }, WINDOW_MS);
+// The in-memory fallback is production behavior, but test processes must not
+// be kept alive by its maintenance timer after a harness has finished.
+if (process.env.NODE_ENV === "test") cleanupTimer.unref?.();
 
 function inMemoryLimit(key: string): { ok: boolean; remaining: number } {
   const now = Date.now();
@@ -48,8 +51,19 @@ async function upstashLimit(key: string): Promise<{ ok: boolean; remaining: numb
 }
 
 export async function rateLimit(key: string): Promise<{ ok: boolean; remaining: number }> {
+  if (testLimiter) return testLimiter(key);
   if (process.env.UPSTASH_REDIS_REST_URL) {
     return upstashLimit(key);
   }
   return inMemoryLimit(key);
+}
+
+let testLimiter: ((key: string) => Promise<{ ok: boolean; remaining: number }> | { ok: boolean; remaining: number }) | null = null;
+
+/** Test-process-only override; never selected by request data or production env. */
+export function setRateLimiterForTests(
+  limiter: typeof testLimiter,
+): void {
+  if (process.env.NODE_ENV !== "test") throw new Error("Test rate-limit override is unavailable outside NODE_ENV=test");
+  testLimiter = limiter;
 }

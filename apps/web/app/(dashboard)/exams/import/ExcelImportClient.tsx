@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import * as XLSX from "xlsx";
 import { bulkImportQuestions } from "@/app/actions/questions";
 import {
-  Upload, FileSpreadsheet, Check, X, Loader2,
+  Upload, FileSpreadsheet, Check, Loader2,
   AlertCircle, Download, Eye,
 } from "lucide-react";
 
@@ -135,7 +135,7 @@ export function ExcelImportClient({ exams }: { exams: ExamOption[] }) {
     ]);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Questions");
-    XLSX.writeFile(wb, "teachflow_question_template.xlsx");
+    XLSX.writeFile(wb, "teachnexis_question_template.xlsx");
   }
 
   const mcqCount = questions.filter((q) => q.type === "MCQ").length;

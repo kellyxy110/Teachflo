@@ -1,5 +1,6 @@
-export default function SetupPage() {
-  const vars = [
+export const dynamic = "force-dynamic";
+
+const vars = [
     {
       key: "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY",
       hint: "Clerk dashboard → API Keys → Publishable key",
@@ -50,7 +51,22 @@ export default function SetupPage() {
       hint: "Set to: /onboarding",
       required: false,
     },
-  ];
+  ] as const;
+
+const envStatus: Record<(typeof vars)[number]["key"], boolean> = {
+  NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: Boolean(process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY),
+  CLERK_SECRET_KEY: Boolean(process.env.CLERK_SECRET_KEY),
+  CLERK_WEBHOOK_SECRET: Boolean(process.env.CLERK_WEBHOOK_SECRET),
+  DATABASE_URL: Boolean(process.env.DATABASE_URL),
+  GROQ_API_KEY: Boolean(process.env.GROQ_API_KEY),
+  OPENROUTER_API_KEY: Boolean(process.env.OPENROUTER_API_KEY),
+  NEXT_PUBLIC_CLERK_SIGN_IN_URL: Boolean(process.env.NEXT_PUBLIC_CLERK_SIGN_IN_URL),
+  NEXT_PUBLIC_CLERK_SIGN_UP_URL: Boolean(process.env.NEXT_PUBLIC_CLERK_SIGN_UP_URL),
+  NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL: Boolean(process.env.NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL),
+  NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL: Boolean(process.env.NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL),
+};
+
+export default function SetupPage() {
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center p-6">
@@ -60,7 +76,7 @@ export default function SetupPage() {
           <div className="w-8 h-8 rounded-lg bg-[#2563EB] flex items-center justify-center text-white font-bold text-sm">
             T
           </div>
-          <span className="font-bold text-lg text-gray-900">TeachFlow OS</span>
+          <span className="font-bold text-lg text-gray-900">TeachNexis</span>
         </div>
 
         <div className="bg-white border border-gray-200 rounded-xl p-8 shadow-sm">
@@ -74,13 +90,15 @@ export default function SetupPage() {
               </h1>
               <p className="text-sm text-gray-500 mt-0.5">
                 Configure these in your Vercel project settings to activate
-                TeachFlow OS.
+                TeachNexis.
               </p>
             </div>
           </div>
 
           <div className="space-y-3">
-            {vars.map(({ key, hint }) => (
+            {vars.map(({ key, hint }) => {
+              const configured = envStatus[key];
+              return (
               <div
                 key={key}
                 className="flex items-start justify-between gap-4 p-3 bg-gray-50 rounded-lg border border-gray-200"
@@ -91,11 +109,12 @@ export default function SetupPage() {
                   </p>
                   <p className="text-xs text-gray-400 mt-0.5">{hint}</p>
                 </div>
-                <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-red-50 text-red-600 border border-red-200 shrink-0 mt-0.5">
-                  missing
+                <span className={`text-xs font-medium px-2 py-0.5 rounded-full shrink-0 mt-0.5 ${configured ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : "bg-red-50 text-red-600 border border-red-200"}`}>
+                  {configured ? "configured" : "missing"}
                 </span>
               </div>
-            ))}
+              );
+            })}
           </div>
 
           <div className="mt-6 pt-5 border-t border-gray-100 text-xs text-gray-400 space-y-1">

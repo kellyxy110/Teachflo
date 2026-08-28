@@ -14,6 +14,7 @@ export class ClerkAdapter implements IAuthService {
       userId: session.userId ?? null,
       sessionId: session.sessionId ?? null,
       sessionClaims: (session.sessionClaims as Record<string, unknown>) ?? {},
+      provider: "clerk",
     };
   }
 

@@ -38,7 +38,7 @@ export async function setupSchool(formData: FormData) {
     },
   });
 
-  await db.teacher.create({
+  const teacher = await db.teacher.create({
     data: {
       clerkId: userId,
       schoolId: school.id,
@@ -46,6 +46,14 @@ export async function setupSchool(formData: FormData) {
       lastName: user.lastName ?? "",
       email: user.email ?? "",
       role: "ADMIN",
+    },
+  });
+
+  await db.authIdentity.create({
+    data: {
+      provider: process.env.AUTH_PROVIDER === "supabase" ? "SUPABASE" : "CLERK",
+      providerUserId: userId,
+      teacherId: teacher.id,
     },
   });
 

@@ -20,7 +20,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     const stored = localStorage.getItem("tf-theme") as Theme | null;
     const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
     const initial: Theme = stored ?? (prefersDark ? "dark" : "light");
-    setTheme(initial);
+    queueMicrotask(() => setTheme(initial));
     document.documentElement.classList.toggle("dark", initial === "dark");
   }, []);
 

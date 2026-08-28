@@ -5,6 +5,7 @@ import { GradeBadge } from "@/components/ui/GradeBadge";
 import { calculateGrade, calculateTotal } from "@teachflow/shared";
 import { upsertScore } from "@/app/actions/scores";
 import { Save, CheckCircle } from "lucide-react";
+import { ResponsiveTable } from "@/components/ui/ResponsiveTable";
 
 type Student = {
   id: string;
@@ -144,8 +145,7 @@ export function ScoreTable({
         </button>
       </div>
 
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm">
+      <ResponsiveTable label={`${subject} scores`} className="rounded-none border-0" tableClassName="min-w-[48rem]">
           <thead>
             <tr className="border-b border-border text-left bg-bg">
               <th className="px-4 py-2.5 text-xs font-semibold text-text-2 w-8">#</th>
@@ -171,7 +171,7 @@ export function ScoreTable({
                     {student.lastName}, {student.firstName}
                   </td>
                   <td className="px-2 py-1.5 text-center">
-                    <input
+                    <input aria-label={`${student.firstName} ${student.lastName} CA1 score`}
                       type="text"
                       inputMode="decimal"
                       value={row?.ca1 ?? ""}
@@ -183,7 +183,7 @@ export function ScoreTable({
                     />
                   </td>
                   <td className="px-2 py-1.5 text-center">
-                    <input
+                    <input aria-label={`${student.firstName} ${student.lastName} CA2 score`}
                       type="text"
                       inputMode="decimal"
                       value={row?.ca2 ?? ""}
@@ -195,7 +195,7 @@ export function ScoreTable({
                     />
                   </td>
                   <td className="px-2 py-1.5 text-center">
-                    <input
+                    <input aria-label={`${student.firstName} ${student.lastName} Exam score`}
                       type="text"
                       inputMode="decimal"
                       value={row?.exam ?? ""}
@@ -221,8 +221,7 @@ export function ScoreTable({
               );
             })}
           </tbody>
-        </table>
-      </div>
+      </ResponsiveTable>
     </div>
   );
 }

@@ -12,19 +12,25 @@ import {
   Award, Calculator, Activity, Atom, X, PanelLeftClose, PanelLeftOpen, Database,
 } from "lucide-react";
 
-const navItems = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+const todayItem = { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard };
+const navGroups = [
+  { label: "Students & records", items: [
   { href: "/student-hub", label: "Student Data Hub", icon: Database },
   { href: "/classes", label: "Classes", icon: GraduationCap },
   { href: "/students", label: "Students", icon: Users },
-  { href: "/lessons", label: "Lessons", icon: BookOpen },
-  { href: "/homework", label: "Homework", icon: PenSquare },
   { href: "/attendance", label: "Attendance", icon: ClipboardCheck },
   { href: "/health", label: "Health Records", icon: HeartPulse },
   { href: "/scores", label: "Scores", icon: ClipboardList },
+  { href: "/report-cards", label: "Report Cards", icon: Award },
+  ]},
+  { label: "Teaching", items: [
+  { href: "/lessons", label: "Lessons", icon: BookOpen },
+  { href: "/homework", label: "Homework", icon: PenSquare },
+  { href: "/question-bank", label: "Question Bank", icon: ClipboardList },
   { href: "/exams", label: "Exams", icon: FileText },
   { href: "/library", label: "Library", icon: Library },
-  { href: "/report-cards", label: "Report Cards", icon: Award },
+  ]},
+  { label: "AI & learning tools", items: [
   { href: "/analytics", label: "Analytics", icon: BarChart2 },
   { href: "/study-buddy", label: "Study Buddy", icon: Sparkles },
   { href: "/knowledge-studio", label: "Knowledge Studio", icon: FlaskConical },
@@ -33,8 +39,11 @@ const navItems = [
   { href: "/math-workspace", label: "Math Workspace", icon: Calculator },
   { href: "/physics-lab", label: "Physics Lab", icon: Activity },
   { href: "/chem-lab", label: "Chemistry Lab", icon: Atom },
+  ]},
+  { label: "Administration", items: [
   { href: "/import", label: "Smart Import", icon: Upload },
   { href: "/beta", label: "Beta Hub", icon: TestTube2 },
+  ]},
 ];
 
 const bottomItems = [
@@ -99,7 +108,15 @@ export function Sidebar() {
 
         {/* Main nav */}
         <nav className="flex-1 px-2 py-3 space-y-0.5 overflow-y-auto overflow-x-hidden">
-          {navItems.map(({ href, label, icon: Icon }) => {
+          {[{ label: "Today", items: [todayItem] }, ...navGroups].map((group) => {
+            const groupActive = group.items.some(({ href }) => pathname === href || pathname.startsWith(href + "/"));
+            return (
+            <details key={group.label} open={group.label === "Today" || groupActive} className="group/section">
+              <summary className="mb-1 flex cursor-pointer list-none items-center justify-between rounded-md px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary [&::-webkit-details-marker]:hidden">
+                {!collapsed && <span>{group.label}</span>}
+                {!collapsed && <span aria-hidden="true" className="text-xs transition-transform group-open/section:rotate-180">⌄</span>}
+              </summary>
+              {group.items.map(({ href, label, icon: Icon }) => {
             const active = pathname === href || pathname.startsWith(href + "/");
             return (
               <Link
@@ -131,6 +148,9 @@ export function Sidebar() {
                   </span>
                 )}
               </Link>
+            );
+              })}
+            </details>
             );
           })}
         </nav>

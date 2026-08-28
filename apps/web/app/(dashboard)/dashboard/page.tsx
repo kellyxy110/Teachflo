@@ -6,12 +6,16 @@ import { WorkflowSetupCard } from "@/components/dashboard/WorkflowSetupCard";
 import {
   GraduationCap, Users, BookOpen, PenSquare,
   TrendingUp, AlertTriangle, FileText, ArrowRight,
-  Sparkles, Brain, Code2, Upload,
+  Sparkles, Code2,
 } from "lucide-react";
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { getCurrentTeacher } from "@/lib/auth";
 import { withCache } from "@/lib/cache";
+import { ButtonLink } from "@/components/ui/Button";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { EmptyState } from "@/components/ui/States";
+import { StatusBadge } from "@/components/ui/Status";
 
 function StatCard({
   icon: Icon, label, value, sub, href,
@@ -102,22 +106,12 @@ export default async function DashboardPage() {
     <div className="space-y-5 md:space-y-6 max-w-5xl">
       <OnboardingWizard />
 
-      {/* Greeting */}
-      <div className="flex items-center justify-between gap-3">
-        <div className="min-w-0">
-          <h1 className="text-xl md:text-2xl font-bold text-text truncate">
-            {greeting}, {firstName}
-          </h1>
-          <p className="text-text-2 text-xs md:text-sm mt-0.5 truncate">{teacher.school.name}</p>
-        </div>
-        <Link
-          href="/exams/new"
-          className="hidden sm:flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary-600 transition-colors shrink-0"
-        >
-          <FileText size={16} />
-          New Exam
-        </Link>
-      </div>
+      <PageHeader
+        title={`${greeting}, ${firstName}`}
+        description={teacher.school.name}
+        status={<StatusBadge tone="info">Teacher workspace</StatusBadge>}
+        primaryAction={<ButtonLink href="/exams/new" className="w-full sm:w-auto"><FileText size={16} />New Exam</ButtonLink>}
+      />
 
       {/* Setup workflow — hidden once all steps are done */}
       <WorkflowSetupCard
@@ -182,13 +176,13 @@ export default async function DashboardPage() {
             </Link>
           </div>
           {recentLessons.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-6 md:py-8 text-center">
-              <BookOpen size={32} className="text-border mb-2" />
-              <p className="text-sm text-muted">No lessons yet</p>
-              <Link href="/lessons/new" className="text-xs text-primary mt-1 hover:underline">
-                Generate your first lesson plan
-              </Link>
-            </div>
+            <EmptyState
+              icon={<BookOpen size={32} />}
+              title="No lessons yet"
+              description="Create your first lesson plan for an upcoming class."
+              action={<ButtonLink href="/lessons/new" size="sm" variant="secondary">Generate lesson plan</ButtonLink>}
+              className="border-0 py-6 shadow-none"
+            />
           ) : (
             <div className="space-y-1">
               {recentLessons.map((l) => (
@@ -256,13 +250,9 @@ export default async function DashboardPage() {
                     {exam.subject} · {exam.classLevel} · {exam._count.questions}q
                   </p>
                 </div>
-                <span className={`text-[10px] md:text-xs px-2 py-0.5 rounded font-medium shrink-0
-                  ${exam.examType === "WAEC_MOCK" ? "bg-purple-100 text-purple-700 dark:bg-purple-500/15 dark:text-purple-400" :
-                    exam.examType === "JAMB_PREP" ? "bg-cyan-100 text-cyan-700 dark:bg-cyan-500/15 dark:text-cyan-400" :
-                    exam.examType === "JUPEB_PREP" ? "bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400" :
-                    "bg-gray-100 text-gray-600 dark:bg-gray-500/15 dark:text-gray-400"}`}>
+                <StatusBadge tone={exam.examType === "SCHOOL_TEST" || exam.examType === "SCHOOL_EXAM" ? "neutral" : "info"} className="shrink-0">
                   {exam.examType.replace("_", " ")}
-                </span>
+                </StatusBadge>
               </Link>
             ))}
           </div>

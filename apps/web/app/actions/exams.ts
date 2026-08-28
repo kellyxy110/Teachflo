@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { requireSchool } from "@/lib/auth";
 import type { ClassLevel, ExamType, Difficulty, Prisma } from "@prisma/client";
+import { archiveExamForActor, deleteDraftExamForActor, publishExamForActor, saveExamDraftForActor, validateExamForPublication } from "@/lib/services/assessments/publication";
 
 type GeneratedQuestion = {
   number: number;
@@ -108,10 +109,39 @@ export async function saveExam(data: {
 }
 
 export async function deleteExam(examId: string) {
-  const { schoolId } = await requireSchool();
-  await db.exam.deleteMany({ where: { id: examId, schoolId } });
+  const { schoolId, teacher } = await requireSchool();
+  await deleteDraftExamForActor(examId, { schoolId, teacherId: teacher.id });
   revalidatePath("/exams");
   redirect("/exams");
+}
+
+export async function saveExamDraft(input: {
+  examId: string; expectedDraftRevision: number; title?: string; instructions?: string | null; duration?: number | null;
+  opensAt?: string | null; closesAt?: string | null; timezone?: string | null;
+}) {
+  const { schoolId, teacher } = await requireSchool();
+  return saveExamDraftForActor({ examId: input.examId, expectedDraftRevision: input.expectedDraftRevision, title: input.title, instructions: input.instructions, duration: input.duration, opensAt: input.opensAt ? new Date(input.opensAt) : null, closesAt: input.closesAt ? new Date(input.closesAt) : null, timezone: input.timezone }, { schoolId, teacherId: teacher.id });
+}
+
+export async function getExamPublicationReadiness(examId: string) {
+  const { schoolId, teacher } = await requireSchool();
+  return validateExamForPublication(examId, { schoolId, teacherId: teacher.id });
+}
+
+export async function publishExam(examId: string, expectedDraftRevision?: number) {
+  const { schoolId, teacher } = await requireSchool();
+  const publication = await publishExamForActor({ examId, expectedDraftRevision }, { schoolId, teacherId: teacher.id });
+  revalidatePath(`/exams/${examId}`);
+  revalidatePath("/exams");
+  return { id: publication.id, version: publication.version, publishedAt: publication.publishedAt };
+}
+
+export async function archiveExam(examId: string) {
+  const { schoolId, teacher } = await requireSchool();
+  const result = await archiveExamForActor(examId, { schoolId, teacherId: teacher.id });
+  revalidatePath(`/exams/${examId}`);
+  revalidatePath("/exams");
+  return result.count === 1;
 }
 
 export async function getExams() {
@@ -129,6 +159,14 @@ export async function getExam(examId: string) {
     where: { id: examId, schoolId },
     include: {
       questions: { orderBy: [{ section: "asc" }, { number: "asc" }] },
+      assessmentItems: {
+        orderBy: { order: "asc" },
+        include: {
+          question: { select: { examId: true, type: true, lifecycle: true } },
+          questionVersion: { select: { version: true, payload: true } },
+        },
+      },
+      _count: { select: { attempts: true } },
     },
   });
 }

@@ -59,6 +59,14 @@ export async function POST(request: Request) {
     data: { clerkId: userId, email },
   });
 
+  await db.authIdentity.create({
+    data: {
+      provider: process.env.AUTH_PROVIDER === "supabase" ? "SUPABASE" : "CLERK",
+      providerUserId: userId,
+      studentId: student.id,
+    },
+  });
+
   await authService.setUserMetadata(userId, {
     role: "student",
     schoolId: school.id,

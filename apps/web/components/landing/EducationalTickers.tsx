@@ -1,5 +1,6 @@
 "use client";
 import { motion } from "framer-motion";
+import { useState } from "react";
 
 const QUOTES = [
   "Education is the most powerful weapon you can use to change the world — Nelson Mandela",
@@ -131,7 +132,7 @@ export function EducationalTickers() {
 
 // Floating motivational orb (persistent corner element)
 export function FloatingQuote() {
-  const quote = QUOTES[Math.floor(Math.random() * QUOTES.length)];
+  const [quote] = useState(() => QUOTES[Math.floor(Math.random() * QUOTES.length)]);
   return (
     <motion.div
       initial={{ opacity: 0, x: 40 }}

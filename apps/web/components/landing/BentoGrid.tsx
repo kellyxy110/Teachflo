@@ -1,5 +1,5 @@
 "use client";
-import { useState, useMemo, useRef, useEffect } from "react";
+import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Brain,
@@ -220,10 +220,7 @@ const DAILY_CHALLENGES = [
 ];
 
 function DailyChallenge() {
-  const challenge = useMemo(() => {
-    const dayIndex = Math.floor(Date.now() / 86400000) % DAILY_CHALLENGES.length;
-    return DAILY_CHALLENGES[dayIndex];
-  }, []);
+  const [challenge] = useState(() => DAILY_CHALLENGES[Math.floor(Date.now() / 86400000) % DAILY_CHALLENGES.length]);
   const [selected, setSelected] = useState<number | null>(null);
   const [started, setStarted] = useState(false);
 

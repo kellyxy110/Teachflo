@@ -76,7 +76,7 @@ export function ReportCardsClient({ classes }: { classes: ClassInfo[] }) {
   }, [classId, term, session]);
 
   useEffect(() => {
-    if (classId) loadData();
+    if (classId) queueMicrotask(() => { void loadData(); });
   }, [classId, term, session, loadData]);
 
   function handleExportStudent(student: StudentReport) {

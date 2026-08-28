@@ -43,6 +43,12 @@ export async function POST(request: Request) {
   }
 
   const connector = getConnector(portalType);
+  if (!connector.meta.isAvailable) {
+    return Response.json(
+      { error: connector.meta.setupInstructions ?? `${connector.meta.name} does not support a direct connection right now.` },
+      { status: 503 }
+    );
+  }
   connector.configure({ portalUrl: body.portalUrl, schoolCode: body.schoolCode });
 
   let token: string;

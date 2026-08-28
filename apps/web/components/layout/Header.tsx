@@ -35,7 +35,7 @@ function getTitle(pathname: string): string {
   for (const [key, title] of Object.entries(pageTitles)) {
     if (pathname === key || pathname.startsWith(key + "/")) return title;
   }
-  return "TeachFlow OS";
+  return "TeachNexis";
 }
 
 export function Header() {
@@ -59,7 +59,10 @@ export function Header() {
         {/* Logo on mobile, page title on desktop */}
         <h2 className="text-base font-semibold text-text hidden md:block">{title}</h2>
         <div className="md:hidden">
-          <h2 className="text-base font-bold text-text leading-tight">TeachFlow</h2>
+          <div className="leading-tight">
+            <h2 className="text-base font-bold text-text">TeachNexis</h2>
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-primary">Teacher</p>
+          </div>
         </div>
       </div>
 

@@ -77,23 +77,16 @@ export function ExamTaker({ exam }: { exam: ExamData }) {
   const isLastQuestion = answered >= total - 1;
   const showHints = exam.mode === "PRACTICE";
 
-  useEffect(() => {
-    if (isAdaptive && !currentAdaptive) {
-      fetchNextAdaptive();
+  async function finishExam() {
+    setIsFinishing(true);
+    try {
+      await completeAdaptiveExam(exam.attemptId);
+      router.push(`/exams/v2/${exam.attemptId}/results`);
+    } catch (e) {
+      console.error("Finish failed:", e);
+      setIsFinishing(false);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  useEffect(() => {
-    timerRef.current = 0;
-    setElapsed(0);
-    if (intervalRef.current) clearInterval(intervalRef.current);
-    intervalRef.current = setInterval(() => {
-      timerRef.current += 1;
-      setElapsed(timerRef.current);
-    }, 1000);
-    return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
-  }, [currentIndex, currentAdaptive?.id]);
+  }
 
   async function fetchNextAdaptive() {
     setLoadingNext(true);
@@ -113,6 +106,24 @@ export function ExamTaker({ exam }: { exam: ExamData }) {
       setLoadingNext(false);
     }
   }
+
+  useEffect(() => {
+    if (isAdaptive && !currentAdaptive) {
+      queueMicrotask(() => { void fetchNextAdaptive(); });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    timerRef.current = 0;
+    queueMicrotask(() => setElapsed(0));
+    if (intervalRef.current) clearInterval(intervalRef.current);
+    intervalRef.current = setInterval(() => {
+      timerRef.current += 1;
+      setElapsed(timerRef.current);
+    }, 1000);
+    return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
+  }, [currentIndex, currentAdaptive?.id]);
 
   function handleSubmitAnswer() {
     if (!currentQ) return;
@@ -155,17 +166,6 @@ export function ExamTaker({ exam }: { exam: ExamData }) {
       } else {
         finishExam();
       }
-    }
-  }
-
-  async function finishExam() {
-    setIsFinishing(true);
-    try {
-      await completeAdaptiveExam(exam.attemptId);
-      router.push(`/exams/v2/${exam.attemptId}/results`);
-    } catch (e) {
-      console.error("Finish failed:", e);
-      setIsFinishing(false);
     }
   }
 

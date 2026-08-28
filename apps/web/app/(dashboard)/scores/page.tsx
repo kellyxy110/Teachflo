@@ -1,6 +1,8 @@
 import { db } from "@/lib/db";
 import { requireSchool } from "@/lib/auth";
 import { ScoreTable } from "./ScoreTable";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { EmptyState } from "@/components/ui/States";
 
 const SUBJECTS = [
   "Mathematics","English Language","Physics","Chemistry","Biology",
@@ -62,12 +64,7 @@ export default async function ScoresPage({
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-text">Scores</h1>
-        <p className="text-text-2 text-sm mt-0.5">
-          Enter CA1, CA2, and Exam scores. Totals and grades are calculated automatically.
-        </p>
-      </div>
+      <PageHeader title="Scores" breadcrumb={[{ label: "Today", href: "/dashboard" }, { label: "Scores" }]} description="Enter CA1, CA2, and Exam scores. Totals and grades are calculated automatically." />
 
       {/* Filter bar */}
       <form method="GET" className="flex flex-wrap gap-3 bg-surface rounded-xl border border-border p-4">
@@ -132,12 +129,7 @@ export default async function ScoresPage({
           session={CURRENT_SESSION}
         />
       ) : (
-        <div className="bg-surface rounded-xl border border-border p-12 text-center">
-          <p className="font-medium text-text">Select a class and subject above</p>
-          <p className="text-sm text-text-2 mt-1">
-            Then click &ldquo;Load Scores&rdquo; to view and enter scores.
-          </p>
-        </div>
+        <EmptyState title="Select a class and subject above" description="Then click “Load Scores” to view and enter scores." />
       )}
     </div>
   );

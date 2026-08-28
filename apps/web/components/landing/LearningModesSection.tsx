@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import { BookOpen, Target, Compass, Brain, Zap, Trophy, BarChart2, FileText } from "lucide-react";
 import { BentoGrid } from "./BentoGrid";
 import { LearningCarousel } from "./LearningCarousel";
+import Link from "next/link";
 
 // Lazy-load PracticeArena — heaviest component, only needed in Explore mode
 const PracticeArena = dynamic(
@@ -136,14 +137,14 @@ function PracticeContent() {
       </div>
 
       <div className="text-center">
-        <a
+        <Link
           href="/sign-up"
           className="inline-flex items-center gap-2 px-8 py-4 rounded-2xl font-bold text-white transition-all hover:scale-105"
           style={{ background: "linear-gradient(135deg, #10b981, #0891b2)", boxShadow: "0 0 30px rgba(16,185,129,0.25)" }}
         >
           <Target size={18} aria-hidden="true" />
           Start Practising →
-        </a>
+        </Link>
       </div>
     </div>
   );

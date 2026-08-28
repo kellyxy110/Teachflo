@@ -71,7 +71,7 @@ export function AttendanceClient({ classes }: { classes: ClassInfo[] }) {
 
   useEffect(() => {
     if (selectedClassId) {
-      loadStudentsAndAttendance(selectedClassId, dateStr);
+      queueMicrotask(() => { void loadStudentsAndAttendance(selectedClassId, dateStr); });
     }
   }, [selectedClassId, dateStr, loadStudentsAndAttendance]);
 
@@ -87,7 +87,7 @@ export function AttendanceClient({ classes }: { classes: ClassInfo[] }) {
 
   useEffect(() => {
     if (selectedClassId && tab === "stats") {
-      loadStats(selectedClassId);
+      queueMicrotask(() => { void loadStats(selectedClassId); });
     }
   }, [selectedClassId, tab, loadStats]);
 
@@ -144,6 +144,7 @@ export function AttendanceClient({ classes }: { classes: ClassInfo[] }) {
       {/* Class selector */}
       <div className="flex flex-col sm:flex-row gap-3">
         <select
+          aria-label="Attendance class"
           value={selectedClassId}
           onChange={(e) => setSelectedClassId(e.target.value)}
           className="flex-1 bg-surface border border-border rounded-xl px-4 py-3 text-sm font-medium text-text focus:outline-none focus:ring-2 focus:ring-primary/30"
@@ -159,6 +160,7 @@ export function AttendanceClient({ classes }: { classes: ClassInfo[] }) {
         {selectedClassId && (
           <div className="flex bg-surface border border-border rounded-xl overflow-hidden">
             <button
+              aria-label="Mark attendance"
               onClick={() => setTab("mark")}
               className={`flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium transition-colors ${
                 tab === "mark" ? "bg-primary text-white" : "text-text-2 hover:bg-border/20"
@@ -168,6 +170,7 @@ export function AttendanceClient({ classes }: { classes: ClassInfo[] }) {
               <span className="hidden sm:inline">Mark</span>
             </button>
             <button
+              aria-label="View attendance statistics"
               onClick={() => setTab("stats")}
               className={`flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium transition-colors ${
                 tab === "stats" ? "bg-primary text-white" : "text-text-2 hover:bg-border/20"
@@ -192,7 +195,7 @@ export function AttendanceClient({ classes }: { classes: ClassInfo[] }) {
         <>
           {/* Date navigator */}
           <div className="flex items-center justify-between bg-surface border border-border rounded-xl px-4 py-3">
-            <button onClick={() => shiftDate(-1)} className="p-1.5 rounded-lg hover:bg-border/20 text-muted hover:text-text transition-colors">
+            <button aria-label="Previous day" onClick={() => shiftDate(-1)} className="p-2.5 rounded-lg hover:bg-border/20 text-muted hover:text-text transition-colors">
               <ChevronLeft size={18} />
             </button>
             <div className="text-center">
@@ -200,6 +203,7 @@ export function AttendanceClient({ classes }: { classes: ClassInfo[] }) {
               {isToday && <span className="text-[10px] font-bold text-primary">Today</span>}
             </div>
             <button
+              aria-label="Next day"
               onClick={() => shiftDate(1)}
               disabled={isToday}
               className="p-1.5 rounded-lg hover:bg-border/20 text-muted hover:text-text transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
@@ -276,6 +280,7 @@ export function AttendanceClient({ classes }: { classes: ClassInfo[] }) {
                         const isActive = currentStatus === status;
                         return (
                           <button
+                            aria-label={`${student.firstName} ${student.lastName}: ${cfg.label}`}
                             key={status}
                             onClick={() => setStatus(student.id, status)}
                             className={`flex flex-col items-center gap-1 py-2 px-1 rounded-lg text-[10px] font-bold transition-all active:scale-[0.95] ${

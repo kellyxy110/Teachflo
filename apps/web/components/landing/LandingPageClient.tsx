@@ -3,6 +3,7 @@ import { useEffect } from "react";
 import { LandingNav } from "./LandingNav";
 import { HeroSection } from "./HeroSection";
 import { WhyTeachNexisSection } from "./WhyTeachNexisSection";
+import { WorkflowStorySection } from "./WorkflowStorySection";
 import { VideoShowcaseSection } from "./VideoShowcaseSection";
 import { IntelligenceLayerSection } from "./IntelligenceLayerSection";
 import { DashboardShowcaseSection } from "./DashboardShowcaseSection";
@@ -79,6 +80,9 @@ export function LandingPageClient() {
 
       {/* 2 — Why TeachNexis / Feature overview */}
       <WhyTeachNexisSection />
+
+      {/* Connected product narrative */}
+      <WorkflowStorySection />
 
       {/* 3 — Live product demo / animated showcase */}
       <VideoShowcaseSection />

@@ -1,8 +1,9 @@
-import { Upload, ArrowLeft } from "lucide-react";
-import Link from "next/link";
+import { Upload } from "lucide-react";
 import { requireSchool } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { ImportHubClient } from "./ImportHubClient";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { StatusBadge } from "@/components/ui/Status";
 
 export const metadata = { title: "Import Data — Student Data Hub" };
 
@@ -17,23 +18,12 @@ export default async function StudentHubImportPage() {
 
   return (
     <div className="max-w-5xl space-y-6">
-      <div className="flex items-center gap-3">
-        <Link
-          href="/student-hub"
-          className="p-1.5 rounded-lg hover:bg-surface text-text-2 hover:text-text transition-colors"
-        >
-          <ArrowLeft size={18} />
-        </Link>
-        <div>
-          <div className="flex items-center gap-2 mb-0.5">
-            <Upload size={18} className="text-primary" />
-            <h1 className="text-xl font-bold text-text">Excel / CSV Import</h1>
-          </div>
-          <p className="text-sm text-text-2">
-            Upload a spreadsheet — AI maps columns, you preview, then confirm.
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        title={<span className="inline-flex items-center gap-2"><Upload size={20} className="text-primary" aria-hidden="true" />Excel / CSV Import</span>}
+        description="Upload a spreadsheet, review suggested mappings, confirm exactly what will be stored, then commit."
+        breadcrumb={[{ label: "Dashboard", href: "/dashboard" }, { label: "Student Data Hub", href: "/student-hub" }, { label: "Import" }]}
+        status={<StatusBadge tone="info">Teacher confirmation required</StatusBadge>}
+      />
 
       <ImportHubClient
         classes={classes}

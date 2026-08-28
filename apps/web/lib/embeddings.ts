@@ -6,7 +6,7 @@ export const EMBEDDING_DIMENSIONS = parseInt(
 
 const EMBEDDING_MODEL = process.env.EMBEDDING_MODEL || "jina-embeddings-v3";
 
-function useJina(): boolean {
+function hasJinaKey(): boolean {
   return !!process.env.JINA_API_KEY;
 }
 
@@ -58,7 +58,7 @@ async function callGenericEmbeddingAPI(
 }
 
 async function callEmbeddingAPI(input: string | string[]): Promise<number[][]> {
-  if (useJina()) return jinaEmbed(input);
+  if (hasJinaKey()) return jinaEmbed(input);
   return callGenericEmbeddingAPI(input);
 }
 

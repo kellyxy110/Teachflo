@@ -2,6 +2,10 @@ import { Users } from "lucide-react";
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { requireSchool } from "@/lib/auth";
+import { ButtonLink } from "@/components/ui/Button";
+import { EmptyState } from "@/components/ui/States";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { ResponsiveTable } from "@/components/ui/ResponsiveTable";
 
 export default async function StudentsPage() {
   const { schoolId } = await requireSchool();
@@ -14,35 +18,22 @@ export default async function StudentsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-text">Students</h1>
-          <p className="text-text-2 text-sm mt-0.5">
-            {students.length} student{students.length !== 1 ? "s" : ""} across all classes
-          </p>
-        </div>
-        <Link
-          href="/classes"
-          className="flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary-600 transition-colors"
-        >
-          Manage via Classes
-        </Link>
-      </div>
+      <PageHeader
+        title="Students"
+        description={`${students.length} student${students.length !== 1 ? "s" : ""} across all classes`}
+        breadcrumb={[{ label: "Dashboard", href: "/dashboard" }, { label: "Students" }]}
+        primaryAction={<ButtonLink href="/classes" className="w-full sm:w-auto">Manage via Classes</ButtonLink>}
+      />
 
       {students.length === 0 ? (
-        <div className="bg-surface rounded-xl border border-border p-12 text-center">
-          <Users size={40} className="text-muted mx-auto mb-3" />
-          <h3 className="font-semibold text-text">No students yet</h3>
-          <p className="text-sm text-text-2 mt-1">
-            Add students through a class.{" "}
-            <Link href="/classes" className="text-primary hover:underline">
-              Go to Classes →
-            </Link>
-          </p>
-        </div>
+        <EmptyState
+          icon={<Users size={40} />}
+          title="No students yet"
+          description="Create a class or import your student register to begin."
+          action={<div className="flex flex-wrap justify-center gap-2"><ButtonLink href="/classes" variant="secondary">Create a class</ButtonLink><ButtonLink href="/student-hub/import">Import students</ButtonLink></div>}
+        />
       ) : (
-        <div className="bg-surface rounded-xl border border-border overflow-hidden">
-          <table className="w-full text-sm">
+        <ResponsiveTable label="Students register">
             <thead>
               <tr className="border-b border-border text-left bg-bg">
                 <th className="px-4 py-2.5 text-xs font-semibold text-text-2 w-8">#</th>
@@ -76,8 +67,7 @@ export default async function StudentsPage() {
                 </tr>
               ))}
             </tbody>
-          </table>
-        </div>
+        </ResponsiveTable>
       )}
     </div>
   );

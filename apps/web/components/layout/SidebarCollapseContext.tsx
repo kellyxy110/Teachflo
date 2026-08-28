@@ -11,8 +11,8 @@ export function SidebarCollapseProvider({ children }: { children: React.ReactNod
 
   useEffect(() => {
     const stored = localStorage.getItem("sidebar-collapsed");
-    if (stored === "true") setCollapsed(true);
-    setMounted(true);
+    if (stored === "true") queueMicrotask(() => setCollapsed(true));
+    queueMicrotask(() => setMounted(true));
   }, []);
 
   const toggle = useCallback(() => {

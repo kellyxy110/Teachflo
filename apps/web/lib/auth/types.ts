@@ -5,6 +5,15 @@ export interface AuthSession {
   userId: string | null;
   sessionId?: string | null;
   sessionClaims?: Record<string, unknown>;
+  provider?: "clerk" | "supabase";
+}
+
+export interface TeachNexisSession {
+  providerUserId: string;
+  actorType: "teacher" | "student" | "admin" | null;
+  actorId: string | null;
+  schoolId: string | null;
+  role: string | null;
 }
 
 export interface AuthUser {

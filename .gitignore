@@ -13,3 +13,14 @@ dist
 .env.vercel
 
 .vercel
+
+packages/database/.env.reconstruction
+.vercel
+.env*
+
+# Local browser verification state and generated reports
+apps/web/.auth/
+apps/web/playwright-report/
+apps/web/test-results/
+
+.env*

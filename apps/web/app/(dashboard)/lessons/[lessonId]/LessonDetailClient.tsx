@@ -82,13 +82,13 @@ export function LessonDetailClient({
 
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
-      let full = "";
+      const chunks: string[] = [];
 
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
-        full += decoder.decode(value, { stream: true });
-        setRewriteCache((c) => ({ ...c, [mode]: full }));
+        chunks.push(decoder.decode(value, { stream: true }));
+        setRewriteCache((c) => ({ ...c, [mode]: chunks.join("") }));
       }
     } catch (err: unknown) {
       if ((err as Error).name !== "AbortError") {
