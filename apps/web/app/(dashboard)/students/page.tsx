@@ -33,7 +33,21 @@ export default async function StudentsPage() {
           action={<div className="flex flex-wrap justify-center gap-2"><ButtonLink href="/classes" variant="secondary">Create a class</ButtonLink><ButtonLink href="/student-hub/import">Import students</ButtonLink></div>}
         />
       ) : (
-        <ResponsiveTable label="Students register">
+        <>
+          <div className="space-y-1 md:hidden" role="list" aria-label="Students register">
+            {students.map((s, i) => (
+              <div key={s.id} role="listitem" className="flex min-h-16 items-center gap-3 rounded-xl border border-border bg-surface px-3 py-2.5">
+                <span className="w-5 shrink-0 text-xs text-muted">{i + 1}</span>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-semibold text-text">{s.lastName}, {s.firstName}</p>
+                  <p className="truncate text-xs text-text-2">{s.class.name} · {s.regNumber ?? "No reg. number"}</p>
+                </div>
+                <Link href={`/classes/${s.classId}`} className="shrink-0 rounded-md px-2 py-1 text-xs font-medium text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">View</Link>
+              </div>
+            ))}
+          </div>
+          <div className="hidden md:block">
+          <ResponsiveTable label="Students register">
             <thead>
               <tr className="border-b border-border text-left bg-bg">
                 <th className="px-4 py-2.5 text-xs font-semibold text-text-2 w-8">#</th>
@@ -67,7 +81,9 @@ export default async function StudentsPage() {
                 </tr>
               ))}
             </tbody>
-        </ResponsiveTable>
+          </ResponsiveTable>
+          </div>
+        </>
       )}
     </div>
   );

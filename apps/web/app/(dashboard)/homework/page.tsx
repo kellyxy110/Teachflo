@@ -2,20 +2,15 @@ import { PenSquare } from "lucide-react";
 import { getHomework } from "@/app/actions/homework";
 import { getClasses } from "@/app/actions/classes";
 import { HomeworkClient } from "./HomeworkClient";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { ButtonLink } from "@/components/ui/Button";
 
 export default async function HomeworkPage() {
   const [homework, classes] = await Promise.all([getHomework(), getClasses()]);
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-text">Homework</h1>
-          <p className="text-sm text-text-2 mt-0.5">
-            Assign and track homework across your classes.
-          </p>
-        </div>
-      </div>
+      <PageHeader title="Homework" description="Assign and track homework across your classes." primaryAction={<ButtonLink href="/homework"><PenSquare size={16} aria-hidden="true" />New homework</ButtonLink>} />
 
       {homework.length === 0 && classes.length === 0 ? (
         <div className="bg-surface rounded-xl border border-border p-12 text-center">

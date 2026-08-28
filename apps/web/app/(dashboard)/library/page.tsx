@@ -1,7 +1,8 @@
-import Link from "next/link";
 import { BookOpen, FileText, Upload } from "lucide-react";
 import { getLibraryResources } from "@/app/actions/library";
 import { LibraryClient } from "./LibraryClient";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { ButtonLink } from "@/components/ui/Button";
 
 export default async function LibraryPage() {
   const { lessons, exams, documents, allSubjects } = await getLibraryResources();
@@ -9,28 +10,7 @@ export default async function LibraryPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-text">Library</h1>
-          <p className="text-text-2 text-sm mt-0.5">
-            {total} resource{total !== 1 ? "s" : ""} — lessons, exams, and documents in one place.
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Link
-            href="/lessons/new"
-            className="flex items-center gap-1.5 border border-border text-text-2 px-3 py-2 rounded-lg text-sm font-medium hover:border-primary/30 hover:text-text transition-colors"
-          >
-            <BookOpen size={14} /> New Lesson
-          </Link>
-          <Link
-            href="/exams/new"
-            className="flex items-center gap-1.5 bg-primary text-white px-3 py-2 rounded-lg text-sm font-semibold hover:bg-primary/90 transition-colors"
-          >
-            <FileText size={14} /> New Exam
-          </Link>
-        </div>
-      </div>
+      <PageHeader title="Library" description={`${total} resource${total !== 1 ? "s" : ""} — lessons, assessments, and documents in one place.`} primaryAction={<div className="flex flex-wrap gap-2"><ButtonLink href="/lessons/new" variant="secondary" size="sm"><BookOpen size={14} aria-hidden="true" />New lesson</ButtonLink><ButtonLink href="/exams/new" size="sm"><FileText size={14} aria-hidden="true" />New assessment</ButtonLink></div>} />
 
       <LibraryClient
         lessons={lessons}
