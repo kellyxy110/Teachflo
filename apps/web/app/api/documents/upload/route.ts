@@ -1,21 +1,9 @@
 import { safeAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { chunkText } from "@/lib/chunker";
 import { storeDocumentChunks } from "@/lib/vector-search";
 import { rateLimit } from "@/lib/rate-limit";
-
-// pdf-parse ships an ESM build that has no default export in some resolution
-// paths (Turbopack picks it up). Dynamic import + fallback handles both CJS and ESM.
-type PdfResult = { text: string; numpages: number };
-async function parsePdf(buffer: Buffer): Promise<PdfResult> {
-  const mod = await import("pdf-parse");
-  // CJS interop: module.exports is the function (no .default)
-  // ESM build: .default is the function
-  const fn =
-    (mod as { default?: (b: Buffer) => Promise<PdfResult> }).default ??
-    (mod as unknown as (b: Buffer) => Promise<PdfResult>);
-  return fn(buffer);
-}
+import { storePrivateSource, validatePdfUpload } from "@/lib/documents/private-source";
+import { extractDocument, chunkExtractedBlocks } from "@/lib/documents/extraction";
 
 export const maxDuration = 60;
 
@@ -51,23 +39,10 @@ export async function POST(request: Request) {
   if (!title || !subject)
     return Response.json({ error: "title and subject are required" }, { status: 400 });
 
-  if (file.type !== "application/pdf") {
-    return Response.json({ error: "Only PDF files are supported" }, { status: 400 });
-  }
-
   // Verify PDF magic bytes
   const header = new Uint8Array(await file.slice(0, 5).arrayBuffer());
-  const isPdf =
-    header[0] === 0x25 && header[1] === 0x50 &&
-    header[2] === 0x44 && header[3] === 0x46 && header[4] === 0x2d;
-  if (!isPdf) {
-    return Response.json({ error: "Invalid PDF file" }, { status: 400 });
-  }
-
-  const MAX_SIZE = 10 * 1024 * 1024;
-  if (file.size > MAX_SIZE) {
-    return Response.json({ error: "File must be under 10 MB" }, { status: 400 });
-  }
+  const pdfError = validatePdfUpload({ mimeType: file.type, size: file.size, header });
+  if (pdfError) return Response.json({ error: pdfError }, { status: pdfError === "File must be under 10 MB" ? 413 : 400 });
 
   const validLevels = ["JS1", "JS2", "JS3", "SS1", "SS2", "SS3"];
   const doc = await db.document.create({
@@ -83,27 +58,26 @@ export async function POST(request: Request) {
       mimeType: file.type,
       fileSize: file.size,
       status: "PROCESSING",
+      visibility: "PRIVATE",
     },
   });
 
   try {
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
-    const parsed = await parsePdf(buffer);
-
-    const text = parsed.text?.trim() ?? "";
-    if (!text) {
-      await db.document.update({
-        where: { id: doc.id },
-        data: { status: "FAILED", error: "No extractable text found in PDF" },
-      });
-      return Response.json(
-        { error: "PDF contains no extractable text (scanned/image-based PDFs are not supported)" },
-        { status: 422 }
-      );
-    }
-
-    const chunks = chunkText(text, 500, 50);
+    // Preserve the authoritative original before any parsing, chunking or embedding.
+    // The object is private and addressed only by a server-derived ownership key.
+    const sourceMetadata = await storePrivateSource({
+      schoolId: teacher.schoolId,
+      teacherId: teacher.id,
+      documentId: doc.id,
+      fileName: file.name,
+      mimeType: file.type,
+      buffer,
+    });
+    const extracted = await extractDocument(buffer, file.type);
+    const text = extracted.text.trim();
+    const chunks = chunkExtractedBlocks(extracted.blocks, 500, 50);
     if (chunks.length === 0) {
       await db.document.update({
         where: { id: doc.id },
@@ -115,15 +89,16 @@ export async function POST(request: Request) {
     await storeDocumentChunks(
       doc.id,
       teacher.schoolId,
-      chunks.map((content, i) => ({
-        content,
+      chunks.map((chunk) => ({
+        content: chunk.sourceText,
         metadata: {
           documentTitle: title,
           subject,
           classLevel,
           fileName: file.name,
-          chunkIndex: i,
+          chunkIndex: chunk.chunkIndex,
           totalChunks: chunks.length,
+          provenance: { origin: "EXTRACTED_FROM_SOURCE", sourceDocumentId: doc.id, sourceHash: sourceMetadata.sha256, exactExcerpt: chunk.sourceExcerpt, normalizedText: chunk.normalizedText, sourceLocation: chunk.location, extractionMethod: chunk.extractionMethod, extractionVersion: chunk.extractionVersion },
         },
       }))
     );
@@ -132,7 +107,7 @@ export async function POST(request: Request) {
       where: { id: doc.id },
       data: {
         status: "READY",
-        pageCount: parsed.numpages,
+        pageCount: extracted.pageCount,
         chunkCount: chunks.length,
       },
     });
@@ -140,12 +115,17 @@ export async function POST(request: Request) {
     return Response.json({
       id: doc.id,
       status: "READY",
-      pages: parsed.numpages,
+      pages: extracted.pageCount,
       chunks: chunks.length,
       characters: text.length,
     });
   } catch (error) {
     const msg = error instanceof Error ? error.message : "Processing failed";
+    // Derived chunks are disposable; the private original is intentionally not touched.
+    await db.$executeRawUnsafe(
+      `DELETE FROM document_chunks WHERE "documentId" = $1`,
+      doc.id
+    ).catch(() => undefined);
     await db.document.update({
       where: { id: doc.id },
       data: { status: "FAILED", error: msg },

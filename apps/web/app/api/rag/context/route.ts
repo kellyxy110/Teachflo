@@ -18,7 +18,7 @@ export async function POST(request: Request) {
 
   const teacher = await db.teacher.findUnique({
     where: { clerkId: userId },
-    select: { schoolId: true },
+    select: { id: true, schoolId: true },
   });
   if (!teacher) return Response.json({ error: "Teacher not found" }, { status: 404 });
 
@@ -32,7 +32,7 @@ export async function POST(request: Request) {
   const clampedTopK = Math.min(Math.max(1, topK ?? 5), 20);
 
   try {
-    const chunks = await retrieveRAGContext(query, teacher.schoolId, clampedTopK);
+    const chunks = await retrieveRAGContext(query, teacher.schoolId, clampedTopK, teacher.id);
     const context = chunks.map((c) => c.content).join("\n\n---\n\n");
     return Response.json({ chunks, context });
   } catch (error) {

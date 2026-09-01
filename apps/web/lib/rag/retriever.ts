@@ -12,21 +12,23 @@ interface RAGChunk {
 export async function retrieveRAGContext(
   query: string,
   schoolId: string,
-  topK = 5
+  topK = 5,
+  teacherId?: string
 ): Promise<RAGChunk[]> {
   const { generateEmbedding } = await import("../embeddings");
   const embedding = await generateEmbedding(query);
   const vec = `[${embedding.join(",")}]`;
 
   return db.$queryRawUnsafe<RAGChunk[]>(
-    `SELECT id, "documentId", content, metadata, "chunkIndex",
+    `SELECT dc.id, dc."documentId", dc.content, dc.metadata, dc."chunkIndex",
             1 - (embedding <=> $1::vector) as similarity
-     FROM document_chunks
-     WHERE "schoolId" = $2
+     FROM document_chunks dc
+     JOIN documents d ON d.id = dc."documentId"
+     WHERE ${teacherId ? 'dc."schoolId" = $2 AND (d."visibility" = \'SCHOOL\' OR (d."visibility" = \'PRIVATE\' AND d."teacherId" = $3))' : 'dc."schoolId" = $2 AND d."visibility" = \'SCHOOL\''}
      ORDER BY embedding <=> $1::vector
-     LIMIT $3`,
+     LIMIT ${teacherId ? "$4" : "$3"}`,
     vec,
     schoolId,
-    topK
+    ...(teacherId ? [teacherId, topK] : [topK])
   );
 }

@@ -830,6 +830,7 @@ model Document {
   pageCount Int?
 
   status    DocumentStatus @default(PENDING)
+  visibility DocumentVisibility @default(SCHOOL)
   chunkCount Int           @default(0)
   error     String?
 
@@ -845,6 +846,11 @@ enum DocumentStatus {
   PROCESSING
   READY
   FAILED
+}
+
+enum DocumentVisibility {
+  PRIVATE
+  SCHOOL
 }
 
 // ─────────────────────────────────────────────

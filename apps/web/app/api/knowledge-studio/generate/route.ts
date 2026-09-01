@@ -56,7 +56,7 @@ export async function POST(request: Request) {
 
   const teacher = await db.teacher.findUnique({
     where: { clerkId: userId },
-    select: { schoolId: true },
+    select: { id: true, schoolId: true },
   });
   if (!teacher) return Response.json({ error: "Teacher not found" }, { status: 404 });
 
@@ -67,16 +67,21 @@ export async function POST(request: Request) {
   };
 
   if (!documentId) return Response.json({ error: "documentId is required" }, { status: 400 });
+  const accessible = await db.document.findFirst({ where: { id: documentId, schoolId: teacher.schoolId, OR: [{ visibility: "SCHOOL" }, { visibility: "PRIVATE", teacherId: teacher.id }] }, select: { id: true } });
+  if (!accessible) return Response.json({ error: "Document not found" }, { status: 404 });
 
   const chunks = await db.$queryRawUnsafe<
     Array<{ content: string; chunkIndex: number; metadata: Record<string, unknown> | null }>
   >(
-    `SELECT content, "chunkIndex", metadata
-     FROM document_chunks
-     WHERE "documentId" = $1 AND "schoolId" = $2
+    `SELECT dc.content, dc."chunkIndex", dc.metadata
+     FROM document_chunks dc
+     JOIN documents d ON d.id = dc."documentId"
+     WHERE dc."documentId" = $1 AND dc."schoolId" = $2
+       AND (d."visibility" = 'SCHOOL' OR (d."visibility" = 'PRIVATE' AND d."teacherId" = $3))
      ORDER BY "chunkIndex" ASC`,
     documentId,
-    teacher.schoolId
+    teacher.schoolId,
+    teacher.id
   );
 
   if (chunks.length === 0) {

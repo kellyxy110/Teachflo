@@ -2,9 +2,10 @@
 
 import { db } from "@/lib/db";
 import { requireSchool } from "@/lib/auth";
+import { documentAccessWhere } from "@/lib/documents/access";
 
 export async function getLibraryResources() {
-  const { schoolId } = await requireSchool();
+  const { schoolId, teacher } = await requireSchool();
 
   const [lessons, exams, documents] = await Promise.all([
     db.lesson.findMany({
@@ -36,7 +37,7 @@ export async function getLibraryResources() {
       orderBy: { createdAt: "desc" },
     }),
     db.document.findMany({
-      where: { schoolId },
+      where: documentAccessWhere(schoolId, teacher.id),
       select: {
         id: true,
         title: true,

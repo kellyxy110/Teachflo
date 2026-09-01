@@ -1,6 +1,7 @@
 import { Prisma } from "@prisma/client";
 import { z } from "zod";
 import { db } from "@/lib/db";
+import { sourceEvidenceForViewer } from "@/lib/questions/source-question";
 
 export const addQuestionsInputSchema = z.object({
   assessmentId: z.string().min(1).max(128),
@@ -58,6 +59,7 @@ export async function getQuestionBankWorkspaceForActor(
       take: 51,
       include: {
         exam: { select: { subject: true, topic: true, classLevel: true } },
+        createdByTeacherId: true,
         versions: { orderBy: { version: "desc" }, take: 1 },
         _count: { select: { assessmentItems: true } },
       },
@@ -106,6 +108,8 @@ export async function getQuestionBankWorkspaceForActor(
       latestVersion: latestVersion?.version ?? null,
       usageCount: question._count.assessmentItems,
       selectable: question.lifecycle === "APPROVED" && Boolean(latestVersion),
+      sourceEvidence: sourceEvidenceForViewer({ visibility: question.visibility, ownerTeacherId: question.createdByTeacherId, viewerTeacherId: actor.teacherId, payload: latestVersion?.payload }),
+      canManage: question.createdByTeacherId === actor.teacherId,
     };
   });
 

@@ -74,7 +74,7 @@ export async function POST(request: Request) {
 
   const teacher = await db.teacher.findUnique({
     where: { clerkId: userId },
-    select: { schoolId: true },
+    select: { id: true, schoolId: true },
   });
   if (!teacher) return Response.json({ error: "Teacher not found" }, { status: 404 });
 
@@ -98,22 +98,29 @@ export async function POST(request: Request) {
 
   const safeTopK = Math.min(Math.max(1, parseInt(String(topK), 10) || 8), 50);
 
+  const uniqueDocumentIds = [...new Set(documentIds)];
+  const authorizedDocumentCount = await db.document.count({ where: { id: { in: uniqueDocumentIds }, ...{ schoolId: teacher.schoolId, OR: [{ visibility: "SCHOOL" }, { visibility: "PRIVATE", teacherId: teacher.id }] } } });
+  if (authorizedDocumentCount !== uniqueDocumentIds.length) return Response.json({ error: "One or more documents are not accessible" }, { status: 403 });
+
   const embedding = await generateEmbedding(message);
   const vec = `[${embedding.join(",")}]`;
-
-  const placeholders = documentIds.map((_, i) => `$${i + 3}`).join(",");
-  const limitParam = `$${documentIds.length + 3}`;
+  const placeholders = uniqueDocumentIds.map((_, i) => `$${i + 4}`).join(",");
+  const limitParam = `$${uniqueDocumentIds.length + 4}`;
 
   const chunks = await db.$queryRawUnsafe<ChunkResult[]>(
-    `SELECT id, "documentId", content, metadata, "chunkIndex",
+    `SELECT dc.id, dc."documentId", dc.content, dc.metadata, dc."chunkIndex",
             1 - (embedding <=> $1::vector) as similarity
-     FROM document_chunks
-     WHERE "schoolId" = $2 AND "documentId" IN (${placeholders})
+     FROM document_chunks dc
+     JOIN documents d ON d.id = dc."documentId"
+     WHERE dc."schoolId" = $2
+       AND (d."visibility" = 'SCHOOL' OR (d."visibility" = 'PRIVATE' AND d."teacherId" = $3))
+       AND dc."documentId" IN (${placeholders})
      ORDER BY embedding <=> $1::vector
      LIMIT ${limitParam}`,
     vec,
     teacher.schoolId,
-    ...documentIds,
+    teacher.id,
+    ...uniqueDocumentIds,
     safeTopK
   );
 

@@ -8,7 +8,7 @@ const CLASS_LEVELS = ["JS1", "JS2", "JS3", "SS1", "SS2", "SS3"];
 
 type UploadState = "idle" | "uploading" | "success" | "error";
 
-export function DocumentUpload({ subjects }: { subjects: string[] }) {
+export function DocumentUpload({ subjects, variant = "library" }: { subjects: string[]; variant?: "library" | "bookshelf" }) {
   const [state, setState] = useState<UploadState>("idle");
   const [dragOver, setDragOver] = useState(false);
   const [file, setFile] = useState<File | null>(null);
@@ -21,8 +21,9 @@ export function DocumentUpload({ subjects }: { subjects: string[] }) {
   const router = useRouter();
 
   const handleFile = useCallback((f: File) => {
-    if (f.type !== "application/pdf") {
-      setError("Only PDF files are supported");
+    const allowed = ["application/pdf", "application/vnd.openxmlformats-officedocument.wordprocessingml.document", "text/plain"];
+    if (!allowed.includes(f.type)) {
+      setError("Only PDF, DOCX, and TXT files are supported");
       return;
     }
     if (f.size > 10 * 1024 * 1024) {
@@ -85,10 +86,10 @@ export function DocumentUpload({ subjects }: { subjects: string[] }) {
     return (
       <div className="bg-success-50 border border-success/20 rounded-xl p-6 text-center">
         <CheckCircle size={32} className="text-success mx-auto mb-2" />
-        <h3 className="font-semibold text-text mb-1">Document processed</h3>
+        <h3 className="font-semibold text-text mb-1">Source processed</h3>
         <p className="text-sm text-text-2">
           {result.pages} pages extracted into {result.chunks} searchable chunks.
-          This document is now available for RAG retrieval in Study Buddy.
+          {variant === "bookshelf" ? " Your source remains private to you." : " This document is now available for RAG retrieval in Study Buddy."}
         </p>
         <button
           onClick={reset}
@@ -104,12 +105,15 @@ export function DocumentUpload({ subjects }: { subjects: string[] }) {
     <div className="bg-surface border border-border rounded-xl p-5 space-y-4">
       <h3 className="text-sm font-semibold text-text flex items-center gap-2">
         <Upload size={15} className="text-primary" />
-        Upload PDF for RAG
+        {variant === "bookshelf" ? "Upload source" : "Upload PDF for RAG"}
       </h3>
 
       {/* Drop zone */}
       {!file ? (
         <div
+          role="button"
+          tabIndex={0}
+          aria-label="Choose a PDF, DOCX, or TXT source file"
           onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
           onDragLeave={() => setDragOver(false)}
           onDrop={(e) => {
@@ -119,6 +123,7 @@ export function DocumentUpload({ subjects }: { subjects: string[] }) {
             if (f) handleFile(f);
           }}
           onClick={() => inputRef.current?.click()}
+          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); inputRef.current?.click(); } }}
           className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
             dragOver
               ? "border-primary bg-primary-50"
@@ -127,13 +132,13 @@ export function DocumentUpload({ subjects }: { subjects: string[] }) {
         >
           <FileText size={28} className="mx-auto text-muted mb-2" />
           <p className="text-sm text-text-2">
-            Drop a PDF here or <span className="text-primary font-medium">click to browse</span>
+            Drop a PDF, DOCX, or TXT file here or <span className="text-primary font-medium">click to browse</span>
           </p>
-          <p className="text-xs text-muted mt-1">PDF only, max 10MB</p>
+          <p className="text-xs text-muted mt-1">PDF, DOCX, or TXT · max 10MB</p>
           <input
             ref={inputRef}
             type="file"
-            accept="application/pdf"
+            accept="application/pdf,.docx,.txt,text/plain"
             className="hidden"
             onChange={(e) => {
               const f = e.target.files?.[0];
@@ -150,6 +155,7 @@ export function DocumentUpload({ subjects }: { subjects: string[] }) {
           </div>
           <button
             onClick={() => { setFile(null); setTitle(""); }}
+            aria-label="Remove selected file"
             className="p-1 text-muted hover:text-danger transition-colors"
           >
             <X size={14} />
@@ -227,7 +233,7 @@ export function DocumentUpload({ subjects }: { subjects: string[] }) {
 
       {state === "uploading" && (
         <div className="text-xs text-muted text-center">
-          Extracting text, chunking, and generating embeddings — this may take a moment for large documents.
+          Extracting text and preparing your private source — this may take a moment for large documents.
         </div>
       )}
     </div>

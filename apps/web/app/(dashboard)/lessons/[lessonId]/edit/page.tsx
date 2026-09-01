@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { getLesson } from "@/app/actions/lessons";
 import { LessonEditorClient } from "./LessonEditorClient";
+import { getLessonMarkdown } from "@/lib/lessons/content-envelope";
 
 export const metadata = { title: "Edit Lesson" };
 
@@ -14,7 +15,7 @@ export default async function LessonEditPage({
 
   if (!lesson) notFound();
 
-  const markdown = (lesson.content as { markdown?: string })?.markdown ?? "";
+  const markdown = getLessonMarkdown(lesson.content);
 
   return (
     <LessonEditorClient

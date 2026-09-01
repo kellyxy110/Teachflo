@@ -17,6 +17,7 @@ dist
 packages/database/.env.reconstruction
 .vercel
 .env*
+qualification-*.jsonl
 
 # Local browser verification state and generated reports
 apps/web/.auth/

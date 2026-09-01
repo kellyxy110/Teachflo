@@ -2,13 +2,14 @@ import { getStudioDocuments } from "@/app/actions/knowledge-studio";
 import { KnowledgeStudioClient } from "@/components/knowledge-studio/KnowledgeStudioClient";
 import { requireSchool } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { documentAccessWhere } from "@/lib/documents/access";
 
 export default async function KnowledgeStudioPage() {
-  await requireSchool();
+  const { schoolId, teacher } = await requireSchool();
   const documents = await getStudioDocuments();
 
   const subjectRows = await db.document.findMany({
-    where: { status: "READY" },
+    where: { ...documentAccessWhere(schoolId, teacher.id), status: "READY" },
     select: { subject: true },
     distinct: ["subject"],
   });

@@ -1,5 +1,7 @@
 import { safeAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { isLessonContentEnvelope, isLegacyLessonContent } from "@/lib/lessons/content-envelope";
+import type { Prisma } from "@prisma/client";
 
 export async function PATCH(
   request: Request,
@@ -41,9 +43,14 @@ export async function PATCH(
   });
   if (!lesson) return Response.json({ error: "Lesson not found" }, { status: 404 });
 
+  const current = await db.lesson.findFirst({ where: { id: lessonId, schoolId: teacher.schoolId }, select: { content: true } });
+  if (current?.content != null && !isLessonContentEnvelope(current.content) && !isLegacyLessonContent(current.content)) return Response.json({ error: "Lesson content is unreadable" }, { status: 409 });
+  const nextContent = isLessonContentEnvelope(current?.content)
+    ? { ...current.content, markdown: markdown.slice(0, 200000), review: { ...current.content.review, state: "DRAFT" as const, teacherEditState: "EDITED" as const } }
+    : { markdown: markdown.slice(0, 200000) };
   await db.lesson.update({
     where: { id: lessonId },
-    data: { content: { markdown: markdown.slice(0, 200000) } },
+    data: { content: nextContent as unknown as Prisma.InputJsonValue },
   });
 
   return Response.json({ ok: true });

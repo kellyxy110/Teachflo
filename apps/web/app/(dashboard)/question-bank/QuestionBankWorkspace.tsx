@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Check, Eye, Library, Plus, X } from "lucide-react";
 import { addQuestionsToAssessment } from "@/app/actions/question-bank";
+import { transitionQuestionLifecycle } from "@/app/actions/questions";
 import { Button } from "@/components/ui/Button";
 import { FormField, Input, Select, fieldAria } from "@/components/ui/FormField";
 import { Drawer } from "@/components/ui/Overlay";
@@ -33,6 +34,8 @@ type BankQuestion = {
   latestVersion: number | null;
   usageCount: number;
   selectable: boolean;
+  sourceEvidence: { exactExcerpt?: string; sourceLocation?: { page?: number; paragraph?: number; lineStart?: number; lineEnd?: number } } | null;
+  canManage: boolean;
 };
 
 type EditableAssessment = {
@@ -175,6 +178,8 @@ export function QuestionBankWorkspace({
                     <StatusBadge>{question.usageCount} use{question.usageCount === 1 ? "" : "s"}</StatusBadge>
                   </span>
                   {unavailableReason && <span id={`question-${question.id}-state`} className="mt-2 block text-xs text-warning">{unavailableReason}</span>}
+                  {question.sourceEvidence && <details className="mt-3 text-xs"><summary className="cursor-pointer font-medium text-primary">View source evidence</summary><p className="mt-2 font-medium text-primary">{question.sourceEvidence.sourceLocation?.page ? `Page ${question.sourceEvidence.sourceLocation.page}` : question.sourceEvidence.sourceLocation?.paragraph ? `Paragraph ${question.sourceEvidence.sourceLocation.paragraph}` : question.sourceEvidence.sourceLocation?.lineStart ? `Lines ${question.sourceEvidence.sourceLocation.lineStart}–${question.sourceEvidence.sourceLocation.lineEnd ?? question.sourceEvidence.sourceLocation.lineStart}` : "Location unavailable"}</p><p className="mt-2 whitespace-pre-wrap break-words text-text-2">{question.sourceEvidence.exactExcerpt}</p><p className="mt-2 text-muted">Teacher adapted from source</p></details>}
+                  {question.canManage && question.lifecycle !== "APPROVED" && <button type="button" onClick={async () => { await transitionQuestionLifecycle(question.id, question.lifecycle === "DRAFT" ? "REVIEW" : "APPROVED"); router.refresh(); }} className="mt-3 rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-text-2 focus:outline-none focus-visible:ring-2 focus:ring-primary">{question.lifecycle === "DRAFT" ? "Mark as reviewed" : "Approve for reuse"}</button>}
                 </label>
                 <Button variant="quiet" size="sm" onClick={() => setPreview(question)} aria-label={`Preview question: ${question.stem}`}>
                   <Eye size={16} aria-hidden="true" />

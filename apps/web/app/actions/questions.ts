@@ -4,6 +4,9 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { requireSchool } from "@/lib/auth";
 import type { ClassLevel, ExamType, Difficulty, Section, QuestionType, BloomsLevel } from "@prisma/client";
+import { QuestionLifecycle, QuestionSourceKind, QuestionVisibility } from "@prisma/client";
+import { getPrivateSourceSelection } from "@/app/actions/documents";
+import { buildSourceBackedQuestionVersionPayload } from "@/lib/questions/source-question";
 
 export interface ManualQuestionInput {
   examId?: string;
@@ -109,6 +112,42 @@ export async function saveManualQuestion(input: ManualQuestionInput) {
   revalidatePath("/exams");
   revalidatePath(`/exams/${examId}`);
   return { questionId: question.id, examId };
+}
+
+export async function createSourceBackedQuestionDraft(input: ManualQuestionInput & { sourceDocumentId: string; sourceChunkId: string }) {
+  const { schoolId, teacher } = await requireSchool();
+  if (!input.stem.trim() || !input.solution.trim() || !input.explanation.trim()) throw new Error("Question text, solution, and explanation are required.");
+  const source = await getPrivateSourceSelection(input.sourceDocumentId, input.sourceChunkId);
+  if (!source) throw new Error("Source is unavailable.");
+  let examId = input.examId;
+  return db.$transaction(async (tx) => {
+    if (examId) {
+      const exam = await tx.exam.findFirst({ where: { id: examId, schoolId, teacherId: teacher.id }, select: { id: true } });
+      if (!exam) throw new Error("Assessment is unavailable.");
+    } else {
+      const exam = await tx.exam.create({ data: { schoolId, teacherId: teacher.id, title: `${input.subject} — ${input.topic} (Source)`, subject: input.subject, topic: input.topic, classLevel: input.classLevel, examType: input.examType, difficulty: input.difficulty, examMode: "STANDARD" } });
+      examId = exam.id;
+    }
+    const existingCount = await tx.question.count({ where: { examId } });
+    const question = await tx.question.create({ data: {
+      examId, schoolId, createdByTeacherId: teacher.id, lifecycle: QuestionLifecycle.DRAFT, sourceKind: QuestionSourceKind.TEACHER, visibility: QuestionVisibility.PRIVATE,
+      section: input.section, number: existingCount + 1, type: input.questionType, stem: input.stem, optionA: input.optionA ?? null, optionB: input.optionB ?? null, optionC: input.optionC ?? null, optionD: input.optionD ?? null, optionE: input.optionE ?? null, correctOption: input.correctOption ?? null, questionText: input.questionText ?? null, markScheme: input.markScheme ?? null, solution: input.solution, explanation: input.explanation, commonMistakes: input.commonMistakes ?? null, examTip: input.examTip ?? null, curriculumRef: input.curriculumRef ?? null, difficulty: input.difficulty.toLowerCase(), bloomLevel: input.bloomLevel ?? null, skillTag: input.skillTag ?? null, topicTag: input.topicTag ?? input.topic, subTopicTag: input.subTopicTag ?? null, estimatedTime: input.estimatedTime ?? 90, questionSource: "teacher-adapted-from-source", relatedChunkIds: [source.chunk.id],
+    } });
+    const payload = buildSourceBackedQuestionVersionPayload({ stem: input.stem, type: input.questionType, solution: input.solution, explanation: input.explanation, options: { A: input.optionA ?? "", B: input.optionB ?? "", C: input.optionC ?? "", D: input.optionD ?? "", E: input.optionE ?? "" }, sourceReference: source.sourceReference });
+    const version = await tx.questionVersion.create({ data: { questionId: question.id, version: 1, payload } });
+    if (input.skillTag) await tx.questionTag.create({ data: { questionId: question.id, skill: input.skillTag, topic: input.topicTag ?? input.topic, subtopic: input.subTopicTag ?? null, bloomsLevel: (input.bloomLevel as BloomsLevel) ?? null } });
+    return { questionId: question.id, questionVersionId: version.id, examId: examId! };
+  });
+}
+
+export async function transitionQuestionLifecycle(questionId: string, next: "REVIEW" | "APPROVED") {
+  const { schoolId, teacher } = await requireSchool();
+  const question = await db.question.findFirst({ where: { id: questionId, schoolId, createdByTeacherId: teacher.id }, select: { lifecycle: true } });
+  if (!question) throw new Error("Question not found");
+  if ((next === "REVIEW" && question.lifecycle !== QuestionLifecycle.DRAFT) || (next === "APPROVED" && question.lifecycle !== QuestionLifecycle.REVIEW)) throw new Error("Invalid question review transition");
+  const updated = await db.question.update({ where: { id: questionId }, data: { lifecycle: next === "REVIEW" ? QuestionLifecycle.REVIEW : QuestionLifecycle.APPROVED } });
+  revalidatePath("/question-bank");
+  return { questionId: updated.id, lifecycle: updated.lifecycle };
 }
 
 export async function bulkImportQuestions(

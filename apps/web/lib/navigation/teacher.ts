@@ -95,6 +95,7 @@ export const teacherNavGroups: TeacherNavGroup[] = [
     label: "Content",
     items: [
       item("/library", "Library", Library),
+      item("/library/bookshelf", "My Bookshelf", BookOpen),
       item("/curriculum", "Curriculum", BookOpen),
     ],
   },

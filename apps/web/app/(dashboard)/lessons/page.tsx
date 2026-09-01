@@ -9,7 +9,7 @@ export default async function LessonsPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Lessons" description={`${lessons.length} saved lesson${lessons.length !== 1 ? "s" : ""}`} primaryAction={<ButtonLink href="/lessons/new"><Plus size={16} aria-hidden="true" />New lesson</ButtonLink>} />
+      <PageHeader title="Lesson Library" description={`${lessons.length} saved lesson${lessons.length !== 1 ? "s" : ""} — reusable teaching resources`} primaryAction={<ButtonLink href="/lessons/new"><Plus size={16} aria-hidden="true" />Create lesson</ButtonLink>} />
 
       <LessonsListClient lessons={lessons} />
     </div>

@@ -2,12 +2,13 @@
 
 import { db } from "@/lib/db";
 import { requireSchool } from "@/lib/auth";
+import { documentAccessWhere } from "@/lib/documents/access";
 
 export async function getStudioDocuments() {
-  const { schoolId } = await requireSchool();
+  const { schoolId, teacher } = await requireSchool();
 
   return db.document.findMany({
-    where: { schoolId, status: "READY" },
+    where: { ...documentAccessWhere(schoolId, teacher.id), status: "READY" },
     orderBy: { createdAt: "desc" },
     select: {
       id: true,
@@ -24,7 +25,12 @@ export async function getStudioDocuments() {
 }
 
 export async function getDocumentChunks(documentId: string) {
-  const { schoolId } = await requireSchool();
+  const { schoolId, teacher } = await requireSchool();
+  const accessible = await db.document.findFirst({
+    where: { id: documentId, ...documentAccessWhere(schoolId, teacher.id) },
+    select: { id: true },
+  });
+  if (!accessible) throw new Error("Document not found");
 
   return db.$queryRawUnsafe<
     Array<{
@@ -34,11 +40,14 @@ export async function getDocumentChunks(documentId: string) {
       metadata: Record<string, unknown> | null;
     }>
   >(
-    `SELECT id, content, "chunkIndex", metadata
-     FROM document_chunks
-     WHERE "documentId" = $1 AND "schoolId" = $2
+    `SELECT dc.id, dc.content, dc."chunkIndex", dc.metadata
+     FROM document_chunks dc
+     JOIN documents d ON d.id = dc."documentId"
+     WHERE dc."documentId" = $1 AND dc."schoolId" = $2
+       AND (d."visibility" = 'SCHOOL' OR (d."visibility" = 'PRIVATE' AND d."teacherId" = $3))
      ORDER BY "chunkIndex" ASC`,
     documentId,
-    schoolId
+    schoolId,
+    teacher.id
   );
 }
