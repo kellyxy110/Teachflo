@@ -59,7 +59,6 @@ export async function getQuestionBankWorkspaceForActor(
       take: 51,
       include: {
         exam: { select: { subject: true, topic: true, classLevel: true } },
-        createdByTeacherId: true,
         versions: { orderBy: { version: "desc" }, take: 1 },
         _count: { select: { assessmentItems: true } },
       },
