@@ -107,7 +107,7 @@ export async function runPdfInspectorAdapter(fixture: QualificationFixture): Pro
     if (typeof mod.processPdf !== "function") throw new Error("pdf-inspector processPdf is unavailable");
     const raw = await mod.processPdf(fixture.pdf) as { pdfType?: string; markdown?: string | null; pageCount?: number; pages?: Array<{ text?: string; page?: number; num?: number }> };
     const pageExtraction = typeof mod.extractPagesMarkdown === "function"
-      ? await mod.extractPagesMarkdown(fixture.pdf) as { pages?: Array<{ markdown?: string; page?: number }> }
+      ? await mod.extractPagesMarkdown(fixture.pdf) as { pages?: Array<{ markdown?: string; page?: number; num?: number }> }
       : null;
     const pages = pageExtraction?.pages?.length
       ? pageExtraction.pages.map((page) => ({ text: page.markdown ?? "", page: (page.page ?? 0) + 1 }))
