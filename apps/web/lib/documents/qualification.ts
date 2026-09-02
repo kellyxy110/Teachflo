@@ -111,9 +111,9 @@ export async function runPdfInspectorAdapter(fixture: QualificationFixture): Pro
       : null;
     const pages = pageExtraction?.pages?.length
       ? pageExtraction.pages.map((page) => ({ text: page.markdown ?? "", page: (page.page ?? 0) + 1 }))
-      : (raw.pages ?? []);
+      : (raw.pages ?? []).map((page) => ({ text: page.text, page: page.page ?? page.num }));
     const pageCount = raw.pageCount ?? pages.length;
-    const blocks = pages.map((page) => ({ sourceText: page.text ?? "", location: { page: page.page ?? page.num ?? 1 }, extractionMethod: "pdf-inspector" }));
+    const blocks = pages.map((page) => ({ sourceText: page.text ?? "", location: { page: page.page ?? 1 }, extractionMethod: "pdf-inspector" }));
     const text = blocks.length ? blocks.map((block) => block.sourceText).join("\n") : (raw.markdown ?? "");
     if (!blocks.length && text) blocks.push({ sourceText: text, location: { page: 1 }, extractionMethod: "pdf-inspector" });
     const type = String(raw.pdfType ?? "").toUpperCase();
