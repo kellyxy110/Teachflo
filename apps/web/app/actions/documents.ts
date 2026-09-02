@@ -34,7 +34,7 @@ export async function getDocuments() {
 export async function getPrivateBookshelfDocuments() {
   const { schoolId, teacher } = await requireSchool();
   return db.document.findMany({
-    where: { ...privateBookshelfWhere(schoolId, teacher.id), id: documentId },
+    where: privateBookshelfWhere(schoolId, teacher.id),
     orderBy: { createdAt: "desc" },
     select: {
       id: true,
