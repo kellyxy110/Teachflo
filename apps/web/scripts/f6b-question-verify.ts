@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { readFileSync } from "node:fs";
 import {
   Prisma,
   PrismaClient,
@@ -20,7 +21,10 @@ if (process.env.NODE_ENV !== "test") {
   throw new Error("F6B harness requires NODE_ENV=test");
 }
 
-const rawUrl = process.env.DATABASE_URL ?? "";
+const envLine = readFileSync(new URL("../../../packages/database/.env", import.meta.url), "utf8")
+  .split(/\r?\n/)
+  .find((line) => line.startsWith("DATABASE_URL="));
+const rawUrl = process.env.DATABASE_URL?.trim() || envLine?.slice("DATABASE_URL=".length).trim().replace(/^"|"$/g, "") || "";
 const databaseUrl = new URL(rawUrl);
 if (
   !databaseUrl.username.includes(APPROVED_PROJECT) ||
@@ -30,6 +34,7 @@ if (
 ) {
   throw new Error("F6B harness refuses non-Development target");
 }
+process.env.DATABASE_URL = rawUrl;
 
 const db = new PrismaClient();
 const MARKER_PREFIX = "F6B1_SYNTH_";
