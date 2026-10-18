@@ -7,7 +7,7 @@ export type ReviewActor = { schoolId: string; teacherId: string };
 
 function access(actor: ReviewActor): Prisma.QuestionWhereInput { return { schoolId: actor.schoolId, OR: [{ createdByTeacherId: actor.teacherId }, { visibility: "SCHOOL" }] }; }
 function writeAccess(actor: ReviewActor): Prisma.QuestionWhereInput { return { schoolId: actor.schoolId, createdByTeacherId: actor.teacherId }; }
-function metadataFromPayload(payload: Prisma.JsonValue) { if (!payload || typeof payload !== "object" || Array.isArray(payload)) return null; const metadata = (payload as Record<string, unknown>).metadata; return metadata && typeof metadata === "object" && !Array.isArray(metadata) ? metadata : null; }
+function metadataFromPayload(payload: Prisma.JsonValue) { if (!payload || typeof payload !== "object" || Array.isArray(payload)) return null; const metadata = (payload as Record<string, unknown>).metadata; return metadata && typeof metadata === "object" && !Array.isArray(metadata) ? metadata as Record<string, unknown> : null; }
 
 export async function getQuestionReviewQueue(actor: ReviewActor, filters: ReviewFilters = {}) {
   const pageSize = Math.min(Math.max(filters.pageSize ?? 20, 1), 50); const page = Math.max(filters.page ?? 1, 1);
