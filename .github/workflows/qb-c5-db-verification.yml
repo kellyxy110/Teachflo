@@ -38,6 +38,8 @@ jobs:
           node-version: '24'
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - name: Enable pgvector extension
+        run: PGPASSWORD=qbc5_local_only psql -h localhost -U qbc5 -d qbc5_test -v ON_ERROR_STOP=1 -c 'CREATE EXTENSION IF NOT EXISTS vector;'
       - run: pnpm --filter @teachflow/database exec prisma migrate deploy
       - run: pnpm --filter @teachflow/web exec prisma generate
       - run: pnpm --filter @teachflow/web exec tsx scripts/qb-c5-review-contract-tests.ts
