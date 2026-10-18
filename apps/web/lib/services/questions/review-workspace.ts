@@ -6,6 +6,7 @@ export type ReviewFilters = { lifecycle?: "DRAFT" | "REVIEW" | "APPROVED" | "ARC
 export type ReviewActor = { schoolId: string; teacherId: string };
 
 function access(actor: ReviewActor): Prisma.QuestionWhereInput { return { schoolId: actor.schoolId, OR: [{ createdByTeacherId: actor.teacherId }, { visibility: "SCHOOL" }] }; }
+function writeAccess(actor: ReviewActor): Prisma.QuestionWhereInput { return { schoolId: actor.schoolId, createdByTeacherId: actor.teacherId }; }
 function metadataFromPayload(payload: Prisma.JsonValue) { if (!payload || typeof payload !== "object" || Array.isArray(payload)) return null; const metadata = (payload as Record<string, unknown>).metadata; return metadata && typeof metadata === "object" && !Array.isArray(metadata) ? metadata : null; }
 
 export async function getQuestionReviewQueue(actor: ReviewActor, filters: ReviewFilters = {}) {
@@ -31,7 +32,7 @@ export async function reviewBatch(actor: ReviewActor, input: { questionIds: stri
   return { outcomes };
 }
 
-async function ownedQuestion(tx: Prisma.TransactionClient, actor: ReviewActor, questionId: string) { const question = await tx.question.findFirst({ where: { id: questionId, ...access(actor) }, include: { versions: { orderBy: { version: "desc" }, take: 1 } } }); if (!question) throw new Error("Question is not available for review."); return question; }
+async function ownedQuestion(tx: Prisma.TransactionClient, actor: ReviewActor, questionId: string) { const question = await tx.question.findFirst({ where: { id: questionId, ...writeAccess(actor) }, include: { versions: { orderBy: { version: "desc" }, take: 1 } } }); if (!question) throw new Error("Question is not available for review."); return question; }
 
 export async function editQuestionForReview(actor: ReviewActor, input: { questionId: string; stem: string; solution: string; explanation: string; optionA?: string; optionB?: string; optionC?: string; optionD?: string; optionE?: string; correctOption?: string; marks: number; estimatedTime: number }) {
   if (!input.stem.trim() || !input.solution.trim() || !input.explanation.trim() || input.marks <= 0 || input.estimatedTime <= 0) throw new Error("Question content, marks, and estimated time are required.");
@@ -42,4 +43,4 @@ export async function approveQuestionForReview(actor: ReviewActor, questionId: s
 
 export async function rejectQuestionForReview(actor: ReviewActor, input: { questionId: string; reason: string; note?: string }) { const reasons = ["incorrect answer", "poor wording", "duplicate", "wrong curriculum alignment", "inappropriate difficulty", "weak distractors", "poor solution", "unsuitable question"]; if (!reasons.includes(input.reason) || (input.note?.length ?? 0) > 1_000) throw new Error("Invalid rejection feedback."); return db.$transaction(async (tx) => { const question = await ownedQuestion(tx, actor, input.questionId); const latest = question.versions[0]; await tx.questionVersion.create({ data: { questionId: question.id, version: (latest?.version ?? 0) + 1, payload: { ...(latest?.payload && typeof latest.payload === "object" && !Array.isArray(latest.payload) ? latest.payload : {}), reviewDecision: { status: "REJECTED", reason: input.reason, note: input.note?.trim() || null } } as Prisma.InputJsonValue } }); await tx.question.update({ where: { id: question.id }, data: { lifecycle: QuestionLifecycle.ARCHIVED } }); return { questionId: question.id, status: "REJECTED" as const }; }); }
 
-export async function returnQuestionToDraft(actor: ReviewActor, questionId: string) { const question = await db.question.findFirst({ where: { id: questionId, ...access(actor) }, select: { id: true } }); if (!question) throw new Error("Question is not available for review."); await db.question.update({ where: { id: question.id }, data: { lifecycle: QuestionLifecycle.DRAFT } }); return { questionId: question.id, lifecycle: QuestionLifecycle.DRAFT }; }
+export async function returnQuestionToDraft(actor: ReviewActor, questionId: string) { const question = await db.question.findFirst({ where: { id: questionId, ...writeAccess(actor) }, select: { id: true } }); if (!question) throw new Error("Question is not available for review."); await db.question.update({ where: { id: question.id }, data: { lifecycle: QuestionLifecycle.DRAFT } }); return { questionId: question.id, lifecycle: QuestionLifecycle.DRAFT }; }
