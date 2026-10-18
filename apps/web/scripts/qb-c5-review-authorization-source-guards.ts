@@ -15,7 +15,9 @@ const editHandler = source.slice(source.indexOf("export async function editQuest
 const approvalHandler = source.slice(source.indexOf("export async function approveQuestionForReview"), source.indexOf("export async function rejectQuestionForReview"));
 assert.match(editHandler, /previousMetadata/);
 assert.match(editHandler, /estimatedTimeSeconds: input\.estimatedTime/);
-assert.match(editHandler, /version: \(previous\?\.version \?\? 0\) \+ 1/);
+assert.match(editHandler, /const nextVersion = \(previous\?\.version \?\? 0\) \+ 1/);
+assert.match(editHandler, /questionCorpusMetadata\.create\(/);
+assert.match(editHandler, /canonicalQuestionFingerprint\(/);
 assert.match(approvalHandler, /if \(!latest\) throw new Error/);
 assert.match(approvalHandler, /if \(!metadata\) throw new Error/);
 assert.match(approvalHandler, /validateCanonicalQuestionMetadata\(metadata\)/);
