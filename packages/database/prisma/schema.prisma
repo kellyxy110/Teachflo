@@ -616,9 +616,46 @@ model QuestionVersion {
   assessmentItems AssessmentItem[]
   publicationItems AssessmentPublicationItem[]
   curriculumAlignments QuestionVersionCurriculumAlignment[]
+  corpusMetadata QuestionCorpusMetadata?
   @@unique([questionId, version])
   @@index([questionId])
   @@map("question_versions")
+}
+
+
+model QuestionCorpusMetadata {
+  id String @id @default(cuid())
+  questionVersionId String @unique
+  questionVersion QuestionVersion @relation(fields: [questionVersionId], references: [id], onDelete: Cascade)
+  subject String
+  classLevel ClassLevel
+  term Term?
+  topic String
+  subtopic String?
+  questionType QuestionType
+  difficulty String
+  cognitiveSkills String[]
+  assessmentProfiles String[]
+  calculatorPolicy String
+  estimatedTimeSeconds Int
+  marks Float
+  prerequisiteNodeIds String[]
+  familyKey String?
+  familyVariant Json?
+  generationMethod String?
+  verifierId String?
+  verifierVersion String?
+  origin String
+  provenanceVerification String
+  exactFingerprint String
+  normalizedFingerprint String
+  familyVariantFingerprint String
+  reviewStatus QuestionLifecycle @default(DRAFT)
+  @@index([exactFingerprint])
+  @@index([normalizedFingerprint])
+  @@index([familyVariantFingerprint])
+  @@index([familyKey])
+  @@map("question_corpus_metadata")
 }
 
 model AssessmentItem {
