@@ -49,7 +49,7 @@ export async function editQuestionForReview(actor: ReviewActor, input: { questio
       defaultMarks: input.marks, estimatedTime: input.estimatedTime, lifecycle: QuestionLifecycle.DRAFT
     } });
     const fingerprint = canonicalQuestionFingerprint({ stem: next.stem, type: next.type, answer: next.correctOption ?? "", solution: next.solution });
-    const metadata = previousMetadata ? {
+    const metadata: Record<string, unknown> | null = previousMetadata ? {
       ...previousMetadata, marks: input.marks, estimatedTimeSeconds: input.estimatedTime,
       version: nextVersion, reviewStatus: QuestionLifecycle.DRAFT,
       exactFingerprint: fingerprint, normalizedFingerprint: fingerprint, familyVariantFingerprint: fingerprint
