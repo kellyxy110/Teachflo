@@ -1,4 +1,4 @@
-import type { InputHTMLAttributes, ReactNode, SelectHTMLAttributes } from "react";
+import type { InputHTMLAttributes, ReactNode, SelectHTMLAttributes, TextareaHTMLAttributes } from "react";
 import { forwardRef } from "react";
 import { cn } from "./cn";
 
@@ -56,3 +56,9 @@ export function fieldAria(id: string, options: { description?: boolean; error?: 
     "aria-invalid": options.error || undefined,
   } as const;
 }
+
+export const Textarea = forwardRef<HTMLTextAreaElement, TextareaHTMLAttributes<HTMLTextAreaElement>>(function Textarea(
+  { className, ...props }, ref,
+) {
+  return <textarea ref={ref} className={cn(controlStyles, "py-3", className)} {...props} />;
+});

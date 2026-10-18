@@ -98,4 +98,31 @@ export async function publishIngestionJob(jobId: string, actor: CurriculumAdminA
   return { published: true, duplicate: false, count: result };
 }
 
+
+export async function reviewCurriculumSource(input: { sourceId: string; verificationState: "REVIEWED"; notes?: string }, actor: CurriculumAdminActor) {
+  await requireAdmin(actor);
+  const source = await db.curriculumSource.findUnique({ where: { id: input.sourceId } });
+  if (!source || source.registeredByTeacherId !== actor.teacherId) throw new Error("Curriculum source is not available for review.");
+  if (source.verificationState !== SourceVerificationState.UNVERIFIED) throw new Error("Source must be unverified before review.");
+  return db.curriculumSource.update({ where: { id: source.id }, data: { verificationState: SourceVerificationState.REVIEWED } });
+}
+
+export async function verifyCurriculumSource(input: { sourceId: string; authorityLevel: SourceAuthorityLevel; organization: string; sourceUrl: string; licenseNote: string }, actor: CurriculumAdminActor) {
+  await requireAdmin(actor);
+  const source = await db.curriculumSource.findUnique({ where: { id: input.sourceId } });
+  if (!source || source.registeredByTeacherId !== actor.teacherId || source.verificationState !== SourceVerificationState.REVIEWED) throw new Error("Source must be reviewed by its registrar before verification.");
+  if (!input.organization.trim() || !input.sourceUrl.trim() || !input.licenseNote.trim()) throw new Error("Verification evidence is required.");
+  return db.curriculumSource.update({ where: { id: source.id }, data: { authorityLevel: input.authorityLevel, organization: input.organization, sourceUrl: input.sourceUrl, licenseNote: input.licenseNote, verificationState: SourceVerificationState.VERIFIED } });
+}
+
+export async function approveIngestionJob(jobId: string, actor: CurriculumAdminActor) {
+  await requireAdmin(actor);
+  const job = await db.curriculumIngestionJob.findUnique({ where: { id: jobId }, include: { source: true, stagedItems: true } });
+  if (!job || job.source.registeredByTeacherId !== actor.teacherId || job.state !== IngestionJobState.NEEDS_REVIEW) throw new Error("Job is not available for approval.");
+  if (job.source.verificationState !== SourceVerificationState.VERIFIED) throw new Error("Source verification required.");
+  const validation = await validateIngestionJob(jobId, actor);
+  if (!validation.valid || job.stagedItems.some((item) => item.reviewState !== StagedReviewState.APPROVED)) throw new Error("Every staged item must pass review.");
+  return transitionIngestionJob(jobId, IngestionJobState.APPROVED, actor);
+}
+
 export function asJson(value: Record<string, unknown>): Prisma.InputJsonValue { return value as Prisma.InputJsonValue; }

@@ -1,0 +1,47 @@
+name: QB-C5 isolated database verification
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'apps/web/lib/services/questions/**'
+      - 'apps/web/lib/questions/corpus-contract.ts'
+      - 'apps/web/scripts/qb-c5-*'
+      - 'packages/database/prisma/**'
+      - '.github/workflows/qb-c5-db-verification.yml'
+jobs:
+  lifecycle:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: qbc5
+          POSTGRES_PASSWORD: qbc5_local_only
+          POSTGRES_DB: qbc5_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U qbc5 -d qbc5_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://qbc5:qbc5_local_only@localhost:5432/qbc5_test
+      QBC5_ISOLATED_DB: 'true'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.18.3
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Enable pgvector extension
+        run: PGPASSWORD=qbc5_local_only psql -h localhost -U qbc5 -d qbc5_test -v ON_ERROR_STOP=1 -c 'CREATE EXTENSION IF NOT EXISTS vector;'
+      - run: pnpm --filter @teachflow/database exec prisma migrate deploy
+      - run: pnpm --filter @teachflow/web exec prisma generate
+      - run: pnpm --filter @teachflow/web exec tsx scripts/qb-c5-review-contract-tests.ts
+      - run: pnpm --filter @teachflow/web exec tsx scripts/qb-c5-review-authorization-source-guards.ts
+      - run: pnpm --filter @teachflow/web exec tsx scripts/qb-c5-db-lifecycle-integration.ts
