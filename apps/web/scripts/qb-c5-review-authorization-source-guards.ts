@@ -19,4 +19,8 @@ assert.match(editHandler, /version: \(previous\?\.version \?\? 0\) \+ 1/);
 assert.match(approvalHandler, /if \(!latest\) throw new Error/);
 assert.match(approvalHandler, /if \(!metadata\) throw new Error/);
 assert.match(approvalHandler, /validateCanonicalQuestionMetadata\(metadata\)/);
+assert.match(approvalHandler, /questionCorpusMetadata\.findUnique/);
+assert.match(approvalHandler, /if \(!relationalMetadata\) throw new Error/);
+assert.match(approvalHandler, /questionCorpusMetadata\.update\(/);
+assert.doesNotMatch(approvalHandler, /questionCorpusMetadata\.updateMany\(/);
 console.log("Question review authorization and metadata source guards passed; DB integration tests still required.");
