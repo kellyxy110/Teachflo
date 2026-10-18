@@ -11,4 +11,12 @@ const draftHandler = source.slice(source.indexOf("export async function returnQu
 assert.match(draftHandler, /\.\.\.writeAccess\(actor\)/);
 assert.doesNotMatch(ownerLoader, /\.\.\.access\(actor\)/);
 assert.doesNotMatch(draftHandler, /\.\.\.access\(actor\)/);
-console.log("Question review authorization source guards passed; DB integration tests still required.");
+const editHandler = source.slice(source.indexOf("export async function editQuestionForReview"), source.indexOf("export async function approveQuestionForReview"));
+const approvalHandler = source.slice(source.indexOf("export async function approveQuestionForReview"), source.indexOf("export async function rejectQuestionForReview"));
+assert.match(editHandler, /previousMetadata/);
+assert.match(editHandler, /estimatedTimeSeconds: input\.estimatedTime/);
+assert.match(editHandler, /version: \(previous\?\.version \?\? 0\) \+ 1/);
+assert.match(approvalHandler, /if \(!latest\) throw new Error/);
+assert.match(approvalHandler, /if \(!metadata\) throw new Error/);
+assert.match(approvalHandler, /validateCanonicalQuestionMetadata\(metadata\)/);
+console.log("Question review authorization and metadata source guards passed; DB integration tests still required.");
