@@ -1,6 +1,6 @@
 import { Prisma, QuestionLifecycle } from "@prisma/client";
 import { db } from "@/lib/db";
-import { validateCanonicalQuestionMetadata } from "@/lib/questions/corpus-contract";
+import { validateCanonicalQuestionMetadata, canonicalQuestionFingerprint } from "@/lib/questions/corpus-contract";
 
 export type ReviewFilters = { lifecycle?: "DRAFT" | "REVIEW" | "APPROVED" | "ARCHIVED"; subject?: string; classLevel?: "JS1" | "JS2" | "JS3" | "SS1" | "SS2" | "SS3"; term?: "FIRST" | "SECOND" | "THIRD"; topic?: string; objectiveNodeId?: string; type?: "MCQ" | "SHORT_ANSWER" | "ESSAY" | "STRUCTURED" | "CALCULATION"; difficulty?: "FOUNDATION" | "STANDARD" | "ADVANCED" | "EXAM_CHALLENGE"; cognitiveSkill?: "RECALL" | "UNDERSTANDING" | "APPLICATION" | "ANALYSIS" | "MULTI_STEP_REASONING"; assessmentProfile?: "SCHOOL_STANDARD" | "FOUNDATION" | "ADVANCED" | "WAEC_STYLE" | "NECO_STYLE" | "JAMB_STYLE"; origin?: string; familyKey?: string; query?: string; page?: number; pageSize?: number };
 export type ReviewActor = { schoolId: string; teacherId: string };
@@ -36,7 +36,52 @@ async function ownedQuestion(tx: Prisma.TransactionClient, actor: ReviewActor, q
 
 export async function editQuestionForReview(actor: ReviewActor, input: { questionId: string; stem: string; solution: string; explanation: string; optionA?: string; optionB?: string; optionC?: string; optionD?: string; optionE?: string; correctOption?: string; marks: number; estimatedTime: number }) {
   if (!input.stem.trim() || !input.solution.trim() || !input.explanation.trim() || input.marks <= 0 || input.estimatedTime <= 0) throw new Error("Question content, marks, and estimated time are required.");
-  return db.$transaction(async (tx) => { const question = await ownedQuestion(tx, actor, input.questionId); const previous = question.versions[0]; const previousMetadata = previous ? metadataFromPayload(previous.payload) : null; const next = await tx.question.update({ where: { id: question.id }, data: { stem: input.stem.trim(), solution: input.solution.trim(), explanation: input.explanation.trim(), optionA: input.optionA?.trim() || null, optionB: input.optionB?.trim() || null, optionC: input.optionC?.trim() || null, optionD: input.optionD?.trim() || null, optionE: input.optionE?.trim() || null, correctOption: input.correctOption?.trim() || null, defaultMarks: input.marks, estimatedTime: input.estimatedTime, lifecycle: QuestionLifecycle.DRAFT } }); await tx.questionVersion.create({ data: { questionId: next.id, version: (previous?.version ?? 0) + 1, payload: { stem: next.stem, solution: next.solution, explanation: next.explanation, options: { A: next.optionA, B: next.optionB, C: next.optionC, D: next.optionD, E: next.optionE }, answer: next.correctOption, review: { edited: true, priorVersion: previous?.version ?? null }, ...(previousMetadata ? { metadata: { ...previousMetadata, marks: input.marks, estimatedTimeSeconds: input.estimatedTime, version: (previous?.version ?? 0) + 1 } } : {}) } as Prisma.InputJsonValue } }); return { questionId: next.id, version: (previous?.version ?? 0) + 1 }; });
+  return db.$transaction(async (tx) => {
+    const question = await ownedQuestion(tx, actor, input.questionId);
+    const previous = question.versions[0];
+    const previousMetadata = previous ? metadataFromPayload(previous.payload) : null;
+    const nextVersion = (previous?.version ?? 0) + 1;
+    const next = await tx.question.update({ where: { id: question.id }, data: {
+      stem: input.stem.trim(), solution: input.solution.trim(), explanation: input.explanation.trim(),
+      optionA: input.optionA?.trim() || null, optionB: input.optionB?.trim() || null,
+      optionC: input.optionC?.trim() || null, optionD: input.optionD?.trim() || null,
+      optionE: input.optionE?.trim() || null, correctOption: input.correctOption?.trim() || null,
+      defaultMarks: input.marks, estimatedTime: input.estimatedTime, lifecycle: QuestionLifecycle.DRAFT
+    } });
+    const fingerprint = canonicalQuestionFingerprint({ stem: next.stem, type: next.type, answer: next.correctOption ?? "", solution: next.solution });
+    const metadata = previousMetadata ? {
+      ...previousMetadata, marks: input.marks, estimatedTimeSeconds: input.estimatedTime,
+      version: nextVersion, reviewStatus: QuestionLifecycle.DRAFT,
+      exactFingerprint: fingerprint, normalizedFingerprint: fingerprint, familyVariantFingerprint: fingerprint
+    } : null;
+    if (metadata) {
+      const validation = validateCanonicalQuestionMetadata(metadata);
+      if (!validation.valid) throw new Error(`Edited question metadata is invalid: ${validation.blockers.join("; ")}`);
+    }
+    const version = await tx.questionVersion.create({ data: { questionId: next.id, version: nextVersion,
+      payload: { stem: next.stem, solution: next.solution, explanation: next.explanation,
+        options: { A: next.optionA, B: next.optionB, C: next.optionC, D: next.optionD, E: next.optionE },
+        answer: next.correctOption, review: { edited: true, priorVersion: previous?.version ?? null },
+        ...(metadata ? { metadata } : {}) } as Prisma.InputJsonValue } });
+    if (metadata) {
+      const m = metadata;
+      await tx.questionCorpusMetadata.create({ data: {
+        questionVersionId: version.id, subject: String(m.subject), classLevel: m.classLevel as never,
+        term: (m.term as never) ?? null, topic: String(m.topic), subtopic: (m.subtopic as string) ?? null,
+        questionType: m.questionType as never, difficulty: String(m.difficulty),
+        cognitiveSkills: m.cognitiveSkills as string[], assessmentProfiles: m.assessmentProfiles as string[],
+        calculatorPolicy: String(m.calculatorPolicy), estimatedTimeSeconds: input.estimatedTime,
+        marks: input.marks, prerequisiteNodeIds: (m.prerequisiteNodeIds as string[]) ?? [],
+        familyKey: (m.familyKey as string) ?? null,
+        generationMethod: (m.generationMethod as string) ?? null,
+        verifierId: (m.verifierId as string) ?? null, verifierVersion: (m.verifierVersion as string) ?? null,
+        origin: String(m.origin), provenanceVerification: String((m.provenance as {verification: string}).verification),
+        exactFingerprint: fingerprint, normalizedFingerprint: fingerprint, familyVariantFingerprint: fingerprint,
+        reviewStatus: QuestionLifecycle.DRAFT
+      } });
+    }
+    return { questionId: next.id, version: nextVersion };
+  });
 }
 
 export async function approveQuestionForReview(actor: ReviewActor, questionId: string) { return db.$transaction(async (tx) => { const question = await ownedQuestion(tx, actor, questionId); const latest = question.versions[0]; if (!latest) throw new Error("Approval blocked: question version is missing."); const metadata = metadataFromPayload(latest.payload); if (!metadata) throw new Error("Approval blocked: canonical question metadata is missing."); const validation = validateCanonicalQuestionMetadata(metadata); if (!validation.valid) throw new Error(`Approval blocked: ${validation.blockers.join("; ")}`); const relationalMetadata = await tx.questionCorpusMetadata.findUnique({ where: { questionVersionId: latest.id }, select: { id: true } }); if (!relationalMetadata) throw new Error("Approval blocked: relational question metadata is missing."); const updated = await tx.question.update({ where: { id: questionId }, data: { lifecycle: QuestionLifecycle.APPROVED } }); await tx.questionCorpusMetadata.update({ where: { questionVersionId: latest.id }, data: { reviewStatus: QuestionLifecycle.APPROVED } }); return { questionId: updated.id, lifecycle: updated.lifecycle }; }); }
