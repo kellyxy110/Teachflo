@@ -8,7 +8,12 @@ assert.match(source, /function writeAccess\(actor: ReviewActor\): Prisma\.Questi
 const ownerLoader = source.match(/async function ownedQuestion\([\s\S]*?\n\}/)?.[0] ?? source.slice(source.indexOf("async function ownedQuestion"), source.indexOf("export async function editQuestionForReview"));
 assert.match(ownerLoader, /\.\.\.writeAccess\(actor\)/);
 const draftHandler = source.slice(source.indexOf("export async function returnQuestionToDraft"));
-assert.match(draftHandler, /\.\.\.writeAccess\(actor\)/);
+assert.match(draftHandler, /reviewableQuestion\(tx, actor, questionId\)/);
+assert.match(source, /reviewer\.role !== "HOD"/);
+assert.match(source, /department !== ownerDepartment/);
+assert.match(source, /question\.visibility !== "SCHOOL"/);
+assert.match(source, /schoolId: actor\.schoolId, isActive: true/);
+assert.match(source, /createdByTeacher\.schoolId !== actor\.schoolId/);
 assert.doesNotMatch(ownerLoader, /\.\.\.access\(actor\)/);
 assert.doesNotMatch(draftHandler, /\.\.\.access\(actor\)/);
 const editHandler = source.slice(source.indexOf("export async function editQuestionForReview"), source.indexOf("export async function approveQuestionForReview"));
