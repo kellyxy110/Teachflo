@@ -29,32 +29,45 @@ export async function setupSchool(formData: FormData) {
     .toUpperCase()
     .slice(0, 6);
 
-  const school = await db.school.create({
-    data: {
-      name: schoolName,
-      code: `${code}-${Date.now().toString(36).toUpperCase()}`,
-      state,
-      lga: lga || undefined,
-    },
-  });
+  // Create school, teacher and provider identity atomically. A failed identity
+  // insert must not leave an orphaned school or an unusable teacher record.
+  const school = await db.$transaction(async (tx) => {
+    const existingIdentity = await tx.authIdentity.findUnique({
+      where: {
+        provider_providerUserId: {
+          provider: process.env.AUTH_PROVIDER === "supabase" ? "SUPABASE" : "CLERK",
+          providerUserId: userId,
+        },
+      },
+    });
+    if (existingIdentity) throw new Error("This account is already linked to a school or student.");
 
-  const teacher = await db.teacher.create({
-    data: {
-      clerkId: userId,
-      schoolId: school.id,
-      firstName: user.firstName ?? "Teacher",
-      lastName: user.lastName ?? "",
-      email: user.email ?? "",
-      role: "ADMIN",
-    },
-  });
-
-  await db.authIdentity.create({
-    data: {
-      provider: process.env.AUTH_PROVIDER === "supabase" ? "SUPABASE" : "CLERK",
-      providerUserId: userId,
-      teacherId: teacher.id,
-    },
+    const createdSchool = await tx.school.create({
+      data: {
+        name: schoolName,
+        code: `${code}-${Date.now().toString(36).toUpperCase()}`,
+        state,
+        lga: lga || undefined,
+      },
+    });
+    const teacher = await tx.teacher.create({
+      data: {
+        clerkId: userId,
+        schoolId: createdSchool.id,
+        firstName: user.firstName ?? "Teacher",
+        lastName: user.lastName ?? "",
+        email: user.email ?? "",
+        role: "ADMIN",
+      },
+    });
+    await tx.authIdentity.create({
+      data: {
+        provider: process.env.AUTH_PROVIDER === "supabase" ? "SUPABASE" : "CLERK",
+        providerUserId: userId,
+        teacherId: teacher.id,
+      },
+    });
+    return createdSchool;
   });
 
   // Stamp role + schoolId onto the user so middleware can read it
