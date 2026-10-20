@@ -32,6 +32,41 @@ export async function reviewBatch(actor: ReviewActor, input: { questionIds: stri
   return { outcomes };
 }
 
+/**
+ * HOD review is a separate capability from editing. Resolve the role and
+ * department from persisted teacher records, never from caller-supplied roles.
+ * Require an explicitly assigned department on both teachers and the same
+ * school. The question's creator retains ownership and edit rights.
+ */
+async function reviewableQuestion(tx: Prisma.TransactionClient, actor: ReviewActor, questionId: string) {
+  const reviewer = await tx.teacher.findFirst({
+    where: { id: actor.teacherId, schoolId: actor.schoolId, isActive: true },
+    select: { id: true, role: true, department: true },
+  });
+  if (!reviewer) throw new Error("Question is not available for review.");
+
+  const question = await tx.question.findFirst({
+    where: { id: questionId, schoolId: actor.schoolId },
+    include: {
+      createdByTeacher: { select: { id: true, schoolId: true, department: true, isActive: true } },
+      versions: { orderBy: { version: "desc" }, take: 1 },
+    },
+  });
+  if (!question || !question.createdByTeacher || !question.createdByTeacher.isActive ||
+      question.createdByTeacher.schoolId !== actor.schoolId)
+    throw new Error("Question is not available for review.");
+
+  if (question.createdByTeacherId === reviewer.id) return question;
+
+  const department = reviewer.department?.trim().toLocaleLowerCase();
+  const ownerDepartment = question.createdByTeacher.department?.trim().toLocaleLowerCase();
+  if (reviewer.role !== "HOD" || !department || !ownerDepartment ||
+      department !== ownerDepartment || question.visibility !== "SCHOOL")
+    throw new Error("Question is not available for review.");
+
+  return question;
+}
+
 async function ownedQuestion(tx: Prisma.TransactionClient, actor: ReviewActor, questionId: string) { const question = await tx.question.findFirst({ where: { id: questionId, ...writeAccess(actor) }, include: { versions: { orderBy: { version: "desc" }, take: 1 } } }); if (!question) throw new Error("Question is not available for review."); return question; }
 
 export async function editQuestionForReview(actor: ReviewActor, input: { questionId: string; stem: string; solution: string; explanation: string; optionA?: string; optionB?: string; optionC?: string; optionD?: string; optionE?: string; correctOption?: string; marks: number; estimatedTime: number }) {
@@ -84,8 +119,22 @@ export async function editQuestionForReview(actor: ReviewActor, input: { questio
   });
 }
 
-export async function approveQuestionForReview(actor: ReviewActor, questionId: string) { return db.$transaction(async (tx) => { const question = await ownedQuestion(tx, actor, questionId); const latest = question.versions[0]; if (!latest) throw new Error("Approval blocked: question version is missing."); const metadata = metadataFromPayload(latest.payload); if (!metadata) throw new Error("Approval blocked: canonical question metadata is missing."); const validation = validateCanonicalQuestionMetadata(metadata); if (!validation.valid) throw new Error(`Approval blocked: ${validation.blockers.join("; ")}`); const relationalMetadata = await tx.questionCorpusMetadata.findUnique({ where: { questionVersionId: latest.id }, select: { id: true } }); if (!relationalMetadata) throw new Error("Approval blocked: relational question metadata is missing."); const expectedFingerprint = canonicalQuestionFingerprint({ stem: question.stem, type: question.type, answer: question.correctOption ?? "", solution: question.solution }); const fingerprints = await tx.questionCorpusMetadata.findUnique({ where: { questionVersionId: latest.id }, select: { exactFingerprint: true } }); if (!fingerprints || fingerprints.exactFingerprint !== expectedFingerprint) throw new Error("Approval blocked: question metadata fingerprints are stale."); const updated = await tx.question.update({ where: { id: questionId }, data: { lifecycle: QuestionLifecycle.APPROVED } }); await tx.questionCorpusMetadata.update({ where: { questionVersionId: latest.id }, data: { reviewStatus: QuestionLifecycle.APPROVED } }); return { questionId: updated.id, lifecycle: updated.lifecycle }; }); }
+export async function approveQuestionForReview(actor: ReviewActor, questionId: string) { return db.$transaction(async (tx) => { const question = await reviewableQuestion(tx, actor, questionId); const latest = question.versions[0]; if (!latest) throw new Error("Approval blocked: question version is missing."); const metadata = metadataFromPayload(latest.payload); if (!metadata) throw new Error("Approval blocked: canonical question metadata is missing."); const validation = validateCanonicalQuestionMetadata(metadata); if (!validation.valid) throw new Error(`Approval blocked: ${validation.blockers.join("; ")}`); const relationalMetadata = await tx.questionCorpusMetadata.findUnique({ where: { questionVersionId: latest.id }, select: { id: true } }); if (!relationalMetadata) throw new Error("Approval blocked: relational question metadata is missing."); const expectedFingerprint = canonicalQuestionFingerprint({ stem: question.stem, type: question.type, answer: question.correctOption ?? "", solution: question.solution }); const fingerprints = await tx.questionCorpusMetadata.findUnique({ where: { questionVersionId: latest.id }, select: { exactFingerprint: true } }); if (!fingerprints || fingerprints.exactFingerprint !== expectedFingerprint) throw new Error("Approval blocked: question metadata fingerprints are stale."); const updated = await tx.question.update({ where: { id: questionId }, data: { lifecycle: QuestionLifecycle.APPROVED } }); await tx.questionCorpusMetadata.update({ where: { questionVersionId: latest.id }, data: { reviewStatus: QuestionLifecycle.APPROVED } }); return { questionId: updated.id, lifecycle: updated.lifecycle }; }); }
 
-export async function rejectQuestionForReview(actor: ReviewActor, input: { questionId: string; reason: string; note?: string }) { const reasons = ["incorrect answer", "poor wording", "duplicate", "wrong curriculum alignment", "inappropriate difficulty", "weak distractors", "poor solution", "unsuitable question"]; if (!reasons.includes(input.reason) || (input.note?.length ?? 0) > 1_000) throw new Error("Invalid rejection feedback."); return db.$transaction(async (tx) => { const question = await ownedQuestion(tx, actor, input.questionId); const latest = question.versions[0]; const priorMetadata = latest ? await tx.questionCorpusMetadata.findUnique({ where: { questionVersionId: latest.id } }) : null; const rejectionVersion = await tx.questionVersion.create({ data: { questionId: question.id, version: (latest?.version ?? 0) + 1, payload: { ...(latest?.payload && typeof latest.payload === "object" && !Array.isArray(latest.payload) ? latest.payload : {}), reviewDecision: { status: "REJECTED", reason: input.reason, note: input.note?.trim() || null } } as Prisma.InputJsonValue } }); if (priorMetadata) { const { id: _id, questionVersionId: _previousVersionId, ...fields } = priorMetadata; await tx.questionCorpusMetadata.create({ data: { ...fields, familyVariant: fields.familyVariant === null ? Prisma.JsonNull : fields.familyVariant as Prisma.InputJsonValue, questionVersionId: rejectionVersion.id, reviewStatus: QuestionLifecycle.ARCHIVED } }); } await tx.question.update({ where: { id: question.id }, data: { lifecycle: QuestionLifecycle.ARCHIVED } }); if (latest) await tx.questionCorpusMetadata.updateMany({ where: { questionVersionId: latest.id }, data: { reviewStatus: QuestionLifecycle.ARCHIVED } }); return { questionId: question.id, status: "REJECTED" as const }; }); }
+export async function rejectQuestionForReview(actor: ReviewActor, input: { questionId: string; reason: string; note?: string }) { const reasons = ["incorrect answer", "poor wording", "duplicate", "wrong curriculum alignment", "inappropriate difficulty", "weak distractors", "poor solution", "unsuitable question"]; if (!reasons.includes(input.reason) || (input.note?.length ?? 0) > 1_000) throw new Error("Invalid rejection feedback."); return db.$transaction(async (tx) => { const question = await reviewableQuestion(tx, actor, input.questionId); const latest = question.versions[0]; const priorMetadata = latest ? await tx.questionCorpusMetadata.findUnique({ where: { questionVersionId: latest.id } }) : null; const rejectionVersion = await tx.questionVersion.create({ data: { questionId: question.id, version: (latest?.version ?? 0) + 1, payload: { ...(latest?.payload && typeof latest.payload === "object" && !Array.isArray(latest.payload) ? latest.payload : {}), reviewDecision: { status: "REJECTED", reason: input.reason, note: input.note?.trim() || null } } as Prisma.InputJsonValue } }); if (priorMetadata) { const { id: _id, questionVersionId: _previousVersionId, ...fields } = priorMetadata; await tx.questionCorpusMetadata.create({ data: { ...fields, familyVariant: fields.familyVariant === null ? Prisma.JsonNull : fields.familyVariant as Prisma.InputJsonValue, questionVersionId: rejectionVersion.id, reviewStatus: QuestionLifecycle.ARCHIVED } }); } await tx.question.update({ where: { id: question.id }, data: { lifecycle: QuestionLifecycle.ARCHIVED } }); if (latest) await tx.questionCorpusMetadata.updateMany({ where: { questionVersionId: latest.id }, data: { reviewStatus: QuestionLifecycle.ARCHIVED } }); return { questionId: question.id, status: "REJECTED" as const }; }); }
 
-export async function returnQuestionToDraft(actor: ReviewActor, questionId: string) { const question = await db.question.findFirst({ where: { id: questionId, ...writeAccess(actor) }, select: { id: true } }); if (!question) throw new Error("Question is not available for review."); await db.$transaction(async (tx) => { await tx.question.update({ where: { id: question.id }, data: { lifecycle: QuestionLifecycle.DRAFT } }); const latest = await tx.questionVersion.findFirst({ where: { questionId: question.id }, orderBy: { version: "desc" }, select: { id: true } }); if (latest) await tx.questionCorpusMetadata.updateMany({ where: { questionVersionId: latest.id }, data: { reviewStatus: QuestionLifecycle.DRAFT } }); }); return { questionId: question.id, lifecycle: QuestionLifecycle.DRAFT }; }
+export async function returnQuestionToDraft(actor: ReviewActor, questionId: string) {
+  return db.$transaction(async (tx) => {
+    const question = await reviewableQuestion(tx, actor, questionId);
+    await tx.question.update({
+      where: { id: question.id },
+      data: { lifecycle: QuestionLifecycle.DRAFT },
+    });
+    const latest = question.versions[0];
+    if (latest) await tx.questionCorpusMetadata.updateMany({
+      where: { questionVersionId: latest.id },
+      data: { reviewStatus: QuestionLifecycle.DRAFT },
+    });
+    return { questionId: question.id, lifecycle: QuestionLifecycle.DRAFT };
+  });
+}
