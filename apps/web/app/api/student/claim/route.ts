@@ -54,18 +54,26 @@ export async function POST(request: Request) {
   const currentUser = await safeCurrentUser();
   const email = currentUser?.email ?? null;
 
-  await db.student.update({
-    where: { id: student.id },
-    data: { clerkId: userId, email },
-  });
-
-  await db.authIdentity.create({
-    data: {
-      provider: process.env.AUTH_PROVIDER === "supabase" ? "SUPABASE" : "CLERK",
-      providerUserId: userId,
-      studentId: student.id,
-    },
-  });
+  // A conditional claim prevents two accounts from taking the same student
+  // record. Keep identity creation in the same transaction so failures roll back.
+  try {
+    await db.$transaction(async (tx) => {
+      const claimed = await tx.student.updateMany({
+        where: { id: student.id, schoolId: school.id, clerkId: null, isActive: true },
+        data: { clerkId: userId, email },
+      });
+      if (claimed.count !== 1) throw new Error("STUDENT_ALREADY_CLAIMED");
+      await tx.authIdentity.create({
+        data: {
+          provider: process.env.AUTH_PROVIDER === "supabase" ? "SUPABASE" : "CLERK",
+          providerUserId: userId,
+          studentId: student.id,
+        },
+      });
+    });
+  } catch {
+    return Response.json({ error: "This student record could not be claimed. Check whether it is already linked." }, { status: 409 });
+  }
 
   await authService.setUserMetadata(userId, {
     role: "student",
