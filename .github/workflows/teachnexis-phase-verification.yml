@@ -1,0 +1,30 @@
+name: TeachNexis Phase 1–5 verification
+
+on:
+  pull_request:
+    paths:
+      - "apps/web/**"
+      - "packages/**"
+      - "pnpm-lock.yaml"
+      - ".github/workflows/teachnexis-phase-verification.yml"
+  workflow_dispatch:
+
+jobs:
+  source-and-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @teachflow/web exec prisma generate
+      - name: Phase 1 onboarding source checks
+        run: pnpm --filter @teachflow/web exec tsx scripts/phase1-onboarding-source-guards.ts
+      - name: TypeScript check
+        run: pnpm --filter @teachflow/web exec tsc --noEmit
+      - name: Application build
+        run: pnpm --filter @teachflow/web build
