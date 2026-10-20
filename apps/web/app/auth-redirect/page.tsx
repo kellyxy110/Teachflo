@@ -3,19 +3,20 @@ import { safeAuth, getCurrentTeacher, getCurrentStudent } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
+/**
+ * Resolve account records before redirecting. Next.js redirect() throws a
+ * control-flow signal, so it must never run inside a catch-all try/catch.
+ */
 export default async function AuthRedirectPage() {
   const { userId } = await safeAuth();
   if (!userId) redirect("/sign-in");
 
-  try {
-    const [teacher, student] = await Promise.all([getCurrentTeacher(), getCurrentStudent()]);
+  const [teacher, student] = await Promise.all([
+    getCurrentTeacher(),
+    getCurrentStudent(),
+  ]);
 
-    if (teacher) redirect("/dashboard");
-    if (student) redirect("/s/dashboard");
-  } catch {
-    // DB unavailable — send to onboarding so users aren't blocked
-    redirect("/choose-role");
-  }
-
+  if (teacher) redirect("/dashboard");
+  if (student) redirect("/s/dashboard");
   redirect("/choose-role");
 }
