@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { isRedirectError } from "next/dist/client/components/redirect-error";
 import { LandingPageClient } from "@/components/landing/LandingPageClient";
 
 export const dynamic = "force-dynamic";
@@ -12,14 +13,11 @@ export default async function LandingPage() {
 
   try {
     const { safeAuth } = await import("@/lib/auth");
-    const { userId, sessionClaims } = await safeAuth();
-    if (userId) {
-      const meta = (sessionClaims?.publicMetadata ?? {}) as Record<string, unknown>;
-      if (meta?.role === "student") redirect("/s/dashboard");
-      redirect("/dashboard");
-    }
-  } catch {
-    // Not signed in — show landing page
+    const { userId } = await safeAuth();
+    if (userId) redirect("/auth-redirect");
+  } catch (error) {
+    if (isRedirectError(error)) throw error;
+    // Keep the public landing available if account lookup fails.
   }
 
   return (
