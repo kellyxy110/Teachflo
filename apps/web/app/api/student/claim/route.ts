@@ -22,10 +22,18 @@ export async function POST(request: Request) {
     return Response.json({ error: "This account is already linked to a student record" }, { status: 400 });
   }
 
-  const body = await request.json();
-  const { schoolCode, regNumber } = body as { schoolCode?: string; regNumber?: string };
+  let body: unknown;
+  try { body = await request.json(); } catch {
+    return Response.json({ error: "Invalid request body" }, { status: 400 });
+  }
+  if (!body || typeof body !== "object" || Array.isArray(body)) {
+    return Response.json({ error: "Invalid request body" }, { status: 400 });
+  }
+  const fields = body as Record<string, unknown>;
+  const schoolCode = typeof fields.schoolCode === "string" ? fields.schoolCode.trim() : "";
+  const regNumber = typeof fields.regNumber === "string" ? fields.regNumber.trim() : "";
 
-  if (!schoolCode || !regNumber) {
+  if (!schoolCode || !regNumber || schoolCode.length > 64 || regNumber.length > 100) {
     return Response.json({ error: "School code and registration number are required" }, { status: 400 });
   }
 
@@ -75,11 +83,17 @@ export async function POST(request: Request) {
     return Response.json({ error: "This student record could not be claimed. Check whether it is already linked." }, { status: 409 });
   }
 
-  await authService.setUserMetadata(userId, {
-    role: "student",
-    schoolId: school.id,
-    studentId: student.id,
-  });
+  // Identity resolution is database-backed. A provider metadata outage must
+  // not make an already-committed student claim appear to have failed.
+  try {
+    await authService.setUserMetadata(userId, {
+      role: "student",
+      schoolId: school.id,
+      studentId: student.id,
+    });
+  } catch {
+    // A later login can still resolve the persisted student identity.
+  }
 
   return Response.json({ success: true, studentId: student.id });
 }
