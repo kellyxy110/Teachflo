@@ -16,6 +16,7 @@ assert.match(student, /db\.\$transaction\(async \(tx\)/, "student claim must be 
 assert.match(student, /tx\.student\.updateMany\(/);
 assert.match(student, /clerkId: null, isActive: true/);
 assert.match(student, /claimed\.count !== 1/);
+assert.match(student, /if \(!student\.isActive\)/);
 assert.match(student, /tx\.authIdentity\.create\(/);
 assert.match(student, /try \{ body = await request\.json\(\)/);
 assert.match(redirect, /getCurrentTeacher\(\)/);
