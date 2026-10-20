@@ -55,6 +55,10 @@ export async function POST(request: Request) {
     }, { status: 404 });
   }
 
+  if (!student.isActive) {
+    return Response.json({ error: "This student record is inactive. Contact your school administrator." }, { status: 403 });
+  }
+
   if (student.clerkId) {
     return Response.json({ error: "This student record is already linked to another account" }, { status: 409 });
   }
